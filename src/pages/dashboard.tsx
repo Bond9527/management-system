@@ -18,7 +18,7 @@ export default function DashboardPage() {
           这里是您的控制中心
         </span>
         <div className={subtitle({ class: "mt-4" })}>
-          您可以在这里管理所有系统功能
+          您可以在这里管理所有系统功能!
         </div>
       </div>
 

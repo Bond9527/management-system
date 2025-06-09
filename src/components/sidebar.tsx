@@ -3,16 +3,39 @@ import { Link } from "@heroui/link";
 import { siteConfig } from "@/config/site";
 import clsx from "clsx";
 import { Button } from "@heroui/button";
+import { SVGProps } from "react";
+
+// 导入所有图标组件
+import {
+  UserManagementIcon,
+  RoleManagementIcon,
+  PermissionManagementIcon,
+  MenuManagementIcon,
+  DepartmentManagementIcon,
+  PositionManagementIcon,
+  ApplyManagementIcon,
+  ApproveManagementIcon,
+  InventoryManagementIcon,
+  PurchaseManagementIcon,
+  OutboundManagementIcon,
+  InboundManagementIcon,
+  RecordsManagementIcon,
+  StatisticsManagementIcon,
+} from "@/components/management-icons";
 
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
 
+interface IconProps extends SVGProps<SVGSVGElement> {
+  className?: string;
+}
+
 interface MenuItem {
   label: string;
   href?: string;
-  icon?: React.ReactNode;
+  icon?: React.ComponentType<IconProps>;
   children?: MenuItem[];
 }
 
@@ -23,26 +46,32 @@ const systemMenuItems: MenuItem[] = [
       {
         label: "用户管理",
         href: "/system/users",
+        icon: UserManagementIcon,
       },
       {
         label: "角色管理",
         href: "/system/roles",
+        icon: RoleManagementIcon,
       },
       {
         label: "权限管理",
         href: "/system/permissions",
+        icon: PermissionManagementIcon,
       },
       {
         label: "菜单管理",
         href: "/system/menus",
+        icon: MenuManagementIcon,
       },
       {
         label: "部门管理",
         href: "/system/departments",
+        icon: DepartmentManagementIcon,
       },
       {
         label: "岗位管理",
         href: "/system/positions",
+        icon: PositionManagementIcon,
       },
     ],
   },
@@ -52,34 +81,42 @@ const systemMenuItems: MenuItem[] = [
       {
         label: "申请管理",
         href: "/supplies/apply",
+        icon: ApplyManagementIcon,
       },
       {
         label: "审批管理",
         href: "/supplies/approve",
+        icon: ApproveManagementIcon,
       },
       {
         label: "库存管理",
         href: "/supplies/inventory",
+        icon: InventoryManagementIcon,
       },
       {
         label: "采购管理",
         href: "/supplies/purchase",
+        icon: PurchaseManagementIcon,
       },
       {
         label: "出库管理",
         href: "/supplies/outbound",
+        icon: OutboundManagementIcon,
       },
       {
         label: "入库管理",
         href: "/supplies/inbound",
+        icon: InboundManagementIcon,
       },
       {
         label: "台账记录",
         href: "/supplies/records",
+        icon: RecordsManagementIcon,
       },
       {
         label: "数据统计",
         href: "/supplies/statistics",
+        icon: StatisticsManagementIcon,
       },
     ],
   },
@@ -99,6 +136,7 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
   const renderMenuItem = (item: MenuItem, level: number = 0) => {
     const isExpanded = expandedMenus.includes(item.label);
     const hasChildren = item.children && item.children.length > 0;
+    const Icon = item.icon;
 
     return (
       <div key={item.label}>
@@ -152,6 +190,7 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
             variant="light"
           >
             <span className="absolute left-0 w-1 h-0 bg-gradient-to-b from-blue-400 to-blue-600 rounded-r-full transition-all duration-200 group-hover:h-full group-data-[active=true]:h-full" />
+            {Icon && <Icon className="w-5 h-5 text-gray-500 mr-2" />}
             <span className="ml-2">{item.label}</span>
           </Button>
         )}

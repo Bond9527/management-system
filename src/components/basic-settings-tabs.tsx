@@ -1,64 +1,23 @@
 import { Tabs, Tab } from "@heroui/react";
-import { DepartmentManagementIcon, RoleManagementIcon, PositionManagementIcon, MenuManagementIcon } from "@/components/management-icons";
 import DepartmentTab from "./basic-settings/DepartmentTab";
-import RoleTab from "./basic-settings/RoleTab";
-import PositionTab from "./basic-settings/PositionTab";
 import MenuTab from "./basic-settings/MenuTab";
+import PositionTab from "./basic-settings/PositionTab";
+import PermissionTab from "./basic-settings/PermissionTab";
 
 export default function BasicSettingsTabs() {
   return (
-    <Tabs aria-label="基础信息设置" color="primary" variant="solid" radius="lg" className="bg-gray-100 rounded-lg">
-      <Tab
-        key="departments"
-        title={
-          <div className="flex items-center space-x-2">
-            <DepartmentManagementIcon className="w-5 h-5" />
-            <span>部门管理</span>
-          </div>
-        }
-      >
-        <div className="mt-4">
-          <DepartmentTab />
-        </div>
+    <Tabs aria-label="基础设置">
+      <Tab key="departments" title="部门管理">
+        <DepartmentTab />
       </Tab>
-      <Tab
-        key="roles"
-        title={
-          <div className="flex items-center space-x-2">
-            <RoleManagementIcon className="w-5 h-5" />
-            <span>职称管理</span>
-          </div>
-        }
-      >
-        <div className="mt-4">
-          <RoleTab />
-        </div>
+      <Tab key="menus" title="菜单管理">
+        <MenuTab />
       </Tab>
-      <Tab
-        key="positions"
-        title={
-          <div className="flex items-center space-x-2">
-            <PositionManagementIcon className="w-5 h-5" />
-            <span>岗位管理</span>
-          </div>
-        }
-      >
-        <div className="mt-4">
-          <PositionTab />
-        </div>
+      <Tab key="positions" title="职称管理">
+        <PositionTab />
       </Tab>
-      <Tab
-        key="menus"
-        title={
-          <div className="flex items-center space-x-2">
-            <MenuManagementIcon className="w-5 h-5" />
-            <span>菜单管理</span>
-          </div>
-        }
-      >
-        <div className="mt-4">
-          <MenuTab />
-        </div>
+      <Tab key="permissions" title="权限管理">
+        <PermissionTab />
       </Tab>
     </Tabs>
   );

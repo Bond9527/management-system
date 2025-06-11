@@ -2,10 +2,55 @@ import { useState } from "react";
 import { Link } from "@heroui/link";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Breadcrumbs, BreadcrumbItem } from "@heroui/breadcrumbs";
 
 export default function DefaultLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const navigate = useNavigate();
+
+  // 动态面包屑生成
+  const location = useLocation();
+  const pathnames = location.pathname.split("/").filter(x => x);
+  const breadcrumbNameMap: Record<string, string> = {
+    dashboard: "仪表盘",
+    system: "系统管理",
+    users: "用户管理",
+    "basic-settings": "基础信息设置",
+    supplies: "耗材管理",
+    apply: "申请管理",
+    approve: "审批管理",
+    inventory: "库存管理",
+    purchase: "采购管理",
+    outbound: "出库管理",
+    inbound: "入库管理",
+    records: "台账记录",
+    statistics: "数据统计",
+    docs: "文档",
+    pricing: "价格",
+    blog: "博客",
+    about: "关于",
+    profile: "个人资料",
+    settings: "设置",
+    help: "帮助",
+  };
+
+  // 定义有子菜单的主菜单
+  const menusWithChildren = ["system", "supplies"];
+
+  const handleBreadcrumbClick = (to: string) => {
+    navigate(to);
+  };
+
+  // 判断面包屑项是否可点击
+  const isClickable = (value: string) => {
+    // 如果是有子菜单的主菜单，则不可点击
+    if (menusWithChildren.includes(value)) {
+      return false;
+    }
+    // 其他菜单都可以点击
+    return true;
+  };
 
   return (
     <div className="h-screen flex flex-col">
@@ -25,7 +70,43 @@ export default function DefaultLayout() {
         >
           <Sidebar onClose={() => setIsSidebarOpen(false)} />
         </div>
-        <main className="flex-1 ml-0">
+        <main className="flex-1 ml-64">
+          {/* 面包屑导航，左上角 */}
+          {location.pathname !== "/dashboard" && location.pathname !== "/" && (
+            <div className="pl-6 pt-4">
+              <Breadcrumbs color="primary">
+                <BreadcrumbItem 
+                  onPress={() => handleBreadcrumbClick("/dashboard")}
+                  className="cursor-pointer"
+                >
+                  仪表盘
+                </BreadcrumbItem>
+                {pathnames.map((value, idx) => {
+                  const to = "/" + pathnames.slice(0, idx + 1).join("/");
+                  const isLast = idx === pathnames.length - 1;
+                  const canClick = isClickable(value);
+
+                  if (isLast) {
+                    return (
+                      <BreadcrumbItem key={to} isCurrent>
+                        {breadcrumbNameMap[value] || value}
+                      </BreadcrumbItem>
+                    );
+                  }
+
+                  return (
+                    <BreadcrumbItem 
+                      key={to} 
+                      onPress={canClick ? () => handleBreadcrumbClick(to) : undefined}
+                      className={canClick ? "cursor-pointer" : ""}
+                    >
+                      {breadcrumbNameMap[value] || value}
+                    </BreadcrumbItem>
+                  );
+                })}
+              </Breadcrumbs>
+            </div>
+          )}
           <Outlet />
         </main>
       </div>

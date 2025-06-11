@@ -338,34 +338,10 @@ const systemManagementItems: MenuItem[] = [
     icon: UserManagementIcon,
   },
   {
-    key: "roles",
-    label: "角色管理",
-    href: "/system/roles",
-    icon: RoleManagementIcon,
-  },
-  {
-    key: "permissions",
-    label: "权限管理",
-    href: "/system/permissions",
-    icon: PermissionManagementIcon,
-  },
-  {
-    key: "menus",
-    label: "菜单管理",
-    href: "/system/menus",
+    key: "basic-settings",
+    label: "基础信息设置",
+    href: "/system/basic-settings",
     icon: MenuManagementIcon,
-  },
-  {
-    key: "departments",
-    label: "部门管理",
-    href: "/system/departments",
-    icon: DepartmentManagementIcon,
-  },
-  {
-    key: "positions",
-    label: "岗位管理",
-    href: "/system/positions",
-    icon: PositionManagementIcon,
   },
 ];
 
@@ -516,7 +492,9 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
               className={clsx(
                 linkStyles({ color: "foreground" }),
                 "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                "h-8 flex items-center text-sm tracking-wide"
+                "h-8 flex items-center text-sm tracking-wide",
+                "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                "transition-all duration-300"
               )}
               color="foreground"
               href="/dashboard"
@@ -531,7 +509,9 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                   className={clsx(
                     linkStyles({ color: "foreground" }),
                     "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer"
+                    "h-8 flex items-center text-sm tracking-wide cursor-pointer",
+                    "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                    "transition-all duration-300"
                   )}
                   color="foreground"
                 >
@@ -567,7 +547,9 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                   className={clsx(
                     linkStyles({ color: "foreground" }),
                     "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer"
+                    "h-8 flex items-center text-sm tracking-wide cursor-pointer",
+                    "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                    "transition-all duration-300"
                   )}
                   color="foreground"
                 >
@@ -602,7 +584,9 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                 className={clsx(
                   linkStyles({ color: "foreground" }),
                   "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                  "h-8 flex items-center text-sm tracking-wide"
+                  "h-8 flex items-center text-sm tracking-wide",
+                  "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                  "transition-all duration-300"
                 )}
                 color="foreground"
                 href={item.href}
@@ -713,6 +697,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
               color="foreground"
               href="/dashboard"
               size="lg"
+              className="hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 transition-all duration-300"
             >
               仪表盘
             </Link>
@@ -724,7 +709,9 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                   className={clsx(
                     linkStyles({ color: "foreground" }),
                     "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer"
+                    "h-8 flex items-center text-sm tracking-wide cursor-pointer",
+                    "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                    "transition-all duration-300"
                   )}
                   color="foreground"
                 >
@@ -755,7 +742,9 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                   className={clsx(
                     linkStyles({ color: "foreground" }),
                     "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer"
+                    "h-8 flex items-center text-sm tracking-wide cursor-pointer",
+                    "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                    "transition-all duration-300"
                   )}
                   color="foreground"
                 >
@@ -791,6 +780,11 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                 }
                 href={item.href}
                 size="lg"
+                className={clsx(
+                  "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                  "transition-all duration-300",
+                  index === siteConfig.navMenuItems.length - 1 && "hover:from-red-500 hover:to-pink-500"
+                )}
               >
                 {item.label}
               </Link>

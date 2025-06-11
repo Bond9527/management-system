@@ -10,11 +10,7 @@ import DefaultLayout from "@/layouts/default";
 
 // System Management Pages
 import UsersPage from "@/pages/system/users";
-import RolesPage from "@/pages/system/roles";
-import PermissionsPage from "@/pages/system/permissions";
-import MenusPage from "@/pages/system/menus";
-import DepartmentsPage from "@/pages/system/departments";
-import PositionsPage from "@/pages/system/positions";
+import BasicSettingsPage from "@/pages/system/basic-settings";
 
 // Supplies Management Pages
 import SuppliesApplyPage from "@/pages/supplies/apply";
@@ -45,11 +41,7 @@ function App() {
 
         {/* System Management Routes */}
         <Route path="/system/users" element={<UsersPage />} />
-        <Route path="/system/roles" element={<RolesPage />} />
-        <Route path="/system/permissions" element={<PermissionsPage />} />
-        <Route path="/system/menus" element={<MenusPage />} />
-        <Route path="/system/departments" element={<DepartmentsPage />} />
-        <Route path="/system/positions" element={<PositionsPage />} />
+        <Route path="/system/basic-settings" element={<BasicSettingsPage />} />
 
         {/* Supplies Management Routes */}
         <Route path="/supplies/apply" element={<SuppliesApplyPage />} />

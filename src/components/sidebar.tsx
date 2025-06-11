@@ -49,29 +49,9 @@ const systemMenuItems: MenuItem[] = [
         icon: UserManagementIcon,
       },
       {
-        label: "角色管理",
-        href: "/system/roles",
-        icon: RoleManagementIcon,
-      },
-      {
-        label: "权限管理",
-        href: "/system/permissions",
-        icon: PermissionManagementIcon,
-      },
-      {
-        label: "菜单管理",
-        href: "/system/menus",
+        label: "基础信息设置",
+        href: "/system/basic-settings",
         icon: MenuManagementIcon,
-      },
-      {
-        label: "部门管理",
-        href: "/system/departments",
-        icon: DepartmentManagementIcon,
-      },
-      {
-        label: "岗位管理",
-        href: "/system/positions",
-        icon: PositionManagementIcon,
       },
     ],
   },

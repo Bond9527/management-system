@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@heroui/link";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
@@ -6,7 +6,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Breadcrumbs, BreadcrumbItem } from "@heroui/breadcrumbs";
 
 export default function DefaultLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
   const navigate = useNavigate();
 
   // 动态面包屑生成
@@ -52,6 +52,19 @@ export default function DefaultLayout() {
     return true;
   };
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <div className="h-screen flex flex-col">
       {/* Navbar with sidebar toggle button inside */}
@@ -63,14 +76,15 @@ export default function DefaultLayout() {
       <div className="flex flex-1 relative">
         {/* Sidebar with slide in/out animation */}
         <div
-          className={`fixed top-16 left-0 z-30 h-[calc(100vh-4rem)] transition-transform duration-300 bg-gradient-to-b from-gray-50 to-gray-100 ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+          className={`fixed top-16 left-0 z-30 h-[calc(100vh-4rem)] transition-transform duration-300 bg-gradient-to-b from-gray-50 to-gray-100
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            lg:translate-x-0
+          `}
           style={{ width: '16rem' }}
         >
           <Sidebar onClose={() => setIsSidebarOpen(false)} />
         </div>
-        <main className="flex-1 ml-64">
+        <main className={`flex-1 transition-all duration-300 ${isSidebarOpen && window.innerWidth >= 1024 ? 'ml-64' : 'ml-0'}`}>
           {/* 面包屑导航，左上角 */}
           {location.pathname !== "/dashboard" && location.pathname !== "/" && (
             <div className="pl-6 pt-4">

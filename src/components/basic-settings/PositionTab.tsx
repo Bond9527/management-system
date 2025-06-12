@@ -2,25 +2,24 @@ import { Card, CardBody, Button, Table, TableHeader, TableColumn, TableBody, Tab
 import React, { useState, useEffect } from "react";
 import { SearchIcon } from "@/components/icons";
 
-interface Role {
+const STORAGE_KEY = "positionTabData";
+
+interface Position {
   id: number;
   title: string;
   date: string;
 }
 
-const STORAGE_KEY = "positionTabData";
-
-const defaultRoles = [
+const defaultPositions: Position[] = [
   { id: 1, title: "技术总监", date: "2020-03-31" },
   { id: 2, title: "运营总监", date: "2020-03-31" },
   { id: 3, title: "市场总监", date: "2020-03-31" },
   { id: 4, title: "研发工程师", date: "2020-03-31" },
   { id: 5, title: "运维工程师", date: "2020-03-31" },
-  { id: 6, title: "测试工程师", date: "2022-07-16" },
 ];
 
 export default function PositionTab() {
-  const [roles, setRoles] = useState<Role[]>(defaultRoles);
+  const [positions, setPositions] = useState<Position[]>(defaultPositions);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>("add");
   const [editId, setEditId] = useState<number | null>(null);
@@ -39,22 +38,22 @@ export default function PositionTab() {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
       try {
-        setRoles(JSON.parse(data));
+        setPositions(JSON.parse(data));
       } catch {}
     }
   }, []);
 
   // 写入 localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(roles));
-  }, [roles]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+  }, [positions]);
 
   // 过滤和分页数据
-  const filteredRoles = roles.filter(role => 
-    role.title.toLowerCase().includes(search.toLowerCase())
+  const filteredPositions = positions.filter(position => 
+    position.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  const paginatedRoles = filteredRoles.slice(
+  const paginatedPositions = filteredPositions.slice(
     (page - 1) * rowsPerPage,
     page * rowsPerPage
   );
@@ -70,11 +69,11 @@ export default function PositionTab() {
   };
 
   // 打开编辑弹窗
-  const openEditModal = (role: { id: number; title: string; date: string }) => {
+  const openEditModal = (position: Position) => {
     setModalMode("edit");
-    setEditId(role.id);
-    setNewTitle(role.title);
-    setNewDate(role.date);
+    setEditId(position.id);
+    setNewTitle(position.title);
+    setNewDate(position.date);
     setShowModal(true);
     setFormErrors({});
   };
@@ -83,9 +82,9 @@ export default function PositionTab() {
   const validateForm = () => {
     const errors: { title?: string; date?: string } = {};
     if (!newTitle.trim()) {
-      errors.title = "职称名称不能为空";
+      errors.title = "职位名称不能为空";
     } else if (newTitle.length > 50) {
-      errors.title = "职称名称不能超过50个字符";
+      errors.title = "职位名称不能超过50个字符";
     }
     if (!newDate) {
       errors.date = "日期不能为空";
@@ -106,12 +105,12 @@ export default function PositionTab() {
     if (!validateForm()) return;
 
     if (modalMode === "add") {
-      setRoles(prev => [
+      setPositions(prev => [
         ...prev,
         { id: prev.length ? prev[prev.length - 1].id + 1 : 1, title: newTitle.trim(), date: newDate }
       ]);
     } else if (modalMode === "edit" && editId !== null) {
-      setRoles(prev => prev.map(r => r.id === editId ? { ...r, title: newTitle.trim(), date: newDate } : r));
+      setPositions(prev => prev.map(p => p.id === editId ? { ...p, title: newTitle.trim(), date: newDate } : p));
     }
     setShowModal(false);
     setNewTitle("");
@@ -138,7 +137,7 @@ export default function PositionTab() {
   // 确认删除
   const handleDelete = () => {
     if (deleteId !== null) {
-      setRoles(prev => prev.filter(r => r.id !== deleteId));
+      setPositions(prev => prev.filter(p => p.id !== deleteId));
     }
     setShowDeleteModal(false);
     setDeleteId(null);
@@ -148,20 +147,20 @@ export default function PositionTab() {
   const handleBatchDelete = () => {
     if (selectedRows.length === 0) return;
     
-    // 获取选中的职称名称列表
-    const selectedTitles = roles
-      .filter(role => selectedRows.includes(role.id))
-      .map(role => role.title)
+    // 获取选中的职位名称列表
+    const selectedTitles = positions
+      .filter(position => selectedRows.includes(position.id))
+      .map(position => position.title)
       .join("、");
 
-    setRoles(prev => prev.filter(r => !selectedRows.includes(r.id)));
+    setPositions(prev => prev.filter(p => !selectedRows.includes(p.id)));
     setSelectedRows([]);
     setShowDeleteModal(false);
   };
 
   // 选择所有行
   const handleSelectAll = (checked: boolean) => {
-    setSelectedRows(checked ? paginatedRoles.map(role => role.id) : []);
+    setSelectedRows(checked ? paginatedPositions.map(position => position.id) : []);
   };
 
   // 选择单行
@@ -175,13 +174,13 @@ export default function PositionTab() {
     <Card>
       <CardBody>
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">职称管理</h2>
-          <p className="text-gray-600">在这里管理系统职称和权限分配</p>
+          <h2 className="text-xl font-semibold">职位管理</h2>
+          <p className="text-gray-600">在这里管理系统职位和权限分配</p>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-[284px]">
                 <Input
-                  placeholder="搜索职称..."
+                  placeholder="搜索职位..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   startContent={<SearchIcon className="text-base text-gray-400 pointer-events-none flex-shrink-0" />}
@@ -200,14 +199,14 @@ export default function PositionTab() {
             </div>
           </div>
           <Table
-            aria-label="职称管理表格"
+            aria-label="职位管理表格"
             className="mt-6"
           >
             <TableHeader>
               <TableColumn>
                 <Checkbox
-                  isSelected={selectedRows.length === paginatedRoles.length}
-                  isIndeterminate={selectedRows.length > 0 && selectedRows.length < paginatedRoles.length}
+                  isSelected={selectedRows.length === paginatedPositions.length}
+                  isIndeterminate={selectedRows.length > 0 && selectedRows.length < paginatedPositions.length}
                   onValueChange={handleSelectAll}
                 />
               </TableColumn>
@@ -217,20 +216,20 @@ export default function PositionTab() {
               <TableColumn>操作</TableColumn>
             </TableHeader>
             <TableBody>
-              {paginatedRoles.map((role) => (
-                <TableRow key={role.id}>
+              {paginatedPositions.map((position) => (
+                <TableRow key={position.id}>
                   <TableCell>
                     <Checkbox
-                      isSelected={selectedRows.includes(role.id)}
-                      onValueChange={(checked) => handleSelectRow(role.id, checked)}
+                      isSelected={selectedRows.includes(position.id)}
+                      onValueChange={(checked) => handleSelectRow(position.id, checked)}
                     />
                   </TableCell>
-                  <TableCell>{role.id}</TableCell>
-                  <TableCell>{role.title}</TableCell>
-                  <TableCell>{role.date}</TableCell>
+                  <TableCell>{position.id}</TableCell>
+                  <TableCell>{position.title}</TableCell>
+                  <TableCell>{position.date}</TableCell>
                   <TableCell>
-                    <Button size="sm" color="primary" variant="flat" className="mr-2" onClick={() => openEditModal(role)}>编辑</Button>
-                    <Button size="sm" color="danger" variant="flat" onClick={() => openDeleteModal(role.id)}>删除</Button>
+                    <Button size="sm" color="primary" variant="flat" className="mr-2" onClick={() => openEditModal(position)}>编辑</Button>
+                    <Button size="sm" color="danger" variant="flat" onClick={() => openDeleteModal(position.id)}>删除</Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -243,7 +242,7 @@ export default function PositionTab() {
               showControls
               initialPage={page}
               page={page}
-              total={Math.ceil(filteredRoles.length / rowsPerPage)}
+              total={Math.ceil(filteredPositions.length / rowsPerPage)}
               onChange={setPage}
               classNames={{
                 cursor: "bg-primary-500 text-white",
@@ -255,7 +254,7 @@ export default function PositionTab() {
           </div>
         </div>
 
-        {/* 新增/编辑职称弹窗 */}
+        {/* 新增/编辑职位弹窗 */}
         <Modal 
           isOpen={showModal} 
           onClose={handleCancel}
@@ -264,7 +263,7 @@ export default function PositionTab() {
           <ModalContent>
             <ModalHeader>
               <div className="flex items-center gap-2">
-                <span>{modalMode === "add" ? "新增职称" : "编辑职称"}</span>
+                <span>{modalMode === "add" ? "新增职位" : "编辑职位"}</span>
                 {modalMode === "edit" && (
                   <span className="text-sm text-gray-500">(ID: {editId})</span>
                 )}
@@ -273,8 +272,8 @@ export default function PositionTab() {
             <ModalBody>
               <div className="space-y-4">
                 <Input
-                  label="职称名称"
-                  placeholder="请输入职称名称"
+                  label="职位名称"
+                  placeholder="请输入职位名称"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   errorMessage={formErrors.title}
@@ -314,20 +313,20 @@ export default function PositionTab() {
             <ModalBody>
               {selectedRows.length > 0 ? (
                 <div>
-                  <p>确定要删除以下职称吗？此操作不可恢复。</p>
+                  <p>确定要删除以下职位吗？此操作不可恢复。</p>
                   <div className="mt-2 p-2 bg-gray-50 rounded">
-                    {roles
-                      .filter(role => selectedRows.includes(role.id))
-                      .map(role => (
-                        <div key={role.id} className="text-sm text-gray-600">
-                          {role.title}
+                    {positions
+                      .filter(position => selectedRows.includes(position.id))
+                      .map(position => (
+                        <div key={position.id} className="text-sm text-gray-600">
+                          {position.title}
                         </div>
                       ))
                     }
                   </div>
                 </div>
               ) : (
-                `确定要删除该职称吗？此操作不可恢复。`
+                `确定要删除该职位吗？此操作不可恢复。`
               )}
             </ModalBody>
             <ModalFooter>

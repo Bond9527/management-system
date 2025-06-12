@@ -341,7 +341,7 @@ const systemManagementItems: MenuItem[] = [
     key: "basic-settings",
     label: "基础信息设置",
     href: "/system/basic-settings",
-    icon: MenuManagementIcon,
+    icon: PermissionManagementIcon,
   },
 ];
 
@@ -487,21 +487,23 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
           </Link>
         </NavbarBrand>
         <div className="hidden lg:flex gap-4 justify-start ml-2">
-          <NavbarItem>
-            <Link
-              className={clsx(
-                linkStyles({ color: "foreground" }),
-                "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                "h-8 flex items-center text-sm tracking-wide",
-                "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
-                "transition-all duration-300"
-              )}
-              color="foreground"
-              href="/dashboard"
-            >
-              仪表盘
-            </Link>
-          </NavbarItem>
+          {siteConfig.navItems.map((item) => (
+            <NavbarItem key={item.href}>
+              <Button
+                onClick={() => navigate(item.href)}
+                className={clsx(
+                  linkStyles({ color: "foreground" }),
+                  "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
+                  "h-8 flex items-center text-sm tracking-wide",
+                  "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                  "transition-all duration-300"
+                )}
+                variant="light"
+              >
+                {item.label}
+              </Button>
+            </NavbarItem>
+          ))}
           <NavbarItem>
             <Dropdown>
               <DropdownTrigger>
@@ -578,23 +580,6 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
               </DropdownMenu>
             </Dropdown>
           </NavbarItem>
-          {siteConfig.navItems.slice(2).map((item) => (
-            <NavbarItem key={item.href}>
-              <Link
-                className={clsx(
-                  linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                  "h-8 flex items-center text-sm tracking-wide",
-                  "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
-                  "transition-all duration-300"
-                )}
-                color="foreground"
-                href={item.href}
-              >
-                {item.label}
-              </Link>
-            </NavbarItem>
-          ))}
         </div>
       </NavbarContent>
 

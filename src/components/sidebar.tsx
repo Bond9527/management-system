@@ -4,13 +4,13 @@ import { siteConfig } from "@/config/site";
 import clsx from "clsx";
 import { Button } from "@heroui/button";
 import { SVGProps } from "react";
+import { useNavigate } from "react-router-dom";
 
 // 导入所有图标组件
 import {
   UserManagementIcon,
   RoleManagementIcon,
   PermissionManagementIcon,
-  MenuManagementIcon,
   DepartmentManagementIcon,
   PositionManagementIcon,
   ApplyManagementIcon,
@@ -39,7 +39,7 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
-const systemMenuItems: MenuItem[] = [
+export const systemMenuItems: MenuItem[] = [
   {
     label: "系统管理",
     children: [
@@ -51,7 +51,7 @@ const systemMenuItems: MenuItem[] = [
       {
         label: "基础信息设置",
         href: "/system/basic-settings",
-        icon: MenuManagementIcon,
+        icon: PermissionManagementIcon,
       },
     ],
   },
@@ -104,6 +104,7 @@ const systemMenuItems: MenuItem[] = [
 
 export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   const toggleMenu = (label: string) => {
     setExpandedMenus(prev =>
@@ -157,8 +158,7 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
         ) : (
           <Button
-            as={Link}
-            href={item.href || "#"}
+            onClick={() => item.href && navigate(item.href)}
             className={clsx(
               "w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200",
               "hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 hover:text-blue-600",
@@ -185,8 +185,7 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
         {siteConfig.navItems.map((item) => (
           <Button
             key={item.href}
-            as={Link}
-            href={item.href}
+            onClick={() => navigate(item.href)}
             className={clsx(
               "w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200",
               "hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 hover:text-blue-600",

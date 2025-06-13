@@ -494,7 +494,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                 className={clsx(
                   linkStyles({ color: "foreground" }),
                   "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                  "h-8 flex items-center text-sm tracking-wide",
+                  "h-8 flex items-center text-sm tracking-wide px-4",
                   "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
                   "transition-all duration-300"
                 )}
@@ -511,7 +511,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                   className={clsx(
                     linkStyles({ color: "foreground" }),
                     "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer",
+                    "h-8 flex items-center text-sm tracking-wide cursor-pointer px-4",
                     "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
                     "transition-all duration-300"
                   )}
@@ -549,7 +549,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                   className={clsx(
                     linkStyles({ color: "foreground" }),
                     "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer",
+                    "h-8 flex items-center text-sm tracking-wide cursor-pointer px-4",
                     "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
                     "transition-all duration-300"
                   )}

@@ -19,7 +19,6 @@ export default function DefaultLayout() {
     "basic-settings": "基础信息设置",
     supplies: "耗材管理",
     apply: "申请管理",
-    approve: "审批管理",
     inventory: "库存管理",
     purchase: "采购管理",
     outbound: "出库管理",

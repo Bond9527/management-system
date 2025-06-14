@@ -9,16 +9,9 @@ import { useNavigate } from "react-router-dom";
 // 导入所有图标组件
 import {
   UserManagementIcon,
-  RoleManagementIcon,
   PermissionManagementIcon,
-  DepartmentManagementIcon,
-  PositionManagementIcon,
-  ApplyManagementIcon,
-  ApproveManagementIcon,
   InventoryManagementIcon,
-  PurchaseManagementIcon,
-  OutboundManagementIcon,
-  InboundManagementIcon,
+  AddRecordIcon,
   RecordsManagementIcon,
   StatisticsManagementIcon,
 } from "@/components/management-icons";
@@ -59,37 +52,17 @@ export const systemMenuItems: MenuItem[] = [
     label: "耗材管理",
     children: [
       {
-        label: "申请管理",
-        href: "/supplies/apply",
-        icon: ApplyManagementIcon,
-      },
-      {
-        label: "审批管理",
-        href: "/supplies/approve",
-        icon: ApproveManagementIcon,
-      },
-      {
-        label: "库存管理",
-        href: "/supplies/inventory",
+        label: "库存总览",
+        href: "/supplies/inventory-overview",
         icon: InventoryManagementIcon,
       },
       {
-        label: "采购管理",
-        href: "/supplies/purchase",
-        icon: PurchaseManagementIcon,
+        label: "新增记录",
+        href: "/supplies/add-record",
+        icon: AddRecordIcon,
       },
       {
-        label: "出库管理",
-        href: "/supplies/outbound",
-        icon: OutboundManagementIcon,
-      },
-      {
-        label: "入库管理",
-        href: "/supplies/inbound",
-        icon: InboundManagementIcon,
-      },
-      {
-        label: "台账记录",
+        label: "变动台账",
         href: "/supplies/records",
         icon: RecordsManagementIcon,
       },

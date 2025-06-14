@@ -58,15 +58,7 @@ export const PermissionManagementIcon = (props: IconProps) => (
     {...props}
   >
     <path
-      d="M3 13.125C3 12.504 3.504 12 4.125 12H19.875C20.496 12 21 12.504 21 13.125C21 13.746 20.496 14.25 19.875 14.25H4.125C3.504 14.25 3 13.746 3 13.125Z"
-      fill="currentColor"
-    />
-    <path
-      d="M3 6.375C3 5.754 3.504 5.25 4.125 5.25H19.875C20.496 5.25 21 5.754 21 6.375C21 6.996 20.496 7.5 19.875 7.5H4.125C3.504 7.5 3 6.996 3 6.375Z"
-      fill="currentColor"
-    />
-    <path
-      d="M3 19.875C3 19.254 3.504 18.75 4.125 18.75H19.875C20.496 18.75 21 19.254 21 19.875C21 20.496 20.496 21 19.875 21H4.125C3.504 21 3 20.496 3 19.875Z"
+      d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM12 11.99H19C18.47 16.11 15.72 19.78 12 20.93V12H5V6.3L12 3.19V11.99Z"
       fill="currentColor"
     />
   </svg>
@@ -246,6 +238,24 @@ export const InboundManagementIcon = (props: IconProps) => (
   >
     <path
       d="M19 13H15V17H9V13H5L12 6L19 13ZM5 18V20H19V18H5Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+export const AddRecordIcon = (props: IconProps) => (
+  <svg
+    aria-hidden="true"
+    fill="none"
+    focusable="false"
+    height="1em"
+    role="presentation"
+    viewBox="0 0 24 24"
+    width="1em"
+    {...props}
+  >
+    <path
+      d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z"
       fill="currentColor"
     />
   </svg>

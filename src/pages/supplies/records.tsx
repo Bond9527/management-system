@@ -26,8 +26,10 @@ import {
   Checkbox,
   DateRangePicker,
   DateValue,
+  RangeValue,
 } from "@heroui/react";
 import { SearchIcon, DownloadIcon, FilterIcon, ChartIcon, ClockIcon, RefreshIcon } from "@/components/icons";
+import { supplyCategories } from "@/config/supplies";
 import {
   BarChart,
   Bar,
@@ -303,39 +305,43 @@ const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 
 const SuppliesRecordsPage: FC = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOperator, setSelectedOperator] = useState<string>("");
-  const [selectedOperationTypes, setSelectedOperationTypes] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [dateRange, setDateRange] = useState<{ start: DateValue; end: DateValue } | null>(null);
-  const [page, setPage] = useState(1);
   const [showStatistics, setShowStatistics] = useState(false);
-  const rowsPerPage = 10;
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [selectedRecords, setSelectedRecords] = useState<number[]>([]);
 
   // 重置所有筛选条件
   const handleReset = () => {
-    setSearchTerm("");
-    setSelectedOperator("");
-    setSelectedOperationTypes(new Set());
+    setSearchQuery("");
+    setSelectedType("");
+    setSelectedCategory("");
+    setSelectedDepartment("");
     setDateRange(null);
-    setPage(1);
+    setCurrentPage(1);
   };
 
   const filteredRecords = mockData.filter((record) => {
-    const matchesSearch = record.itemName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesOperator = !selectedOperator || record.operator === selectedOperator;
-    const matchesOperationType = selectedOperationTypes.size === 0 || 
-                               selectedOperationTypes.has(record.type);
+    const matchesSearch = record.itemName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = !selectedType || record.type === selectedType;
+    const matchesCategory = !selectedCategory || record.category === selectedCategory;
+    const matchesDepartment = !selectedDepartment || record.department === selectedDepartment;
     const recordDate = new Date(record.timestamp);
     const startDate = dateRange?.start ? new Date(dateRange.start.toString()) : null;
     const endDate = dateRange?.end ? new Date(dateRange.end.toString()) : null;
     const matchesDateRange = (!startDate || recordDate >= startDate) &&
-                           (!endDate || recordDate <= endDate);
-    return matchesSearch && matchesOperator && matchesOperationType && matchesDateRange;
+                          (!endDate || recordDate <= endDate);
+    return matchesSearch && matchesType && matchesCategory && matchesDepartment && matchesDateRange;
   });
 
   const paginatedRecords = filteredRecords.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
   );
 
   // 准备统计数据
@@ -371,41 +377,6 @@ const SuppliesRecordsPage: FC = () => {
     console.log("Navigate to supply details:", supplyName);
   };
 
-  // 更新分类选项
-  const categories = [
-    { key: "all", textValue: "全部" },
-    { key: "probe", textValue: "探针" },
-    { key: "cleaner", textValue: "清洁剂" },
-    { key: "relay", textValue: "继电器" },
-    { key: "connector", textValue: "连接器" },
-    { key: "other", textValue: "其他配件" },
-  ];
-
-  // 更新耗材选项
-  const items = [
-    { key: "all", textValue: "全部" },
-    { key: "P1000", textValue: "P1000探针" },
-    { key: "P500", textValue: "P500探针" },
-    { key: "P2000", textValue: "P2000探针" },
-    { key: "P3000", textValue: "P3000探针" },
-    { key: "cleaner", textValue: "探针清洁剂" },
-    { key: "cleaning_cloth", textValue: "探针专用清洁布" },
-    { key: "relay_module", textValue: "继电器模块" },
-    { key: "relay_base", textValue: "继电器底座" },
-    { key: "probe_connector", textValue: "探针连接器" },
-    { key: "probe_adapter", textValue: "探针转接头" },
-    { key: "probe_stand", textValue: "探针支架" },
-    { key: "calibration_tool", textValue: "探针校准工具" },
-    { key: "test_board", textValue: "探针测试板" },
-    { key: "protective_sleeve", textValue: "探针保护套" },
-    { key: "storage_box", textValue: "探针收纳盒" },
-    { key: "repair_tool", textValue: "探针维修工具" },
-    { key: "manual", textValue: "探针说明书" },
-    { key: "label", textValue: "探针标签" },
-    { key: "esd_bag", textValue: "探针防静电袋" },
-    { key: "packaging_box", textValue: "探针包装盒" },
-  ];
-
   return (
     <div className="p-6 space-y-8">
       <h1 className="text-2xl font-bold">库存变动记录</h1>
@@ -414,110 +385,86 @@ const SuppliesRecordsPage: FC = () => {
       <Card className="shadow-lg">
         <CardBody>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                className="w-80"
-                placeholder="选择耗材名称"
-                selectedKeys={searchTerm ? new Set([searchTerm]) : new Set()}
-                onSelectionChange={(keys) => setSearchTerm(Array.from(keys)[0] as string)}
-                renderValue={(items) => {
-                  return items.map((item) => (
-                    <div key={item.key} className="flex items-center gap-2">
-                      <span>{String(item.key)}</span>
-                    </div>
-                  ));
-                }}
-              >
-                {items.map((item) => (
-                  <SelectItem key={item.key} textValue={item.textValue}>
-                    {item.textValue}
-                  </SelectItem>
-                ))}
-              </Select>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm text-gray-500">操作类型</label>
-                <div className="flex gap-4">
-                  <Checkbox
-                    isSelected={selectedOperationTypes.has("in")}
-                    onValueChange={(checked) => {
-                      const newTypes = new Set(selectedOperationTypes);
-                      if (checked) {
-                        newTypes.add("in");
-                      } else {
-                        newTypes.delete("in");
-                      }
-                      setSelectedOperationTypes(newTypes);
-                    }}
-                  >
-                    入库
-                  </Checkbox>
-                  <Checkbox
-                    isSelected={selectedOperationTypes.has("out")}
-                    onValueChange={(checked) => {
-                      const newTypes = new Set(selectedOperationTypes);
-                      if (checked) {
-                        newTypes.add("out");
-                      } else {
-                        newTypes.delete("out");
-                      }
-                      setSelectedOperationTypes(newTypes);
-                    }}
-                  >
-                    出库
-                  </Checkbox>
-                  <Checkbox
-                    isSelected={selectedOperationTypes.has("adjust")}
-                    onValueChange={(checked) => {
-                      const newTypes = new Set(selectedOperationTypes);
-                      if (checked) {
-                        newTypes.add("adjust");
-                      } else {
-                        newTypes.delete("adjust");
-                      }
-                      setSelectedOperationTypes(newTypes);
-                    }}
-                  >
-                    修正
-                  </Checkbox>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  搜索
+                </label>
+                <Input
+                  placeholder="搜索耗材名称"
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                  startContent={<SearchIcon />}
+                />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm text-gray-500">操作人</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  操作类型
+                </label>
                 <Select
-                  className="w-80"
-                  placeholder="选择操作人"
-                  selectedKeys={selectedOperator ? new Set([selectedOperator]) : new Set()}
-                  onSelectionChange={(keys) => setSelectedOperator(Array.from(keys)[0] as string)}
-                  renderValue={(items) => {
-                    return items.map((item) => (
-                      <div key={item.key} className="flex items-center gap-2">
-                        <span>{String(item.key)}</span>
-                      </div>
-                    ));
+                  placeholder="全部"
+                  selectedKeys={selectedType ? new Set([selectedType]) : new Set()}
+                  onSelectionChange={(keys) => {
+                    const type = Array.from(keys)[0] as string;
+                    setSelectedType(type);
+                  }}
+                >
+                  <SelectItem key="in">入库</SelectItem>
+                  <SelectItem key="out">出库</SelectItem>
+                  <SelectItem key="adjust">调整</SelectItem>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  类别
+                </label>
+                <Select
+                  placeholder="全部"
+                  selectedKeys={selectedCategory ? new Set([selectedCategory]) : new Set()}
+                  onSelectionChange={(keys) => {
+                    const category = Array.from(keys)[0] as string;
+                    setSelectedCategory(category);
+                  }}
+                >
+                  {supplyCategories.map((category) => (
+                    <SelectItem key={category}>{category}</SelectItem>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  部门
+                </label>
+                <Select
+                  placeholder="全部"
+                  selectedKeys={selectedDepartment ? new Set([selectedDepartment]) : new Set()}
+                  onSelectionChange={(keys) => {
+                    const department = Array.from(keys)[0] as string;
+                    setSelectedDepartment(department);
                   }}
                 >
                   {[
                     <SelectItem key="" textValue="全部">全部</SelectItem>,
-                    ...Array.from(new Set(mockData.map(r => r.operator))).map(operator => (
-                      <SelectItem key={operator} textValue={operator}>
-                        {operator}
+                    ...Array.from(new Set(mockData.map(r => r.department))).map(department => (
+                      <SelectItem key={department} textValue={department}>
+                        {department}
                       </SelectItem>
                     ))
                   ]}
                 </Select>
               </div>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm text-gray-500">日期范围</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-sm font-medium text-gray-700 mb-1">时间范围</label>
                 <DateRangePicker
-                  className="w-2/3"
-                  label="选择日期范围"
                   value={dateRange}
                   onChange={setDateRange}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -527,7 +474,7 @@ const SuppliesRecordsPage: FC = () => {
                 color="primary"
                 variant="flat"
                 startContent={<SearchIcon />}
-                onClick={() => setPage(1)}
+                onClick={() => setCurrentPage(1)}
               >
                 查询
               </Button>
@@ -661,9 +608,9 @@ const SuppliesRecordsPage: FC = () => {
                   showControls
                   showShadow
                   color="primary"
-                  page={page}
-                  total={Math.ceil(filteredRecords.length / rowsPerPage)}
-                  onChange={setPage}
+                  page={currentPage}
+                  total={Math.ceil(filteredRecords.length / pageSize)}
+                  onChange={setCurrentPage}
                 />
               </div>
             }

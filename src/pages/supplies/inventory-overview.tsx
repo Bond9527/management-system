@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useState, Fragment } from "react";
 import {
   Card,
   CardBody,
@@ -25,6 +25,7 @@ import {
 } from "@heroui/react";
 import { SearchIcon, DownloadIcon, PlusIcon, MinusIcon, EyeIcon, ClockIcon } from "@/components/icons";
 import { useNavigate } from "react-router-dom";
+import { supplyCategories } from "@/config/supplies";
 import {
   PieChart,
   Pie,
@@ -62,228 +63,64 @@ interface BarChartData {
   safetyStock: number;
 }
 
-const mockData: InventoryItem[] = [
-  {
-    id: 1,
-    name: "P1000探针",
-    category: "探针",
-    quantity: 25,
-    unit: "支",
-    location: "A区-01-01",
-    lastUpdated: "2024-03-20 14:30:00",
-    safetyStock: 20,
-    lastModified: "2024-03-20 14:30:00",
-  },
-  {
-    id: 2,
-    name: "P500探针",
-    category: "探针",
-    quantity: 30,
-    unit: "支",
-    location: "A区-01-02",
-    lastUpdated: "2024-03-20 15:45:00",
-    safetyStock: 25,
-    lastModified: "2024-03-20 15:45:00",
-  },
-  {
-    id: 3,
-    name: "P2000探针",
-    category: "探针",
-    quantity: 15,
-    unit: "支",
-    location: "A区-01-03",
-    lastUpdated: "2024-03-20 16:20:00",
-    safetyStock: 15,
-    lastModified: "2024-03-20 16:20:00",
-  },
-  {
-    id: 4,
-    name: "P3000探针",
-    category: "探针",
-    quantity: 20,
-    unit: "支",
-    location: "A区-01-04",
-    lastUpdated: "2024-03-20 10:15:00",
-    safetyStock: 15,
-    lastModified: "2024-03-20 10:15:00",
-  },
-  {
-    id: 5,
-    name: "探针清洁剂",
-    category: "清洁剂",
-    quantity: 18,
-    unit: "瓶",
-    location: "B区-02-01",
-    lastUpdated: "2024-03-20 11:30:00",
-    safetyStock: 15,
-    lastModified: "2024-03-20 11:30:00",
-  },
-  {
-    id: 6,
-    name: "探针专用清洁布",
-    category: "清洁剂",
-    quantity: 25,
-    unit: "包",
-    location: "B区-02-02",
-    lastUpdated: "2024-03-20 13:45:00",
-    safetyStock: 20,
-    lastModified: "2024-03-20 13:45:00",
-  },
-  {
-    id: 7,
-    name: "继电器模块",
-    category: "继电器",
-    quantity: 20,
-    unit: "个",
-    location: "B区-02-03",
-    lastUpdated: "2024-03-20 09:20:00",
-    safetyStock: 12,
-    lastModified: "2024-03-20 09:20:00",
-  },
-  {
-    id: 8,
-    name: "继电器底座",
-    category: "继电器",
-    quantity: 15,
-    unit: "个",
-    location: "B区-02-04",
-    lastUpdated: "2024-03-20 14:10:00",
-    safetyStock: 10,
-    lastModified: "2024-03-20 14:10:00",
-  },
-  {
-    id: 9,
-    name: "探针连接器",
-    category: "连接器",
-    quantity: 25,
-    unit: "个",
-    location: "C区-03-01",
-    lastUpdated: "2024-03-20 16:30:00",
-    safetyStock: 18,
-    lastModified: "2024-03-20 16:30:00",
-  },
-  {
-    id: 10,
-    name: "探针转接头",
-    category: "连接器",
-    quantity: 20,
-    unit: "个",
-    location: "C区-03-02",
-    lastUpdated: "2024-03-20 11:15:00",
-    safetyStock: 15,
-    lastModified: "2024-03-20 11:15:00",
-  },
-  {
-    id: 11,
-    name: "探针支架",
-    category: "其他配件",
-    quantity: 15,
-    unit: "个",
-    location: "C区-03-03",
-    lastUpdated: "2024-03-20 13:20:00",
-    safetyStock: 10,
-    lastModified: "2024-03-20 13:20:00",
-  },
-  {
-    id: 12,
-    name: "探针校准工具",
-    category: "其他配件",
-    quantity: 8,
-    unit: "套",
-    location: "C区-03-04",
-    lastUpdated: "2024-03-20 15:30:00",
-    safetyStock: 5,
-    lastModified: "2024-03-20 15:30:00",
-  },
-  {
-    id: 13,
-    name: "探针测试板",
-    category: "其他配件",
-    quantity: 12,
-    unit: "块",
-    location: "D区-04-01",
-    lastUpdated: "2024-03-20 10:45:00",
-    safetyStock: 8,
-    lastModified: "2024-03-20 10:45:00",
-  },
-  {
-    id: 14,
-    name: "探针保护套",
-    category: "其他配件",
-    quantity: 30,
-    unit: "个",
-    location: "D区-04-02",
-    lastUpdated: "2024-03-20 14:20:00",
-    safetyStock: 20,
-    lastModified: "2024-03-20 14:20:00",
-  },
-  {
-    id: 15,
-    name: "探针收纳盒",
-    category: "其他配件",
-    quantity: 10,
-    unit: "个",
-    location: "D区-04-03",
-    lastUpdated: "2024-03-20 16:15:00",
-    safetyStock: 5,
-    lastModified: "2024-03-20 16:15:00",
-  },
-  {
-    id: 16,
-    name: "探针维修工具",
-    category: "其他配件",
-    quantity: 5,
-    unit: "套",
-    location: "D区-04-04",
-    lastUpdated: "2024-03-20 09:30:00",
-    safetyStock: 3,
-    lastModified: "2024-03-20 09:30:00",
-  },
-  {
-    id: 17,
-    name: "探针说明书",
-    category: "其他配件",
-    quantity: 50,
-    unit: "本",
-    location: "E区-05-01",
-    lastUpdated: "2024-03-20 11:40:00",
-    safetyStock: 30,
-    lastModified: "2024-03-20 11:40:00",
-  },
-  {
-    id: 18,
-    name: "探针标签",
-    category: "其他配件",
-    quantity: 100,
-    unit: "张",
-    location: "E区-05-02",
-    lastUpdated: "2024-03-20 13:50:00",
-    safetyStock: 50,
-    lastModified: "2024-03-20 13:50:00",
-  },
-  {
-    id: 19,
-    name: "探针防静电袋",
-    category: "其他配件",
-    quantity: 200,
-    unit: "个",
-    location: "E区-05-03",
-    lastUpdated: "2024-03-20 15:25:00",
-    safetyStock: 100,
-    lastModified: "2024-03-20 15:25:00",
-  },
-  {
-    id: 20,
-    name: "探针包装盒",
-    category: "其他配件",
-    quantity: 40,
-    unit: "个",
-    location: "E区-05-04",
-    lastUpdated: "2024-03-20 16:40:00",
-    safetyStock: 20,
-    lastModified: "2024-03-20 16:40:00",
-  },
-];
+// 根据类别返回对应的单位
+const getUnitByCategory = (category: string): string => {
+  const unitMap: Record<string, string> = {
+    "探针": "支",
+    "清洁剂": "瓶",
+    "继电器": "个",
+    "连接器": "个",
+    "轴承": "个",
+    "手动工具": "套",
+    "安全防护用品": "套",
+    "包装材料": "包",
+    "办公用品": "个",
+    "其他": "个"
+  };
+  return unitMap[category] || "个";
+};
+
+// 生成模拟库存数据
+const generateMockInventoryData = (): InventoryItem[] => {
+  const data: InventoryItem[] = [];
+  let id = 1;
+
+  supplyCategories.forEach(category => {
+    // 为每个类别生成2-4个耗材
+    const count = Math.floor(Math.random() * 3) + 2;
+    for (let i = 0; i < count; i++) {
+      const quantity = Math.floor(Math.random() * 30) + 10;
+      const safetyStock = Math.floor(Math.random() * 20) + 5;
+      const location = `${String.fromCharCode(65 + Math.floor(Math.random() * 3))}区-${String(Math.floor(Math.random() * 5) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 5) + 1).padStart(2, '0')}`;
+      const now = new Date();
+      const lastUpdated = now.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+
+      data.push({
+        id: id++,
+        name: `${category}${i + 1}`,
+        category,
+        quantity,
+        unit: getUnitByCategory(category),
+        location,
+        lastUpdated,
+        safetyStock,
+        lastModified: lastUpdated
+      });
+    }
+  });
+
+  return data;
+};
+
+const mockData: InventoryItem[] = generateMockInventoryData();
 
 const COLORS = [
   "#3B82F6", // blue-500
@@ -307,7 +144,7 @@ const SuppliesInventoryOverviewPage: FC = () => {
 
   const filteredData = mockData.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || item.category === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
     const matchesQuantity = (!minQuantity || item.quantity >= Number(minQuantity)) &&
                           (!maxQuantity || item.quantity <= Number(maxQuantity));
     return matchesSearch && matchesCategory && matchesQuantity;
@@ -404,11 +241,11 @@ const SuppliesInventoryOverviewPage: FC = () => {
               className="w-1/2"
             >
               <SelectItem key="all" textValue="全部">全部</SelectItem>
-              <SelectItem key="probe" textValue="探针">探针</SelectItem>
-              <SelectItem key="cleaner" textValue="清洁剂">清洁剂</SelectItem>
-              <SelectItem key="relay" textValue="继电器">继电器</SelectItem>
-              <SelectItem key="connector" textValue="连接器">连接器</SelectItem>
-              <SelectItem key="other" textValue="其他配件">其他配件</SelectItem>
+              <Fragment>
+                {supplyCategories.map(category => (
+                  <SelectItem key={category} textValue={category}>{category}</SelectItem>
+                ))}
+              </Fragment>
             </Select>
             <div className="flex items-center gap-2">
               <Input
@@ -700,13 +537,28 @@ const SuppliesInventoryOverviewPage: FC = () => {
                 <XAxis
                   dataKey="name"
                   height={100}
-                  interval={0}
-                  tick={{ fill: "#6B7280", fontSize: 12 }}
+                  interval={4}
+                  tick={({ x, y, payload, index }) => {
+                    const value = payload.value;
+                    const display = value.length > 6 ? value.slice(0, 6) + '…' : value;
+                    return (
+                      <g transform={`translate(${x},${y})`}>
+                        <title>{value}</title>
+                        <text
+                          x={0}
+                          y={0}
+                          dy={16}
+                          textAnchor="middle"
+                          fontSize={12}
+                          fill="#6B7280"
+                        >
+                          {display}
+                        </text>
+                      </g>
+                    );
+                  }}
                   tickLine={{ stroke: "#E5E7EB" }}
                   axisLine={{ stroke: "#E5E7EB" }}
-                  tickFormatter={(value) => {
-                    return value.length > 8 ? `${value.slice(0, 8)}...` : value;
-                  }}
                 />
                 <YAxis
                   tick={{ fill: "#6B7280", fontSize: 12 }}

@@ -29,14 +29,23 @@ import {
 } from "@heroui/react";
 import { PlusIcon, MinusIcon, EditIcon, UserIcon, ClockIcon, InfoIcon, ListIcon, HomeIcon, TrashIcon } from "@/components/icons";
 import { useNavigate } from "react-router-dom";
+import { supplyCategories, SupplyCategory } from "@/config/supplies";
+import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
 
-interface SupplyItem {
-  id: number;
+interface NewSupplyForm {
   name: string;
   category: string;
   unit: string;
-  currentStock: number;
-  safetyStock: number;
+  currentStock: string;
+  safetyStock: string;
+}
+
+interface NewSupplyErrors {
+  name?: string;
+  category?: string;
+  unit?: string;
+  currentStock?: string;
+  safetyStock?: string;
 }
 
 interface FormErrors {
@@ -52,171 +61,9 @@ interface BatchRecord {
   remarks: string;
 }
 
-const mockSupplies: SupplyItem[] = [
-  {
-    id: 1,
-    name: "P1000探针",
-    category: "探针",
-    unit: "支",
-    currentStock: 25,
-    safetyStock: 20,
-  },
-  {
-    id: 2,
-    name: "P500探针",
-    category: "探针",
-    unit: "支",
-    currentStock: 30,
-    safetyStock: 25,
-  },
-  {
-    id: 3,
-    name: "P2000探针",
-    category: "探针",
-    unit: "支",
-    currentStock: 15,
-    safetyStock: 15,
-  },
-  {
-    id: 4,
-    name: "P3000探针",
-    category: "探针",
-    unit: "支",
-    currentStock: 20,
-    safetyStock: 15,
-  },
-  {
-    id: 5,
-    name: "探针清洁剂",
-    category: "清洁剂",
-    unit: "瓶",
-    currentStock: 18,
-    safetyStock: 15,
-  },
-  {
-    id: 6,
-    name: "探针专用清洁布",
-    category: "清洁剂",
-    unit: "包",
-    currentStock: 25,
-    safetyStock: 20,
-  },
-  {
-    id: 7,
-    name: "继电器模块",
-    category: "继电器",
-    unit: "个",
-    currentStock: 20,
-    safetyStock: 12,
-  },
-  {
-    id: 8,
-    name: "继电器底座",
-    category: "继电器",
-    unit: "个",
-    currentStock: 15,
-    safetyStock: 10,
-  },
-  {
-    id: 9,
-    name: "探针连接器",
-    category: "连接器",
-    unit: "个",
-    currentStock: 25,
-    safetyStock: 18,
-  },
-  {
-    id: 10,
-    name: "探针转接头",
-    category: "连接器",
-    unit: "个",
-    currentStock: 20,
-    safetyStock: 15,
-  },
-  {
-    id: 11,
-    name: "探针支架",
-    category: "其他配件",
-    unit: "个",
-    currentStock: 15,
-    safetyStock: 10,
-  },
-  {
-    id: 12,
-    name: "探针校准工具",
-    category: "其他配件",
-    unit: "套",
-    currentStock: 8,
-    safetyStock: 5,
-  },
-  {
-    id: 13,
-    name: "探针测试板",
-    category: "其他配件",
-    unit: "块",
-    currentStock: 12,
-    safetyStock: 8,
-  },
-  {
-    id: 14,
-    name: "探针保护套",
-    category: "其他配件",
-    unit: "个",
-    currentStock: 30,
-    safetyStock: 20,
-  },
-  {
-    id: 15,
-    name: "探针收纳盒",
-    category: "其他配件",
-    unit: "个",
-    currentStock: 10,
-    safetyStock: 5,
-  },
-  {
-    id: 16,
-    name: "探针维修工具",
-    category: "其他配件",
-    unit: "套",
-    currentStock: 5,
-    safetyStock: 3,
-  },
-  {
-    id: 17,
-    name: "探针说明书",
-    category: "其他配件",
-    unit: "本",
-    currentStock: 50,
-    safetyStock: 30,
-  },
-  {
-    id: 18,
-    name: "探针标签",
-    category: "其他配件",
-    unit: "张",
-    currentStock: 100,
-    safetyStock: 50,
-  },
-  {
-    id: 19,
-    name: "探针防静电袋",
-    category: "其他配件",
-    unit: "个",
-    currentStock: 200,
-    safetyStock: 100,
-  },
-  {
-    id: 20,
-    name: "探针包装盒",
-    category: "其他配件",
-    unit: "个",
-    currentStock: 40,
-    safetyStock: 20,
-  },
-];
-
 const SuppliesAddRecordPage: FC = () => {
   const navigate = useNavigate();
+  const { supplies, addSupply, updateSupply } = useSupplies();
   const [selectedSupply, setSelectedSupply] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
   const [operationType, setOperationType] = useState<"in" | "out" | "adjust">("in");
@@ -230,6 +77,24 @@ const SuppliesAddRecordPage: FC = () => {
   const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [batchRecords, setBatchRecords] = useState<BatchRecord[]>([]);
+  
+  // New states for supply creation
+  const [showNewSupplyModal, setShowNewSupplyModal] = useState(false);
+  const [newSupply, setNewSupply] = useState<NewSupplyForm>({
+    name: "",
+    category: "",
+    unit: "",
+    currentStock: "",
+    safetyStock: "",
+  });
+  const [newSupplyErrors, setNewSupplyErrors] = useState<NewSupplyErrors>({});
+  const [isCreatingSupply, setIsCreatingSupply] = useState(false);
+  
+  // New states for category management
+  const [categories, setCategories] = useState<string[]>([...supplyCategories]);
+  const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [newCategoryError, setNewCategoryError] = useState("");
 
   // 更新当前时间
   useEffect(() => {
@@ -255,7 +120,7 @@ const SuppliesAddRecordPage: FC = () => {
   useEffect(() => {
     if (quantity && selectedSupply) {
       const numQuantity = Number(quantity);
-      const supply = mockSupplies.find(s => s.id.toString() === selectedSupply);
+      const supply = supplies.find((s: SupplyItem) => s.id.toString() === selectedSupply);
       if (supply) {
         let warning = "";
         if (operationType === "out" && numQuantity > supply.currentStock) {
@@ -271,11 +136,11 @@ const SuppliesAddRecordPage: FC = () => {
     } else {
       setStockWarning("");
     }
-  }, [operationType, quantity, selectedSupply]);
+  }, [operationType, quantity, selectedSupply, supplies]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    const supply = mockSupplies.find(s => s.id.toString() === selectedSupply);
+    const supply = supplies.find((s: SupplyItem) => s.id.toString() === selectedSupply);
 
     if (!selectedSupply) {
       newErrors.supply = "请选择耗材";
@@ -307,7 +172,7 @@ const SuppliesAddRecordPage: FC = () => {
 
     setIsSubmitting(true);
     try {
-      const supply = mockSupplies.find(s => s.id.toString() === selectedSupply);
+      const supply = supplies.find((s: SupplyItem) => s.id.toString() === selectedSupply);
       if (!supply) {
         throw new Error("未找到选中的耗材");
       }
@@ -326,23 +191,12 @@ const SuppliesAddRecordPage: FC = () => {
           break;
       }
 
-      // TODO: 调用API更新库存和记录
-      const record = {
-        supplyId: selectedSupply,
-        supplyName: supply.name,
-        quantity: Number(quantity),
-        operationType,
-        newStock,
-        remark,
-        operator: currentUser,
-        operationTime: currentTime,
-      };
+      // 更新耗材库存
+      await updateSupply({
+        ...supply,
+        currentStock: newStock
+      });
 
-      console.log("提交记录:", record);
-      
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       // 设置成功消息
       setSuccessMessage(`已成功${operationType === "in" ? "入库" : operationType === "out" ? "出库" : "修正"} ${quantity}${supply.unit} ${supply.name}`);
       
@@ -397,7 +251,7 @@ const SuppliesAddRecordPage: FC = () => {
     navigate("/supplies/inventory");
   };
 
-  const selectedSupplyItem = mockSupplies.find(s => s.id.toString() === selectedSupply);
+  const selectedSupplyItem = supplies.find((s: SupplyItem) => s.id.toString() === selectedSupply);
 
   const handleAddBatchRecord = () => {
     if (!selectedSupply || !quantity) return;
@@ -441,6 +295,102 @@ const SuppliesAddRecordPage: FC = () => {
     }
   };
 
+  const validateNewSupply = (): boolean => {
+    const errors: NewSupplyErrors = {};
+    
+    if (!newSupply.name.trim()) {
+      errors.name = "请输入耗材名称";
+    }
+    
+    if (!newSupply.category.trim()) {
+      errors.category = "请选择耗材类别";
+    }
+    
+    if (!newSupply.unit.trim()) {
+      errors.unit = "请输入单位";
+    }
+    
+    const currentStock = Number(newSupply.currentStock);
+    if (isNaN(currentStock) || currentStock < 0) {
+      errors.currentStock = "请输入有效的当前库存";
+    }
+    
+    const safetyStock = Number(newSupply.safetyStock);
+    if (isNaN(safetyStock) || safetyStock < 0) {
+      errors.safetyStock = "请输入有效的安全库存";
+    }
+    
+    setNewSupplyErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCreateSupply = async () => {
+    if (!validateNewSupply()) {
+      return;
+    }
+
+    setIsCreatingSupply(true);
+    try {
+      // 创建新的耗材对象
+      const newSupplyItem: SupplyItem = {
+        id: supplies.length + 1,
+        name: newSupply.name.trim(),
+        category: newSupply.category.trim(),
+        unit: newSupply.unit.trim(),
+        currentStock: Number(newSupply.currentStock),
+        safetyStock: Number(newSupply.safetyStock),
+      };
+
+      // 使用共享的addSupply函数添加新耗材
+      await addSupply(newSupplyItem);
+      
+      // 自动选中新创建的耗材
+      setSelectedSupply(newSupplyItem.id.toString());
+      
+      // 关闭模态框并重置表单
+      setShowNewSupplyModal(false);
+      setNewSupply({
+        name: "",
+        category: "",
+        unit: "",
+        currentStock: "",
+        safetyStock: "",
+      });
+      setNewSupplyErrors({});
+      
+      // 显示成功提示
+      setSuccessMessage(`已成功创建新耗材：${newSupplyItem.name}`);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error("创建耗材失败:", error);
+    } finally {
+      setIsCreatingSupply(false);
+    }
+  };
+
+  const handleAddCategory = () => {
+    if (!newCategory.trim()) {
+      setNewCategoryError("请输入类别名称");
+      return;
+    }
+
+    if (supplyCategories.includes(newCategory.trim())) {
+      setNewCategoryError("该类别已存在");
+      return;
+    }
+
+    // 更新本地类别列表
+    setCategories([...categories, newCategory.trim()]);
+    
+    // 更新新耗材表单中的类别
+    setNewSupply(prev => ({ ...prev, category: newCategory.trim() }));
+    
+    // 重置表单
+    setNewCategory("");
+    setNewCategoryError("");
+    setShowNewCategoryModal(false);
+  };
+
   return (
     <div className="p-6 space-y-8">
       <div className="flex justify-between items-center">
@@ -467,43 +417,53 @@ const SuppliesAddRecordPage: FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     耗材名称 <span className="text-danger">*</span>
                   </label>
-                  <Select
-                    placeholder="请选择耗材"
-                    selectedKeys={selectedSupply ? new Set([selectedSupply]) : new Set()}
-                    onSelectionChange={(keys) => {
-                      const newSupply = Array.from(keys)[0] as string;
-                      setSelectedSupply(newSupply);
-                      setQuantity("");
-                      setErrors(prev => ({ ...prev, supply: undefined }));
-                    }}
-                    className="w-full"
-                    isInvalid={!!errors.supply}
-                    errorMessage={errors.supply}
-                    renderValue={(items) => {
-                      return items.map((item) => {
-                        const supply = mockSupplies.find(s => s.id.toString() === item.key);
-                        return (
-                          <div key={item.key} className="flex items-center gap-2">
-                            <span>{supply?.name}</span>
+                  <div className="flex gap-2">
+                    <Select
+                      placeholder="请选择耗材"
+                      selectedKeys={selectedSupply ? new Set([selectedSupply]) : new Set()}
+                      onSelectionChange={(keys) => {
+                        const newSupply = Array.from(keys)[0] as string;
+                        setSelectedSupply(newSupply);
+                        setQuantity("");
+                        setErrors(prev => ({ ...prev, supply: undefined }));
+                      }}
+                      className="w-full"
+                      isInvalid={!!errors.supply}
+                      errorMessage={errors.supply}
+                      renderValue={(items) => {
+                        return items.map((item) => {
+                          const supply = supplies.find(s => s.id.toString() === item.key);
+                          return (
+                            <div key={item.key} className="flex items-center gap-2">
+                              <span>{supply?.name}</span>
+                              <Chip size="sm" variant="flat" color="primary">
+                                {supply?.category}
+                              </Chip>
+                            </div>
+                          );
+                        });
+                      }}
+                    >
+                      {supplies.map((supply) => (
+                        <SelectItem key={supply.id.toString()} textValue={supply.name}>
+                          <div className="flex items-center justify-between">
+                            <span>{supply.name}</span>
                             <Chip size="sm" variant="flat" color="primary">
-                              {supply?.category}
+                              {supply.category}
                             </Chip>
                           </div>
-                        );
-                      });
-                    }}
-                  >
-                    {mockSupplies.map((supply) => (
-                      <SelectItem key={supply.id.toString()} textValue={supply.name}>
-                        <div className="flex items-center justify-between">
-                          <span>{supply.name}</span>
-                          <Chip size="sm" variant="flat" color="primary">
-                            {supply.category}
-                          </Chip>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </Select>
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    <Button
+                      color="primary"
+                      variant="flat"
+                      startContent={<PlusIcon />}
+                      onClick={() => setShowNewSupplyModal(true)}
+                    >
+                      新增
+                    </Button>
+                  </div>
                   {selectedSupplyItem && (
                     <div className="mt-2 text-sm">
                       <span className="text-gray-500">当前库存: </span>
@@ -730,6 +690,196 @@ const SuppliesAddRecordPage: FC = () => {
                     onClick={handleNavigateToOverview}
                   >
                     返回库存总览
+                  </Button>
+                </ModalFooter>
+              </ModalContent>
+            </Modal>
+
+            {/* 新增耗材模态框 */}
+            <Modal
+              isOpen={showNewSupplyModal}
+              onClose={() => setShowNewSupplyModal(false)}
+              size="lg"
+            >
+              <ModalContent>
+                <ModalHeader className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Chip color="primary" variant="flat" startContent={<PlusIcon />}>
+                      新增耗材
+                    </Chip>
+                  </div>
+                </ModalHeader>
+                <ModalBody>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        耗材名称 <span className="text-danger">*</span>
+                      </label>
+                      <Input
+                        placeholder="请输入耗材名称"
+                        value={newSupply.name}
+                        onValueChange={(value) => {
+                          setNewSupply(prev => ({ ...prev, name: value }));
+                          setNewSupplyErrors(prev => ({ ...prev, name: undefined }));
+                        }}
+                        isInvalid={!!newSupplyErrors.name}
+                        errorMessage={newSupplyErrors.name}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        类别 <span className="text-danger">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <Select
+                          placeholder="请选择类别"
+                          selectedKeys={newSupply.category ? new Set([newSupply.category]) : new Set()}
+                          onSelectionChange={(keys) => {
+                            const category = Array.from(keys)[0] as string;
+                            setNewSupply(prev => ({ ...prev, category }));
+                            setNewSupplyErrors(prev => ({ ...prev, category: undefined }));
+                          }}
+                          isInvalid={!!newSupplyErrors.category}
+                          errorMessage={newSupplyErrors.category}
+                          className="w-full"
+                        >
+                          {supplyCategories.map((category) => (
+                            <SelectItem key={category}>{category}</SelectItem>
+                          ))}
+                        </Select>
+                        <Button
+                          color="primary"
+                          variant="flat"
+                          startContent={<PlusIcon />}
+                          onClick={() => setShowNewCategoryModal(true)}
+                        >
+                          新增
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        单位 <span className="text-danger">*</span>
+                      </label>
+                      <Input
+                        placeholder="请输入单位（如：个、支、瓶等）"
+                        value={newSupply.unit}
+                        onValueChange={(value) => {
+                          setNewSupply(prev => ({ ...prev, unit: value }));
+                          setNewSupplyErrors(prev => ({ ...prev, unit: undefined }));
+                        }}
+                        isInvalid={!!newSupplyErrors.unit}
+                        errorMessage={newSupplyErrors.unit}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        当前库存 <span className="text-danger">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        placeholder="请输入当前库存数量"
+                        value={newSupply.currentStock}
+                        onValueChange={(value) => {
+                          setNewSupply(prev => ({ ...prev, currentStock: value }));
+                          setNewSupplyErrors(prev => ({ ...prev, currentStock: undefined }));
+                        }}
+                        isInvalid={!!newSupplyErrors.currentStock}
+                        errorMessage={newSupplyErrors.currentStock}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        安全库存 <span className="text-danger">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        placeholder="请输入安全库存数量"
+                        value={newSupply.safetyStock}
+                        onValueChange={(value) => {
+                          setNewSupply(prev => ({ ...prev, safetyStock: value }));
+                          setNewSupplyErrors(prev => ({ ...prev, safetyStock: undefined }));
+                        }}
+                        isInvalid={!!newSupplyErrors.safetyStock}
+                        errorMessage={newSupplyErrors.safetyStock}
+                      />
+                    </div>
+                  </div>
+                </ModalBody>
+                <ModalFooter>
+                  <Button
+                    color="danger"
+                    variant="flat"
+                    onClick={() => setShowNewSupplyModal(false)}
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    color="primary"
+                    onClick={handleCreateSupply}
+                    isLoading={isCreatingSupply}
+                    spinner={<Spinner color="white" />}
+                  >
+                    创建
+                  </Button>
+                </ModalFooter>
+              </ModalContent>
+            </Modal>
+
+            {/* 新增类别模态框 */}
+            <Modal
+              isOpen={showNewCategoryModal}
+              onClose={() => {
+                setShowNewCategoryModal(false);
+                setNewCategory("");
+                setNewCategoryError("");
+              }}
+              size="sm"
+            >
+              <ModalContent>
+                <ModalHeader className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Chip color="primary" variant="flat" startContent={<PlusIcon />}>
+                      新增类别
+                    </Chip>
+                  </div>
+                </ModalHeader>
+                <ModalBody>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        类别名称 <span className="text-danger">*</span>
+                      </label>
+                      <Input
+                        placeholder="请输入类别名称"
+                        value={newCategory}
+                        onValueChange={(value) => {
+                          setNewCategory(value);
+                          setNewCategoryError("");
+                        }}
+                        isInvalid={!!newCategoryError}
+                        errorMessage={newCategoryError}
+                      />
+                    </div>
+                  </div>
+                </ModalBody>
+                <ModalFooter>
+                  <Button
+                    color="danger"
+                    variant="flat"
+                    onClick={() => {
+                      setShowNewCategoryModal(false);
+                      setNewCategory("");
+                      setNewCategoryError("");
+                    }}
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    color="primary"
+                    onClick={handleAddCategory}
+                  >
+                    添加
                   </Button>
                 </ModalFooter>
               </ModalContent>

@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useState, Fragment } from "react";
 import {
   Card,
   CardBody,
@@ -10,6 +10,7 @@ import {
   DateRangePicker,
   DateValue,
   Badge,
+  Spinner,
 } from "@heroui/react";
 import { SearchIcon, RefreshIcon, FilterIcon, WarningIcon } from "@/components/icons";
 import {
@@ -29,6 +30,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { supplyCategories } from "@/config/supplies";
 
 const COLORS = {
   primary: "#3B82F6",
@@ -74,23 +76,63 @@ const mockTrendData = [
   { date: "2024-03-07", in: 80, out: 60 },
 ];
 
-const mockCategoryData = [
-  { name: "探针", value: 40 },
-  { name: "清洁剂", value: 25 },
-  { name: "继电器", value: 15 },
-  { name: "连接器", value: 12 },
-  { name: "其他配件", value: 8 },
-];
+// 根据共享类别生成模拟数据
+const mockCategoryData = supplyCategories.map((category) => ({
+  name: category,
+  value: Math.floor(Math.random() * 50) + 10, // 生成10-60之间的随机数
+}));
 
-const mockRankingData = [
-  { name: "P1000探针", value: 120, unit: "支" },
-  { name: "探针清洁剂", value: 85, unit: "瓶" },
-  { name: "P500探针", value: 75, unit: "支" },
-  { name: "P2000探针", value: 60, unit: "支" },
-  { name: "继电器模块", value: 45, unit: "个" },
-  { name: "探针连接器", value: 40, unit: "个" },
-  { name: "探针支架", value: 35, unit: "个" },
-];
+interface SupplyItem {
+  name: string;
+  value: number;
+  unit: string;
+  category: string;
+}
+
+interface LowStockItem {
+  name: string;
+  current: number;
+  threshold: number;
+  unit: string;
+  category: string;
+}
+
+// 为每个类别生成一些示例耗材
+const generateMockSupplies = (): SupplyItem[] => {
+  const supplies: SupplyItem[] = [];
+  supplyCategories.forEach(category => {
+    // 为每个类别生成2-4个耗材
+    const count = Math.floor(Math.random() * 3) + 2;
+    for (let i = 0; i < count; i++) {
+      supplies.push({
+        name: `${category}${i + 1}`,
+        value: Math.floor(Math.random() * 100) + 20,
+        unit: getUnitByCategory(category),
+        category: category
+      });
+    }
+  });
+  return supplies;
+};
+
+// 根据类别返回对应的单位
+const getUnitByCategory = (category: string): string => {
+  const unitMap: Record<string, string> = {
+    "探针": "支",
+    "清洁剂": "瓶",
+    "继电器": "个",
+    "连接器": "个",
+    "轴承": "个",
+    "手动工具": "套",
+    "安全防护用品": "套",
+    "包装材料": "包",
+    "办公用品": "个",
+    "其他": "个"
+  };
+  return unitMap[category] || "个";
+};
+
+const mockRankingData = generateMockSupplies();
 
 const mockOperatorData = [
   { name: "张三", value: 120, department: "测试部" },
@@ -100,13 +142,18 @@ const mockOperatorData = [
   { name: "钱七", value: 40, department: "生产部" },
 ];
 
-const mockLowStockData = [
-  { name: "P1000探针", current: 5, threshold: 20, unit: "支" },
-  { name: "探针清洁剂", current: 3, threshold: 15, unit: "瓶" },
-  { name: "P500探针", current: 8, threshold: 25, unit: "支" },
-  { name: "继电器模块", current: 4, threshold: 12, unit: "个" },
-  { name: "探针连接器", current: 6, threshold: 18, unit: "个" },
-];
+// 生成低库存数据
+const mockLowStockData = supplyCategories.map(category => {
+  const current = Math.floor(Math.random() * 10) + 1;
+  const threshold = Math.floor(Math.random() * 20) + 10;
+  return {
+    name: `${category}${Math.floor(Math.random() * 5) + 1}`,
+    current,
+    threshold,
+    unit: getUnitByCategory(category),
+    category
+  };
+});
 
 const mockMonthlyComparisonData = [
   { date: "3/1", current: 50, last: 45 },
@@ -152,15 +199,38 @@ export default function SuppliesStatisticsPage() {
       };
     }
 
-    // 这里可以根据筛选条件对数据进行过滤
-    // 目前使用模拟数据，实际应用中需要根据筛选条件处理数据
+    // 根据选择的类别过滤数据
+    const filterByCategory = (data: any[]) => {
+      if (selectedCategory === "all") return data;
+      return data.filter(item => item.category === selectedCategory);
+    };
+
+    // 根据选择的操作类型过滤数据
+    const filterByOperationType = (data: any[]) => {
+      if (selectedOperationType === "all") return data;
+      return data.filter(item => item.type === selectedOperationType);
+    };
+
+    // 根据日期范围过滤数据
+    const filterByDateRange = (data: any[]) => {
+      if (!dateRange) return data;
+      const startDate = new Date(dateRange.start.toString());
+      const endDate = new Date(dateRange.end.toString());
+      return data.filter(item => {
+        const itemDate = new Date(item.date);
+        return itemDate >= startDate && itemDate <= endDate;
+      });
+    };
+
     return {
-      trendData: mockTrendData,
-      categoryData: mockCategoryData,
-      rankingData: mockRankingData,
+      trendData: filterByDateRange(mockTrendData),
+      categoryData: selectedCategory === "all" 
+        ? mockCategoryData 
+        : mockCategoryData.filter(item => item.name === selectedCategory),
+      rankingData: filterByCategory(mockRankingData),
       operatorData: mockOperatorData,
-      lowStockData: mockLowStockData,
-      monthlyComparisonData: mockMonthlyComparisonData
+      lowStockData: filterByCategory(mockLowStockData),
+      monthlyComparisonData: filterByDateRange(mockMonthlyComparisonData)
     };
   };
 
@@ -188,11 +258,13 @@ export default function SuppliesStatisticsPage() {
                 className="w-full"
               >
                 <SelectItem key="all" textValue="全部">全部</SelectItem>
-                <SelectItem key="probe" textValue="探针">探针</SelectItem>
-                <SelectItem key="cleaner" textValue="清洁剂">清洁剂</SelectItem>
-                <SelectItem key="relay" textValue="继电器">继电器</SelectItem>
-                <SelectItem key="connector" textValue="连接器">连接器</SelectItem>
-                <SelectItem key="other" textValue="其他配件">其他配件</SelectItem>
+                <Fragment>
+                  {supplyCategories.map((category) => (
+                    <SelectItem key={category} textValue={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </Fragment>
               </Select>
             </div>
             <div className="flex-1 min-w-[200px]">

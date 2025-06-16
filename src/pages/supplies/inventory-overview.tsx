@@ -65,27 +65,224 @@ interface BarChartData {
 const mockData: InventoryItem[] = [
   {
     id: 1,
-    name: "A4打印纸",
-    category: "办公用品",
-    quantity: 85,
-    unit: "包",
-    location: "A区-01",
-    lastUpdated: "2024-03-20",
+    name: "P1000探针",
+    category: "探针",
+    quantity: 25,
+    unit: "支",
+    location: "A区-01-01",
+    lastUpdated: "2024-03-20 14:30:00",
     safetyStock: 20,
-    lastModified: "2024-06-12 14:33",
+    lastModified: "2024-03-20 14:30:00",
   },
   {
     id: 2,
-    name: "一次性手套",
-    category: "防护用品",
-    quantity: 500,
-    unit: "双",
-    location: "A区-02",
-    lastUpdated: "2024-03-19",
-    safetyStock: 50,
-    lastModified: "2024-06-11 09:15",
+    name: "P500探针",
+    category: "探针",
+    quantity: 30,
+    unit: "支",
+    location: "A区-01-02",
+    lastUpdated: "2024-03-20 15:45:00",
+    safetyStock: 25,
+    lastModified: "2024-03-20 15:45:00",
   },
-  // 更多模拟数据...
+  {
+    id: 3,
+    name: "P2000探针",
+    category: "探针",
+    quantity: 15,
+    unit: "支",
+    location: "A区-01-03",
+    lastUpdated: "2024-03-20 16:20:00",
+    safetyStock: 15,
+    lastModified: "2024-03-20 16:20:00",
+  },
+  {
+    id: 4,
+    name: "P3000探针",
+    category: "探针",
+    quantity: 20,
+    unit: "支",
+    location: "A区-01-04",
+    lastUpdated: "2024-03-20 10:15:00",
+    safetyStock: 15,
+    lastModified: "2024-03-20 10:15:00",
+  },
+  {
+    id: 5,
+    name: "探针清洁剂",
+    category: "清洁剂",
+    quantity: 18,
+    unit: "瓶",
+    location: "B区-02-01",
+    lastUpdated: "2024-03-20 11:30:00",
+    safetyStock: 15,
+    lastModified: "2024-03-20 11:30:00",
+  },
+  {
+    id: 6,
+    name: "探针专用清洁布",
+    category: "清洁剂",
+    quantity: 25,
+    unit: "包",
+    location: "B区-02-02",
+    lastUpdated: "2024-03-20 13:45:00",
+    safetyStock: 20,
+    lastModified: "2024-03-20 13:45:00",
+  },
+  {
+    id: 7,
+    name: "继电器模块",
+    category: "继电器",
+    quantity: 20,
+    unit: "个",
+    location: "B区-02-03",
+    lastUpdated: "2024-03-20 09:20:00",
+    safetyStock: 12,
+    lastModified: "2024-03-20 09:20:00",
+  },
+  {
+    id: 8,
+    name: "继电器底座",
+    category: "继电器",
+    quantity: 15,
+    unit: "个",
+    location: "B区-02-04",
+    lastUpdated: "2024-03-20 14:10:00",
+    safetyStock: 10,
+    lastModified: "2024-03-20 14:10:00",
+  },
+  {
+    id: 9,
+    name: "探针连接器",
+    category: "连接器",
+    quantity: 25,
+    unit: "个",
+    location: "C区-03-01",
+    lastUpdated: "2024-03-20 16:30:00",
+    safetyStock: 18,
+    lastModified: "2024-03-20 16:30:00",
+  },
+  {
+    id: 10,
+    name: "探针转接头",
+    category: "连接器",
+    quantity: 20,
+    unit: "个",
+    location: "C区-03-02",
+    lastUpdated: "2024-03-20 11:15:00",
+    safetyStock: 15,
+    lastModified: "2024-03-20 11:15:00",
+  },
+  {
+    id: 11,
+    name: "探针支架",
+    category: "其他配件",
+    quantity: 15,
+    unit: "个",
+    location: "C区-03-03",
+    lastUpdated: "2024-03-20 13:20:00",
+    safetyStock: 10,
+    lastModified: "2024-03-20 13:20:00",
+  },
+  {
+    id: 12,
+    name: "探针校准工具",
+    category: "其他配件",
+    quantity: 8,
+    unit: "套",
+    location: "C区-03-04",
+    lastUpdated: "2024-03-20 15:30:00",
+    safetyStock: 5,
+    lastModified: "2024-03-20 15:30:00",
+  },
+  {
+    id: 13,
+    name: "探针测试板",
+    category: "其他配件",
+    quantity: 12,
+    unit: "块",
+    location: "D区-04-01",
+    lastUpdated: "2024-03-20 10:45:00",
+    safetyStock: 8,
+    lastModified: "2024-03-20 10:45:00",
+  },
+  {
+    id: 14,
+    name: "探针保护套",
+    category: "其他配件",
+    quantity: 30,
+    unit: "个",
+    location: "D区-04-02",
+    lastUpdated: "2024-03-20 14:20:00",
+    safetyStock: 20,
+    lastModified: "2024-03-20 14:20:00",
+  },
+  {
+    id: 15,
+    name: "探针收纳盒",
+    category: "其他配件",
+    quantity: 10,
+    unit: "个",
+    location: "D区-04-03",
+    lastUpdated: "2024-03-20 16:15:00",
+    safetyStock: 5,
+    lastModified: "2024-03-20 16:15:00",
+  },
+  {
+    id: 16,
+    name: "探针维修工具",
+    category: "其他配件",
+    quantity: 5,
+    unit: "套",
+    location: "D区-04-04",
+    lastUpdated: "2024-03-20 09:30:00",
+    safetyStock: 3,
+    lastModified: "2024-03-20 09:30:00",
+  },
+  {
+    id: 17,
+    name: "探针说明书",
+    category: "其他配件",
+    quantity: 50,
+    unit: "本",
+    location: "E区-05-01",
+    lastUpdated: "2024-03-20 11:40:00",
+    safetyStock: 30,
+    lastModified: "2024-03-20 11:40:00",
+  },
+  {
+    id: 18,
+    name: "探针标签",
+    category: "其他配件",
+    quantity: 100,
+    unit: "张",
+    location: "E区-05-02",
+    lastUpdated: "2024-03-20 13:50:00",
+    safetyStock: 50,
+    lastModified: "2024-03-20 13:50:00",
+  },
+  {
+    id: 19,
+    name: "探针防静电袋",
+    category: "其他配件",
+    quantity: 200,
+    unit: "个",
+    location: "E区-05-03",
+    lastUpdated: "2024-03-20 15:25:00",
+    safetyStock: 100,
+    lastModified: "2024-03-20 15:25:00",
+  },
+  {
+    id: 20,
+    name: "探针包装盒",
+    category: "其他配件",
+    quantity: 40,
+    unit: "个",
+    location: "E区-05-04",
+    lastUpdated: "2024-03-20 16:40:00",
+    safetyStock: 20,
+    lastModified: "2024-03-20 16:40:00",
+  },
 ];
 
 const COLORS = [
@@ -102,7 +299,7 @@ const COLORS = [
 const SuppliesInventoryOverviewPage: FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [minQuantity, setMinQuantity] = useState<string>("");
   const [maxQuantity, setMaxQuantity] = useState<string>("");
   const [page, setPage] = useState(1);
@@ -124,15 +321,13 @@ const SuppliesInventoryOverviewPage: FC = () => {
   const categories = Array.from(new Set(mockData.map((item) => item.category)));
 
   // 准备饼图数据
-  const pieChartData = categories.map((category) => {
-    const total = mockData
-      .filter((item) => item.category === category)
-      .reduce((sum, item) => sum + item.quantity, 0);
-    return {
-      name: category,
-      value: total,
-    };
-  });
+  const pieChartData = [
+    { name: "探针", value: 90 },
+    { name: "清洁剂", value: 43 },
+    { name: "继电器", value: 35 },
+    { name: "连接器", value: 45 },
+    { name: "其他配件", value: 462 },
+  ];
 
   // 准备柱状图数据
   const barChartData = mockData.map((item) => ({
@@ -204,26 +399,16 @@ const SuppliesInventoryOverviewPage: FC = () => {
               startContent={<SearchIcon className="text-default-400" />}
             />
             <Select
-              className="w-48"
-              placeholder="选择分类"
-              selectedKeys={selectedCategory ? new Set([selectedCategory]) : new Set()}
+              selectedKeys={new Set([selectedCategory])}
               onSelectionChange={(keys) => setSelectedCategory(Array.from(keys)[0] as string)}
-              renderValue={(items) => {
-                return items.map((item) => (
-                  <div key={item.key} className="flex items-center gap-2">
-                    <span>{String(item.key)}</span>
-                  </div>
-                ));
-              }}
+              className="w-1/2"
             >
-              {[
-                <SelectItem key="" textValue="全部">全部</SelectItem>,
-                ...categories.map((category) => (
-                  <SelectItem key={category} textValue={category}>
-                    {category}
-                  </SelectItem>
-                ))
-              ]}
+              <SelectItem key="all" textValue="全部">全部</SelectItem>
+              <SelectItem key="probe" textValue="探针">探针</SelectItem>
+              <SelectItem key="cleaner" textValue="清洁剂">清洁剂</SelectItem>
+              <SelectItem key="relay" textValue="继电器">继电器</SelectItem>
+              <SelectItem key="connector" textValue="连接器">连接器</SelectItem>
+              <SelectItem key="other" textValue="其他配件">其他配件</SelectItem>
             </Select>
             <div className="flex items-center gap-2">
               <Input

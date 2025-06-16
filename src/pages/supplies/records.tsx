@@ -45,43 +45,258 @@ import { useNavigate } from "react-router-dom";
 
 interface InventoryRecord {
   id: number;
-  timestamp: string;
-  supplyName: string;
-  operationType: "in" | "out" | "adjust";
+  type: "in" | "out" | "adjust";
+  itemName: string;
+  category: string;
   quantity: number;
   unit: string;
   operator: string;
-  reason: string;
-  beforeQuantity: number;
-  afterQuantity: number;
+  department: string;
+  timestamp: string;
+  remark: string;
 }
 
-const mockRecords: InventoryRecord[] = [
+const mockData: InventoryRecord[] = [
   {
     id: 1,
-    timestamp: "2024-03-20 14:30:00",
-    supplyName: "A4打印纸",
-    operationType: "in",
+    type: "in",
+    itemName: "P1000探针",
+    category: "探针",
     quantity: 50,
-    unit: "包",
+    unit: "支",
     operator: "张三",
-    reason: "采购入库",
-    beforeQuantity: 100,
-    afterQuantity: 150,
+    department: "测试部",
+    timestamp: "2024-03-20 14:30:00",
+    remark: "常规补货",
   },
   {
     id: 2,
-    timestamp: "2024-03-20 15:45:00",
-    supplyName: "一次性手套",
-    operationType: "out",
+    type: "out",
+    itemName: "P500探针",
+    category: "探针",
     quantity: 20,
-    unit: "双",
+    unit: "支",
     operator: "李四",
-    reason: "部门领用",
-    beforeQuantity: 200,
-    afterQuantity: 180,
+    department: "维修部",
+    timestamp: "2024-03-20 15:45:00",
+    remark: "设备维修使用",
   },
-  // 更多模拟数据...
+  {
+    id: 3,
+    type: "in",
+    itemName: "P2000探针",
+    category: "探针",
+    quantity: 30,
+    unit: "支",
+    operator: "王五",
+    department: "研发部",
+    timestamp: "2024-03-20 16:20:00",
+    remark: "新项目采购",
+  },
+  {
+    id: 4,
+    type: "in",
+    itemName: "P3000探针",
+    category: "探针",
+    quantity: 25,
+    unit: "支",
+    operator: "赵六",
+    department: "质检部",
+    timestamp: "2024-03-20 10:15:00",
+    remark: "常规补货",
+  },
+  {
+    id: 5,
+    type: "out",
+    itemName: "探针清洁剂",
+    category: "清洁剂",
+    quantity: 10,
+    unit: "瓶",
+    operator: "张三",
+    department: "测试部",
+    timestamp: "2024-03-20 11:30:00",
+    remark: "日常维护使用",
+  },
+  {
+    id: 6,
+    type: "in",
+    itemName: "探针专用清洁布",
+    category: "清洁剂",
+    quantity: 30,
+    unit: "包",
+    operator: "李四",
+    department: "维修部",
+    timestamp: "2024-03-20 13:45:00",
+    remark: "批量采购",
+  },
+  {
+    id: 7,
+    type: "out",
+    itemName: "继电器模块",
+    category: "继电器",
+    quantity: 15,
+    unit: "个",
+    operator: "王五",
+    department: "研发部",
+    timestamp: "2024-03-20 09:20:00",
+    remark: "设备升级使用",
+  },
+  {
+    id: 8,
+    type: "in",
+    itemName: "继电器底座",
+    category: "继电器",
+    quantity: 20,
+    unit: "个",
+    operator: "赵六",
+    department: "质检部",
+    timestamp: "2024-03-20 14:10:00",
+    remark: "常规补货",
+  },
+  {
+    id: 9,
+    type: "out",
+    itemName: "探针连接器",
+    category: "连接器",
+    quantity: 15,
+    unit: "个",
+    operator: "张三",
+    department: "测试部",
+    timestamp: "2024-03-20 16:30:00",
+    remark: "设备维修使用",
+  },
+  {
+    id: 10,
+    type: "in",
+    itemName: "探针转接头",
+    category: "连接器",
+    quantity: 25,
+    unit: "个",
+    operator: "李四",
+    department: "维修部",
+    timestamp: "2024-03-20 11:15:00",
+    remark: "批量采购",
+  },
+  {
+    id: 11,
+    type: "out",
+    itemName: "探针支架",
+    category: "其他配件",
+    quantity: 10,
+    unit: "个",
+    operator: "王五",
+    department: "研发部",
+    timestamp: "2024-03-20 13:20:00",
+    remark: "新设备安装",
+  },
+  {
+    id: 12,
+    type: "in",
+    itemName: "探针校准工具",
+    category: "其他配件",
+    quantity: 10,
+    unit: "套",
+    operator: "赵六",
+    department: "质检部",
+    timestamp: "2024-03-20 15:30:00",
+    remark: "设备校准使用",
+  },
+  {
+    id: 13,
+    type: "out",
+    itemName: "探针测试板",
+    category: "其他配件",
+    quantity: 5,
+    unit: "块",
+    operator: "张三",
+    department: "测试部",
+    timestamp: "2024-03-20 10:45:00",
+    remark: "测试设备使用",
+  },
+  {
+    id: 14,
+    type: "in",
+    itemName: "探针保护套",
+    category: "其他配件",
+    quantity: 40,
+    unit: "个",
+    operator: "李四",
+    department: "维修部",
+    timestamp: "2024-03-20 14:20:00",
+    remark: "批量采购",
+  },
+  {
+    id: 15,
+    type: "out",
+    itemName: "探针收纳盒",
+    category: "其他配件",
+    quantity: 8,
+    unit: "个",
+    operator: "王五",
+    department: "研发部",
+    timestamp: "2024-03-20 16:15:00",
+    remark: "设备整理使用",
+  },
+  {
+    id: 16,
+    type: "in",
+    itemName: "探针维修工具",
+    category: "其他配件",
+    quantity: 8,
+    unit: "套",
+    operator: "赵六",
+    department: "质检部",
+    timestamp: "2024-03-20 09:30:00",
+    remark: "维修工具更新",
+  },
+  {
+    id: 17,
+    type: "out",
+    itemName: "探针说明书",
+    category: "其他配件",
+    quantity: 20,
+    unit: "本",
+    operator: "张三",
+    department: "测试部",
+    timestamp: "2024-03-20 11:40:00",
+    remark: "新员工培训使用",
+  },
+  {
+    id: 18,
+    type: "in",
+    itemName: "探针标签",
+    category: "其他配件",
+    quantity: 150,
+    unit: "张",
+    operator: "李四",
+    department: "维修部",
+    timestamp: "2024-03-20 13:50:00",
+    remark: "批量采购",
+  },
+  {
+    id: 19,
+    type: "out",
+    itemName: "探针防静电袋",
+    category: "其他配件",
+    quantity: 100,
+    unit: "个",
+    operator: "王五",
+    department: "研发部",
+    timestamp: "2024-03-20 15:25:00",
+    remark: "设备包装使用",
+  },
+  {
+    id: 20,
+    type: "in",
+    itemName: "探针包装盒",
+    category: "其他配件",
+    quantity: 50,
+    unit: "个",
+    operator: "赵六",
+    department: "质检部",
+    timestamp: "2024-03-20 16:40:00",
+    remark: "常规补货",
+  },
 ];
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -105,11 +320,11 @@ const SuppliesRecordsPage: FC = () => {
     setPage(1);
   };
 
-  const filteredRecords = mockRecords.filter((record) => {
-    const matchesSearch = record.supplyName.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredRecords = mockData.filter((record) => {
+    const matchesSearch = record.itemName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesOperator = !selectedOperator || record.operator === selectedOperator;
     const matchesOperationType = selectedOperationTypes.size === 0 || 
-                               selectedOperationTypes.has(record.operationType);
+                               selectedOperationTypes.has(record.type);
     const recordDate = new Date(record.timestamp);
     const startDate = dateRange?.start ? new Date(dateRange.start.toString()) : null;
     const endDate = dateRange?.end ? new Date(dateRange.end.toString()) : null;
@@ -125,17 +340,17 @@ const SuppliesRecordsPage: FC = () => {
 
   // 准备统计数据
   const operationTypeData = [
-    { name: "入库", value: filteredRecords.filter(r => r.operationType === "in").length },
-    { name: "出库", value: filteredRecords.filter(r => r.operationType === "out").length },
-    { name: "调整", value: filteredRecords.filter(r => r.operationType === "adjust").length },
+    { name: "入库", value: filteredRecords.filter(r => r.type === "in").length },
+    { name: "出库", value: filteredRecords.filter(r => r.type === "out").length },
+    { name: "调整", value: filteredRecords.filter(r => r.type === "adjust").length },
   ];
 
   const supplyRankingData = filteredRecords.reduce((acc, record) => {
-    const existing = acc.find(item => item.name === record.supplyName);
+    const existing = acc.find(item => item.name === record.itemName);
     if (existing) {
       existing.value += Math.abs(record.quantity);
     } else {
-      acc.push({ name: record.supplyName, value: Math.abs(record.quantity) });
+      acc.push({ name: record.itemName, value: Math.abs(record.quantity) });
     }
     return acc;
   }, [] as { name: string; value: number }[]).sort((a, b) => b.value - a.value).slice(0, 5);
@@ -155,6 +370,41 @@ const SuppliesRecordsPage: FC = () => {
     // TODO: 跳转到耗材详情页面
     console.log("Navigate to supply details:", supplyName);
   };
+
+  // 更新分类选项
+  const categories = [
+    { key: "all", textValue: "全部" },
+    { key: "probe", textValue: "探针" },
+    { key: "cleaner", textValue: "清洁剂" },
+    { key: "relay", textValue: "继电器" },
+    { key: "connector", textValue: "连接器" },
+    { key: "other", textValue: "其他配件" },
+  ];
+
+  // 更新耗材选项
+  const items = [
+    { key: "all", textValue: "全部" },
+    { key: "P1000", textValue: "P1000探针" },
+    { key: "P500", textValue: "P500探针" },
+    { key: "P2000", textValue: "P2000探针" },
+    { key: "P3000", textValue: "P3000探针" },
+    { key: "cleaner", textValue: "探针清洁剂" },
+    { key: "cleaning_cloth", textValue: "探针专用清洁布" },
+    { key: "relay_module", textValue: "继电器模块" },
+    { key: "relay_base", textValue: "继电器底座" },
+    { key: "probe_connector", textValue: "探针连接器" },
+    { key: "probe_adapter", textValue: "探针转接头" },
+    { key: "probe_stand", textValue: "探针支架" },
+    { key: "calibration_tool", textValue: "探针校准工具" },
+    { key: "test_board", textValue: "探针测试板" },
+    { key: "protective_sleeve", textValue: "探针保护套" },
+    { key: "storage_box", textValue: "探针收纳盒" },
+    { key: "repair_tool", textValue: "探针维修工具" },
+    { key: "manual", textValue: "探针说明书" },
+    { key: "label", textValue: "探针标签" },
+    { key: "esd_bag", textValue: "探针防静电袋" },
+    { key: "packaging_box", textValue: "探针包装盒" },
+  ];
 
   return (
     <div className="p-6 space-y-8">
@@ -178,9 +428,9 @@ const SuppliesRecordsPage: FC = () => {
                   ));
                 }}
               >
-                {mockRecords.map((record) => (
-                  <SelectItem key={record.supplyName} textValue={record.supplyName}>
-                    {record.supplyName}
+                {items.map((item) => (
+                  <SelectItem key={item.key} textValue={item.textValue}>
+                    {item.textValue}
                   </SelectItem>
                 ))}
               </Select>
@@ -252,7 +502,7 @@ const SuppliesRecordsPage: FC = () => {
                 >
                   {[
                     <SelectItem key="" textValue="全部">全部</SelectItem>,
-                    ...Array.from(new Set(mockRecords.map(r => r.operator))).map(operator => (
+                    ...Array.from(new Set(mockData.map(r => r.operator))).map(operator => (
                       <SelectItem key={operator} textValue={operator}>
                         {operator}
                       </SelectItem>
@@ -443,25 +693,25 @@ const SuppliesRecordsPage: FC = () => {
                     <Link
                       color="primary"
                       className="cursor-pointer"
-                      onClick={() => handleSupplyClick(record.supplyName)}
+                      onClick={() => handleSupplyClick(record.itemName)}
                     >
-                      {record.supplyName}
+                      {record.itemName}
                     </Link>
                   </TableCell>
                   <TableCell>
                     <Chip
                       color={
-                        record.operationType === "in"
+                        record.type === "in"
                           ? "success"
-                          : record.operationType === "out"
+                          : record.type === "out"
                           ? "danger"
                           : "default"
                       }
                       variant="flat"
                     >
-                      {record.operationType === "in"
+                      {record.type === "in"
                         ? "入库"
-                        : record.operationType === "out"
+                        : record.type === "out"
                         ? "出库"
                         : "调整"}
                     </Chip>
@@ -469,16 +719,16 @@ const SuppliesRecordsPage: FC = () => {
                   <TableCell>
                     <span
                       className={
-                        record.operationType === "in"
+                        record.type === "in"
                           ? "text-success"
-                          : record.operationType === "out"
+                          : record.type === "out"
                           ? "text-danger"
                           : "text-default"
                       }
                     >
-                      {record.operationType === "in"
+                      {record.type === "in"
                         ? "+"
-                        : record.operationType === "out"
+                        : record.type === "out"
                         ? "-"
                         : "±"}
                       {Math.abs(record.quantity)}
@@ -487,8 +737,8 @@ const SuppliesRecordsPage: FC = () => {
                   <TableCell>{record.unit}</TableCell>
                   <TableCell>{record.operator}</TableCell>
                   <TableCell>
-                    <Tooltip content={record.reason}>
-                      <span className="line-clamp-2">{record.reason}</span>
+                    <Tooltip content={record.remark}>
+                      <span className="line-clamp-2">{record.remark}</span>
                     </Tooltip>
                   </TableCell>
                 </TableRow>

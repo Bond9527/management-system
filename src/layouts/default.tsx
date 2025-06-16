@@ -18,6 +18,8 @@ export default function DefaultLayout() {
     users: "用户管理",
     "basic-settings": "基础信息设置",
     supplies: "耗材管理",
+    "inventory-overview": "库存总览",
+    "add-record": "新增记录",
     apply: "申请管理",
     inventory: "库存管理",
     purchase: "采购管理",

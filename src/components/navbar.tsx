@@ -307,7 +307,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
     <HeroUINavbar 
       maxWidth="full" 
       position="sticky"
-      className="bg-white border-b border-gray-200 shadow-sm text-gray-900 transition-all duration-300"
+      className="bg-white border-b border-gray-200 shadow-sm text-gray-900 transition-all duration-300 z-50"
     >
       <NavbarContent justify="start">
         <Button

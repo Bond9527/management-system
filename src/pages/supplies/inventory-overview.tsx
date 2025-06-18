@@ -3,33 +3,35 @@ import {
   Card,
   CardBody,
   Input,
+  Button,
   Table,
   TableHeader,
   TableColumn,
   TableBody,
   TableRow,
   TableCell,
-  Button,
   Pagination,
   Select,
   SelectItem,
   Chip,
   Tooltip,
   Badge,
-  Spinner,
-  Divider,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
-import { SearchIcon, DownloadIcon, PlusIcon, MinusIcon, EyeIcon, ClockIcon } from "@/components/icons";
-import { useNavigate } from "react-router-dom";
+import { SearchIcon, DownloadIcon, EyeIcon, WarningIcon, InfoIcon } from "@/components/icons";
 import { supplyCategories } from "@/config/supplies";
+import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
+import { useNavigate } from "react-router-dom";
+import { validateDataConsistency, generateInventorySummary, fixDataInconsistencies } from "@/utils/dataConsistencyTest";
 import {
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
   XAxis,
@@ -38,30 +40,10 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
-
-interface InventoryItem {
-  id: number;
-  name: string;
-  category: string;
-  quantity: number;
-  unit: string;
-  location: string;
-  lastUpdated: string;
-  safetyStock: number;
-  lastModified: string;
-}
-
-interface PieChartData {
-  name: string;
-  value: number;
-}
-
-interface BarChartData {
-  name: string;
-  quantity: number;
-  safetyStock: number;
-}
 
 // 根据类别返回对应的单位
 const getUnitByCategory = (category: string): string => {
@@ -80,48 +62,6 @@ const getUnitByCategory = (category: string): string => {
   return unitMap[category] || "个";
 };
 
-// 生成模拟库存数据
-const generateMockInventoryData = (): InventoryItem[] => {
-  const data: InventoryItem[] = [];
-  let id = 1;
-
-  supplyCategories.forEach(category => {
-    // 为每个类别生成2-4个耗材
-    const count = Math.floor(Math.random() * 3) + 2;
-    for (let i = 0; i < count; i++) {
-      const quantity = Math.floor(Math.random() * 30) + 10;
-      const safetyStock = Math.floor(Math.random() * 20) + 5;
-      const location = `${String.fromCharCode(65 + Math.floor(Math.random() * 3))}区-${String(Math.floor(Math.random() * 5) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 5) + 1).padStart(2, '0')}`;
-      const now = new Date();
-      const lastUpdated = now.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      });
-
-      data.push({
-        id: id++,
-        name: `${category}${i + 1}`,
-        category,
-        quantity,
-        unit: getUnitByCategory(category),
-        location,
-        lastUpdated,
-        safetyStock,
-        lastModified: lastUpdated
-      });
-    }
-  });
-
-  return data;
-};
-
-const mockData: InventoryItem[] = generateMockInventoryData();
-
 const COLORS = [
   "#3B82F6", // blue-500
   "#10B981", // emerald-500
@@ -135,18 +75,23 @@ const COLORS = [
 
 const SuppliesInventoryOverviewPage: FC = () => {
   const navigate = useNavigate();
+  const { supplies, records, updateSupply } = useSupplies();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [minQuantity, setMinQuantity] = useState<string>("");
   const [maxQuantity, setMaxQuantity] = useState<string>("");
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
+  const [showConsistencyModal, setShowConsistencyModal] = useState(false);
+  const [consistencyIssues, setConsistencyIssues] = useState<string[]>([]);
+  const [isConsistencyValid, setIsConsistencyValid] = useState(true);
+  const [isChecking, setIsChecking] = useState(false);
 
-  const filteredData = mockData.filter((item) => {
+  const filteredData = supplies.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
-    const matchesQuantity = (!minQuantity || item.quantity >= Number(minQuantity)) &&
-                          (!maxQuantity || item.quantity <= Number(maxQuantity));
+    const matchesQuantity = (!minQuantity || item.currentStock >= Number(minQuantity)) &&
+                          (!maxQuantity || item.currentStock <= Number(maxQuantity));
     return matchesSearch && matchesCategory && matchesQuantity;
   });
 
@@ -155,21 +100,22 @@ const SuppliesInventoryOverviewPage: FC = () => {
     page * rowsPerPage
   );
 
-  const categories = Array.from(new Set(mockData.map((item) => item.category)));
+  const categories = Array.from(new Set(supplies.map((item) => item.category)));
 
-  // 准备饼图数据
-  const pieChartData = [
-    { name: "探针", value: 90 },
-    { name: "清洁剂", value: 43 },
-    { name: "继电器", value: 35 },
-    { name: "连接器", value: 45 },
-    { name: "其他配件", value: 462 },
-  ];
+  // 准备饼图数据 - 按类别汇总
+  const pieChartData = categories.map(category => {
+    const categorySupplies = supplies.filter(item => item.category === category);
+    const totalQuantity = categorySupplies.reduce((sum, item) => sum + item.currentStock, 0);
+    return {
+      name: category,
+      value: totalQuantity
+    };
+  });
 
   // 准备柱状图数据
-  const barChartData = mockData.map((item) => ({
+  const barChartData = supplies.map((item) => ({
     name: item.name,
-    quantity: item.quantity,
+    quantity: item.currentStock,
     safetyStock: item.safetyStock,
   }));
 
@@ -180,14 +126,14 @@ const SuppliesInventoryOverviewPage: FC = () => {
 
   const handleExportCSV = () => {
     // 准备CSV数据
-    const headers = ["耗材名称", "分类", "单位", "当前库存", "安全库存", "上次变动时间"];
+    const headers = ["耗材名称", "分类", "单位", "当前库存", "安全库存", "库存状态"];
     const csvData = filteredData.map(item => [
       item.name,
       item.category,
       item.unit,
-      item.quantity,
+      item.currentStock,
       item.safetyStock,
-      item.lastModified
+      item.currentStock <= item.safetyStock ? "库存不足" : "库存充足"
     ]);
 
     // 转换为CSV格式
@@ -214,14 +160,76 @@ const SuppliesInventoryOverviewPage: FC = () => {
     navigate(`/supplies/details/${id}`);
   };
 
-  const handleAdjustStock = (id: number, adjustment: number) => {
-    // TODO: 实现库存调整功能
-    console.log(`Adjusting stock for item ${id} by ${adjustment}`);
+  const handleCheckConsistency = () => {
+    setIsChecking(true);
+    const result = validateDataConsistency(supplies, records);
+    setConsistencyIssues(result.issues);
+    setIsConsistencyValid(result.isValid);
+    setShowConsistencyModal(true);
+    setIsChecking(false);
   };
+
+  const handleFixInconsistencies = async () => {
+    const { updatedSupplies, issues } = fixDataInconsistencies(supplies, records);
+    
+    // 批量更新耗材库存
+    for (const updatedSupply of updatedSupplies) {
+      const originalSupply = supplies.find(s => s.id === updatedSupply.id);
+      if (originalSupply && originalSupply.currentStock !== updatedSupply.currentStock) {
+        await updateSupply(updatedSupply);
+      }
+    }
+    
+    setConsistencyIssues(issues);
+    setIsConsistencyValid(true);
+  };
+
+  const summary = generateInventorySummary(supplies, records);
 
   return (
     <div className="p-6 space-y-8">
-      <h1 className="text-2xl font-bold">库存总览</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">库存总览</h1>
+        <div className="flex items-center gap-2">
+          <Button
+            color="warning"
+            variant="flat"
+            startContent={<WarningIcon />}
+            onClick={handleCheckConsistency}
+            isLoading={isChecking}
+          >
+            数据一致性检查
+          </Button>
+        </div>
+      </div>
+
+      {/* 统计摘要 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-primary">{summary.totalSupplies}</div>
+            <div className="text-sm text-gray-600">总耗材数</div>
+          </CardBody>
+        </Card>
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-success">{summary.totalRecords}</div>
+            <div className="text-sm text-gray-600">变动记录数</div>
+          </CardBody>
+        </Card>
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-danger">{summary.lowStockItems}</div>
+            <div className="text-sm text-gray-600">库存不足</div>
+          </CardBody>
+        </Card>
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-warning">{summary.recentActivity}</div>
+            <div className="text-sm text-gray-600">本周变动</div>
+          </CardBody>
+        </Card>
+      </div>
 
       {/* 搜索与筛选栏 */}
       <Card className="shadow-lg">
@@ -242,38 +250,25 @@ const SuppliesInventoryOverviewPage: FC = () => {
             >
               <SelectItem key="all" textValue="全部">全部</SelectItem>
               <Fragment>
-                {supplyCategories.map(category => (
+                {categories.map(category => (
                   <SelectItem key={category} textValue={category}>{category}</SelectItem>
                 ))}
               </Fragment>
             </Select>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                className="w-24"
-                placeholder="最小"
-                value={minQuantity}
-                onValueChange={setMinQuantity}
-                startContent={
-                  <div className="pointer-events-none flex items-center">
-                    <span className="text-default-400 text-small">≥</span>
-                  </div>
-                }
-              />
-              <span className="text-gray-500">-</span>
-              <Input
-                type="number"
-                className="w-24"
-                placeholder="最大"
-                value={maxQuantity}
-                onValueChange={setMaxQuantity}
-                startContent={
-                  <div className="pointer-events-none flex items-center">
-                    <span className="text-default-400 text-small">≤</span>
-                  </div>
-                }
-              />
-            </div>
+            <Input
+              type="number"
+              placeholder="最小数量"
+              value={minQuantity}
+              onValueChange={setMinQuantity}
+              className="w-32"
+            />
+            <Input
+              type="number"
+              placeholder="最大数量"
+              value={maxQuantity}
+              onValueChange={setMaxQuantity}
+              className="w-32"
+            />
             <Dropdown>
               <DropdownTrigger>
                 <Button
@@ -317,7 +312,7 @@ const SuppliesInventoryOverviewPage: FC = () => {
               <TableColumn>单位</TableColumn>
               <TableColumn>当前库存</TableColumn>
               <TableColumn>安全库存</TableColumn>
-              <TableColumn>上次变动时间</TableColumn>
+              <TableColumn>库存状态</TableColumn>
               <TableColumn>操作</TableColumn>
             </TableHeader>
             <TableBody>
@@ -340,10 +335,10 @@ const SuppliesInventoryOverviewPage: FC = () => {
                   <TableCell>{item.unit}</TableCell>
                   <TableCell>
                     <Badge
-                      color={item.quantity <= item.safetyStock ? "danger" : "success"}
+                      color={item.currentStock <= item.safetyStock ? "danger" : "success"}
                       variant="flat"
                     >
-                      {item.quantity}
+                      {item.currentStock}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -353,11 +348,10 @@ const SuppliesInventoryOverviewPage: FC = () => {
                   </TableCell>
                   <TableCell>
                     <Chip
+                      color={item.currentStock <= item.safetyStock ? "danger" : "success"}
                       variant="flat"
-                      color="default"
-                      startContent={<ClockIcon className="text-default-500" />}
                     >
-                      {item.lastModified}
+                      {item.currentStock <= item.safetyStock ? "库存不足" : "库存充足"}
                     </Chip>
                   </TableCell>
                   <TableCell>
@@ -370,26 +364,6 @@ const SuppliesInventoryOverviewPage: FC = () => {
                           onClick={() => handleViewDetails(item.id)}
                         >
                           <EyeIcon className="text-default-500" />
-                        </Button>
-                      </Tooltip>
-                      <Tooltip content="增加库存">
-                        <Button
-                          isIconOnly
-                          variant="light"
-                          size="sm"
-                          onClick={() => handleAdjustStock(item.id, 1)}
-                        >
-                          <PlusIcon className="text-success" />
-                        </Button>
-                      </Tooltip>
-                      <Tooltip content="减少库存">
-                        <Button
-                          isIconOnly
-                          variant="light"
-                          size="sm"
-                          onClick={() => handleAdjustStock(item.id, -1)}
-                        >
-                          <MinusIcon className="text-danger" />
                         </Button>
                       </Tooltip>
                     </div>
@@ -427,48 +401,22 @@ const SuppliesInventoryOverviewPage: FC = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }: { name: string; percent: number }) => 
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
-                    outerRadius={100}
-                    innerRadius={60}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
-                    paddingAngle={2}
                   >
                     {pieChartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={COLORS[index % COLORS.length]}
-                        stroke="#fff"
-                        strokeWidth={2}
-                      />
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: "rgba(255, 255, 255, 0.9)",
-                      border: "none",
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                      padding: "8px 12px",
-                    }}
-                    formatter={(value: number) => [`${value} 件`, "库存数量"]}
-                  />
-                  <Legend
-                    layout="vertical"
-                    align="right"
-                    verticalAlign="middle"
-                    iconType="circle"
-                    wrapperStyle={{
-                      paddingLeft: "20px",
-                    }}
-                  />
+                  <RechartsTooltip />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </CardBody>
         </Card>
+
         <Card className="shadow-lg">
           <CardBody>
             <div className="flex items-center justify-between mb-6">
@@ -478,8 +426,8 @@ const SuppliesInventoryOverviewPage: FC = () => {
               </Chip>
             </div>
             <div className="space-y-3">
-              {mockData
-                .filter((item) => item.quantity <= item.safetyStock)
+              {supplies
+                .filter((item) => item.currentStock <= item.safetyStock)
                 .map((item) => (
                   <div key={item.id} className="flex justify-between items-center p-3 bg-danger-50 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -490,7 +438,7 @@ const SuppliesInventoryOverviewPage: FC = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge color="danger" variant="flat">
-                        {item.quantity} {item.unit}
+                        {item.currentStock} {item.unit}
                       </Badge>
                       <Chip color="danger" variant="flat" size="sm">
                         安全库存: {item.safetyStock}
@@ -534,67 +482,103 @@ const SuppliesInventoryOverviewPage: FC = () => {
                   vertical={false}
                   stroke="#E5E7EB"
                 />
-                <XAxis
-                  dataKey="name"
-                  height={100}
-                  interval={4}
-                  tick={({ x, y, payload, index }) => {
-                    const value = payload.value;
-                    const display = value.length > 6 ? value.slice(0, 6) + '…' : value;
-                    return (
-                      <g transform={`translate(${x},${y})`}>
-                        <title>{value}</title>
-                        <text
-                          x={0}
-                          y={0}
-                          dy={16}
-                          textAnchor="middle"
-                          fontSize={12}
-                          fill="#6B7280"
-                        >
-                          {display}
-                        </text>
-                      </g>
-                    );
-                  }}
-                  tickLine={{ stroke: "#E5E7EB" }}
-                  axisLine={{ stroke: "#E5E7EB" }}
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  interval={0}
+                  fontSize={12}
                 />
-                <YAxis
-                  tick={{ fill: "#6B7280", fontSize: 12 }}
-                  tickLine={{ stroke: "#E5E7EB" }}
-                  axisLine={{ stroke: "#E5E7EB" }}
-                  tickFormatter={(value) => `${value} 件`}
-                />
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    border: "none",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                    padding: "8px 12px",
-                  }}
-                  formatter={(value: number, name: string) => [`${value} 件`, name]}
-                />
-                <Bar
-                  dataKey="quantity"
-                  name="当前库存"
-                  fill="#3B82F6"
+                <YAxis />
+                <RechartsTooltip />
+                <Legend />
+                <Bar 
+                  dataKey="quantity" 
+                  name="当前库存" 
+                  fill="#3B82F6" 
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={50}
                 />
-                <Bar
-                  dataKey="safetyStock"
-                  name="安全库存"
-                  fill="#10B981"
+                <Bar 
+                  dataKey="safetyStock" 
+                  name="安全库存" 
+                  fill="#10B981" 
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={50}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </CardBody>
       </Card>
+
+      {/* 数据一致性检查模态框 */}
+      <Modal
+        isOpen={showConsistencyModal}
+        onClose={() => setShowConsistencyModal(false)}
+        size="2xl"
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              {isConsistencyValid ? (
+                <Chip color="success" variant="flat" startContent={<InfoIcon />}>
+                  数据一致性检查
+                </Chip>
+              ) : (
+                <Chip color="warning" variant="flat" startContent={<WarningIcon />}>
+                  发现数据不一致
+                </Chip>
+              )}
+            </div>
+          </ModalHeader>
+          <ModalBody>
+            {isConsistencyValid ? (
+              <div className="text-center py-8">
+                <InfoIcon className="text-success text-6xl mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-success mb-2">数据一致性良好</h3>
+                <p className="text-gray-600">库存总览和变动台账的数据完全一致，没有发现任何问题。</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-warning-50 border border-warning-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-warning-800 mb-2">发现以下问题：</h4>
+                  <ul className="space-y-2">
+                    {consistencyIssues.map((issue, index) => (
+                      <li key={index} className="text-sm text-warning-700 flex items-start gap-2">
+                        <span className="text-warning-500 mt-1">•</span>
+                        {issue}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-info-50 border border-info-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-info-800 mb-2">建议操作：</h4>
+                  <p className="text-sm text-info-700">
+                    点击"修复数据"按钮将根据变动记录自动修正库存数据，确保数据一致性。
+                  </p>
+                </div>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="default"
+              variant="flat"
+              onClick={() => setShowConsistencyModal(false)}
+            >
+              关闭
+            </Button>
+            {!isConsistencyValid && (
+              <Button
+                color="warning"
+                onClick={handleFixInconsistencies}
+              >
+                修复数据
+              </Button>
+            )}
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

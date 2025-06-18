@@ -17,6 +17,10 @@ import SuppliesInventoryOverviewPage from "./pages/supplies/inventory-overview";
 import SuppliesAddRecordPage from "./pages/supplies/add-record";
 import SuppliesRecordsPage from "./pages/supplies/records";
 import SuppliesStatisticsPage from "./pages/supplies/statistics";
+import SupplyDetailsPage from "./pages/supplies/details";
+import DebugSyncPage from "./pages/supplies/debug-sync";
+import TestCategorySummaryPage from "./pages/supplies/test-category-summary";
+import DataComparisonPage from "./pages/supplies/data-comparison";
 
 function App() {
   return (
@@ -44,9 +48,13 @@ function App() {
         <Route path="/supplies/add-record" element={<SuppliesAddRecordPage />} />
         <Route path="/supplies/records" element={<SuppliesRecordsPage />} />
         <Route path="/supplies/statistics" element={<SuppliesStatisticsPage />} />
+        <Route path="/supplies/details/:id" element={<SupplyDetailsPage />} />
+        <Route path="/supplies/debug-sync" element={<DebugSyncPage />} />
+        <Route path="/supplies/test-category-summary" element={<TestCategorySummaryPage />} />
+        <Route path="/supplies/data-comparison" element={<DataComparisonPage />} />
       </Route>
     </Routes>
   );
 }
 
-export default App;
+export default App; 

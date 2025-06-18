@@ -1,4 +1,4 @@
-import { FC, useState, Fragment } from "react";
+import { FC, useState, Fragment, useEffect } from "react";
 import {
   Card,
   CardBody,
@@ -30,7 +30,8 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { supplyCategories } from "@/config/supplies";
+import { useSupplies, SupplyItem, InventoryRecord } from "@/hooks/useSupplies";
+import { generateInventorySummary } from "@/utils/dataConsistencyTest";
 
 const COLORS = {
   primary: "#3B82F6",
@@ -65,56 +66,6 @@ const chartStyles = {
   },
 };
 
-// 模拟数据
-const mockTrendData = [
-  { date: "2024-03-01", in: 50, out: 30 },
-  { date: "2024-03-02", in: 45, out: 35 },
-  { date: "2024-03-03", in: 60, out: 40 },
-  { date: "2024-03-04", in: 55, out: 45 },
-  { date: "2024-03-05", in: 70, out: 50 },
-  { date: "2024-03-06", in: 65, out: 55 },
-  { date: "2024-03-07", in: 80, out: 60 },
-];
-
-// 根据共享类别生成模拟数据
-const mockCategoryData = supplyCategories.map((category) => ({
-  name: category,
-  value: Math.floor(Math.random() * 50) + 10, // 生成10-60之间的随机数
-}));
-
-interface SupplyItem {
-  name: string;
-  value: number;
-  unit: string;
-  category: string;
-}
-
-interface LowStockItem {
-  name: string;
-  current: number;
-  threshold: number;
-  unit: string;
-  category: string;
-}
-
-// 为每个类别生成一些示例耗材
-const generateMockSupplies = (): SupplyItem[] => {
-  const supplies: SupplyItem[] = [];
-  supplyCategories.forEach(category => {
-    // 为每个类别生成2-4个耗材
-    const count = Math.floor(Math.random() * 3) + 2;
-    for (let i = 0; i < count; i++) {
-      supplies.push({
-        name: `${category}${i + 1}`,
-        value: Math.floor(Math.random() * 100) + 20,
-        unit: getUnitByCategory(category),
-        category: category
-      });
-    }
-  });
-  return supplies;
-};
-
 // 根据类别返回对应的单位
 const getUnitByCategory = (category: string): string => {
   const unitMap: Record<string, string> = {
@@ -132,44 +83,99 @@ const getUnitByCategory = (category: string): string => {
   return unitMap[category] || "个";
 };
 
-const mockRankingData = generateMockSupplies();
-
-const mockOperatorData = [
-  { name: "张三", value: 120, department: "测试部" },
-  { name: "李四", value: 100, department: "维修部" },
-  { name: "王五", value: 80, department: "研发部" },
-  { name: "赵六", value: 60, department: "质检部" },
-  { name: "钱七", value: 40, department: "生产部" },
-];
-
-// 生成低库存数据
-const mockLowStockData = supplyCategories.map(category => {
-  const current = Math.floor(Math.random() * 10) + 1;
-  const threshold = Math.floor(Math.random() * 20) + 10;
-  return {
-    name: `${category}${Math.floor(Math.random() * 5) + 1}`,
-    current,
-    threshold,
-    unit: getUnitByCategory(category),
-    category
-  };
-});
-
-const mockMonthlyComparisonData = [
-  { date: "3/1", current: 50, last: 45 },
-  { date: "3/2", current: 55, last: 50 },
-  { date: "3/3", current: 60, last: 55 },
-  { date: "3/4", current: 65, last: 60 },
-  { date: "3/5", current: 70, last: 65 },
-  { date: "3/6", current: 75, last: 70 },
-  { date: "3/7", current: 80, last: 75 },
-];
-
 export default function SuppliesStatisticsPage() {
+  const { supplies, records } = useSupplies();
   const [dateRange, setDateRange] = useState<{ start: DateValue; end: DateValue } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedOperationType, setSelectedOperationType] = useState<string>("all");
   const [isResetting, setIsResetting] = useState(false);
+
+  // 获取所有类别
+  const categories = Array.from(new Set(supplies.map(item => item.category)));
+
+  // 生成真实的趋势数据
+  const generateTrendData = () => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0];
+    }).reverse();
+
+    return last7Days.map(date => {
+      const dayRecords = records.filter(record => {
+        const recordDate = new Date(record.timestamp).toISOString().split('T')[0];
+        return recordDate === date;
+      });
+
+      const inCount = dayRecords.filter(r => r.type === 'in').reduce((sum, r) => sum + r.quantity, 0);
+      const outCount = dayRecords.filter(r => r.type === 'out').reduce((sum, r) => sum + r.quantity, 0);
+
+      return {
+        date,
+        in: inCount,
+        out: outCount
+      };
+    });
+  };
+
+  // 生成真实的分类数据
+  const generateCategoryData = () => {
+    return categories.map(category => {
+      const categorySupplies = supplies.filter(item => item.category === category);
+      const totalStock = categorySupplies.reduce((sum, item) => sum + item.currentStock, 0);
+      return {
+        name: category,
+        value: totalStock
+      };
+    });
+  };
+
+  // 生成真实的排名数据
+  const generateRankingData = () => {
+    return supplies
+      .map(item => ({
+        name: item.name,
+        value: item.currentStock,
+        unit: item.unit,
+        category: item.category
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // 取前10名
+  };
+
+  // 生成真实的低库存数据
+  const generateLowStockData = () => {
+    return supplies
+      .filter(item => item.currentStock <= item.safetyStock)
+      .map(item => ({
+        name: item.name,
+        current: item.currentStock,
+        threshold: item.safetyStock,
+        unit: item.unit,
+        category: item.category
+      }))
+      .sort((a, b) => a.current - b.current);
+  };
+
+  // 生成操作员数据
+  const generateOperatorData = () => {
+    const operatorStats: Record<string, { name: string; value: number; department: string }> = {};
+    
+    records.forEach(record => {
+      if (!operatorStats[record.operator]) {
+        operatorStats[record.operator] = {
+          name: record.operator,
+          value: 0,
+          department: record.department
+        };
+      }
+      operatorStats[record.operator].value += record.quantity;
+    });
+
+    return Object.values(operatorStats)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5); // 取前5名
+  };
 
   // 重置所有筛选条件和统计数据
   const handleReset = () => {
@@ -223,21 +229,50 @@ export default function SuppliesStatisticsPage() {
     };
 
     return {
-      trendData: filterByDateRange(mockTrendData),
+      trendData: filterByDateRange(generateTrendData()),
       categoryData: selectedCategory === "all" 
-        ? mockCategoryData 
-        : mockCategoryData.filter(item => item.name === selectedCategory),
-      rankingData: filterByCategory(mockRankingData),
-      operatorData: mockOperatorData,
-      lowStockData: filterByCategory(mockLowStockData),
-      monthlyComparisonData: filterByDateRange(mockMonthlyComparisonData)
+        ? generateCategoryData() 
+        : generateCategoryData().filter(item => item.name === selectedCategory),
+      rankingData: filterByCategory(generateRankingData()),
+      operatorData: generateOperatorData(),
+      lowStockData: filterByCategory(generateLowStockData()),
+      monthlyComparisonData: filterByDateRange(generateTrendData()) // 使用趋势数据作为月度对比
     };
   };
 
   const filteredData = getFilteredData();
+  const summary = generateInventorySummary(supplies, records);
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      {/* 统计摘要 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-primary">{summary.totalSupplies}</div>
+            <div className="text-sm text-gray-600">总耗材数</div>
+          </CardBody>
+        </Card>
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-success">{summary.totalRecords}</div>
+            <div className="text-sm text-gray-600">变动记录数</div>
+          </CardBody>
+        </Card>
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-danger">{summary.lowStockItems}</div>
+            <div className="text-sm text-gray-600">库存不足</div>
+          </CardBody>
+        </Card>
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-warning">{summary.recentActivity}</div>
+            <div className="text-sm text-gray-600">本周变动</div>
+          </CardBody>
+        </Card>
+      </div>
+
       {/* 筛选区 */}
       <Card className="shadow-lg">
         <CardBody>
@@ -259,7 +294,7 @@ export default function SuppliesStatisticsPage() {
               >
                 <SelectItem key="all" textValue="全部">全部</SelectItem>
                 <Fragment>
-                  {supplyCategories.map((category) => (
+                  {categories.map((category) => (
                     <SelectItem key={category} textValue={category}>
                       {category}
                     </SelectItem>

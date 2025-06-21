@@ -50,11 +50,12 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { formatTimestamp, getCurrentDateForFilename } from "@/utils/dateUtils";
 
 const SupplyDetailsPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { supplies, records, updateSupply, addRecord } = useSupplies();
+  const { supplies, records, adjustStock, fetchRecords, isLoading, error } = useSupplies();
   
   const [supply, setSupply] = useState<SupplyItem | null>(null);
   const [supplyRecords, setSupplyRecords] = useState<InventoryRecord[]>([]);
@@ -70,6 +71,7 @@ const SupplyDetailsPage: FC = () => {
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [adjustmentType, setAdjustmentType] = useState<"in" | "out" | "adjust">("in");
   const [adjustmentQuantity, setAdjustmentQuantity] = useState("");
+  const [adjustmentUnitPrice, setAdjustmentUnitPrice] = useState("");
   const [adjustmentRemark, setAdjustmentRemark] = useState("");
   const [isAdjusting, setIsAdjusting] = useState(false);
 
@@ -80,12 +82,20 @@ const SupplyDetailsPage: FC = () => {
       setSupply(foundSupply || null);
       
       if (foundSupply) {
-        const supplyRecords = records.filter(r => r.supplyId === supplyId);
-        setSupplyRecords(supplyRecords);
-        setFilteredRecords(supplyRecords);
+        // 获取该耗材的记录
+        fetchRecords({ supply_id: supplyId });
       }
     }
-  }, [id, supplies, records]);
+  }, [id, supplies]);
+
+  // 当records更新时，筛选出当前耗材的记录
+  useEffect(() => {
+    if (supply) {
+      const supplyRecords = records.filter(r => r.supply === supply.id);
+      setSupplyRecords(supplyRecords);
+      setFilteredRecords(supplyRecords);
+    }
+  }, [supply, records]);
 
   // 筛选记录
   useEffect(() => {
@@ -174,49 +184,36 @@ const SupplyDetailsPage: FC = () => {
       return;
     }
 
-    if (adjustmentType === "out" && quantity > supply.currentStock) {
+    if (adjustmentType === "out" && quantity > supply.current_stock) {
       alert("出库数量不能超过当前库存");
       return;
     }
 
+    // 验证单价（如果输入了的话）
+    let unitPrice: number | undefined = undefined;
+    if (adjustmentUnitPrice) {
+      const price = Number(adjustmentUnitPrice);
+      if (isNaN(price) || price < 0) {
+        alert("请输入有效的单价");
+        return;
+      }
+      unitPrice = price;
+    }
+
     setIsAdjusting(true);
     try {
-      let newStock = supply.currentStock;
-      switch (adjustmentType) {
-        case "in":
-          newStock += quantity;
-          break;
-        case "out":
-          newStock -= quantity;
-          break;
-        case "adjust":
-          newStock = quantity;
-          break;
-      }
-
-      // 更新库存
-      await updateSupply({
-        ...supply,
-        currentStock: newStock,
-      });
-
-      // 添加记录
-      addRecord({
+      // 使用adjustStock API进行库存调整
+      await adjustStock({
+        supply_id: supply.id,
         type: adjustmentType,
-        supplyId: supply.id,
-        itemName: supply.name,
-        category: supply.category,
-        quantity: adjustmentType === "adjust" ? newStock : quantity,
-        unit: supply.unit,
-        operator: "当前用户", // 实际应用中从用户上下文获取
-        department: "技术部", // 实际应用中从用户上下文获取
+        quantity: adjustmentType === "adjust" ? quantity : quantity,
+        unit_price: unitPrice,
         remark: adjustmentRemark,
-        previousStock: supply.currentStock,
-        newStock: newStock,
       });
 
       setShowAdjustModal(false);
       setAdjustmentQuantity("");
+      setAdjustmentUnitPrice("");
       setAdjustmentRemark("");
       setAdjustmentType("in");
     } catch (error) {
@@ -234,7 +231,7 @@ const SupplyDetailsPage: FC = () => {
       record.timestamp,
       record.type === "in" ? "入库" : record.type === "out" ? "出库" : "调整",
       record.quantity,
-      record.unit,
+      record.supply_unit || supply?.unit || "",
       record.operator,
       record.department,
       record.remark
@@ -249,12 +246,40 @@ const SupplyDetailsPage: FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `${supply?.name}_变动记录_${new Date().toLocaleDateString()}.csv`);
+    link.setAttribute("download", `${supply?.name}_变动记录_${getCurrentDateForFilename()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <h2 className="text-xl font-semibold text-gray-600 mb-4">加载中...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <h2 className="text-xl font-semibold text-red-600 mb-4">错误: {error}</h2>
+          <Button
+            color="primary"
+            variant="flat"
+            startContent={<ArrowLeftIcon />}
+            onClick={() => navigate("/supplies/inventory-overview")}
+          >
+            返回库存总览
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!supply) {
     return (
@@ -336,7 +361,7 @@ const SupplyDetailsPage: FC = () => {
       <Card className="shadow-lg">
         <CardBody>
           <h2 className="text-lg font-semibold mb-4">基本信息</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-gray-600">耗材名称</label>
@@ -352,24 +377,34 @@ const SupplyDetailsPage: FC = () => {
                 <label className="text-sm font-medium text-gray-600">当前库存</label>
                 <div className="flex items-center gap-2">
                   <Badge
-                    color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                    color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                     variant="flat"
                     size="lg"
                   >
-                    {supply.currentStock} {supply.unit}
+                    {supply.current_stock} {supply.unit}
                   </Badge>
                   <Chip
-                    color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                    color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                     variant="flat"
                     size="sm"
                   >
-                    {supply.currentStock <= supply.safetyStock ? "库存不足" : "库存充足"}
+                    {supply.current_stock <= supply.safety_stock ? "库存不足" : "库存充足"}
                   </Chip>
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">安全库存</label>
-                <p className="text-lg">{supply.safetyStock} {supply.unit}</p>
+                <p className="text-lg">{supply.safety_stock} {supply.unit}</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-600">单价</label>
+                <p className="text-lg font-semibold text-green-600">¥{parseFloat(supply.unit_price).toFixed(2)}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">库存总价值</label>
+                <p className="text-lg font-semibold text-blue-600">¥{(supply.current_stock * parseFloat(supply.unit_price)).toFixed(2)}</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -515,7 +550,7 @@ const SupplyDetailsPage: FC = () => {
                       color="default"
                       startContent={<ClockIcon className="text-default-500" />}
                     >
-                      {record.timestamp}
+                      {formatTimestamp(record.timestamp)}
                     </Chip>
                   </TableCell>
                   <TableCell>
@@ -544,7 +579,7 @@ const SupplyDetailsPage: FC = () => {
                       variant="flat"
                     >
                       {record.type === "in" ? "+" : record.type === "out" ? "-" : ""}
-                      {record.quantity} {record.unit}
+                      {record.quantity} {record.supply_unit || supply.unit}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -603,18 +638,18 @@ const SupplyDetailsPage: FC = () => {
               </label>
               <div className="flex items-center gap-2">
                 <Badge
-                  color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                  color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                   variant="flat"
                   size="lg"
                 >
-                  {supply.currentStock} {supply.unit}
+                  {supply.current_stock} {supply.unit}
                 </Badge>
                 <Chip
-                  color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                  color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                   variant="flat"
                   size="sm"
                 >
-                  {supply.currentStock <= supply.safetyStock ? "库存不足" : "库存充足"}
+                  {supply.current_stock <= supply.safety_stock ? "库存不足" : "库存充足"}
                 </Chip>
               </div>
             </div>
@@ -633,6 +668,26 @@ const SupplyDetailsPage: FC = () => {
                 onValueChange={setAdjustmentQuantity}
                 startContent={<span className="text-default-400">{supply.unit}</span>}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                单价调整（可选）
+              </label>
+              <div className="space-y-2">
+                <div className="text-sm text-gray-500">
+                  当前单价：¥{parseFloat(supply.unit_price).toFixed(2)}
+                </div>
+                <Input
+                  type="number"
+                  placeholder="输入新单价（留空则不修改）"
+                  value={adjustmentUnitPrice}
+                  onValueChange={setAdjustmentUnitPrice}
+                  startContent={<span className="text-default-400">¥</span>}
+                  step="0.01"
+                  min="0"
+                />
+              </div>
             </div>
 
             <div>

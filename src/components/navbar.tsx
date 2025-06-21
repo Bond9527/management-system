@@ -22,6 +22,8 @@ import { link as linkStyles } from "@heroui/theme";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 import { SVGProps } from "react";
+import { FC, useState } from "react";
+import { useMenu } from "@/context/MenuContext";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -35,34 +37,21 @@ import {
 import { Logo } from "@/components/icons";
 import Avatar from "./Avatar";
 
+// 导入所有图标组件
+import {
+  UserManagementIcon,
+  PermissionManagementIcon,
+  InventoryManagementIcon,
+  AddRecordIcon,
+  RecordsManagementIcon,
+  StatisticsManagementIcon,
+} from "@/components/management-icons";
+
 interface IconProps extends SVGProps<SVGSVGElement> {
   className?: string;
 }
 
 // 系统管理相关图标
-const UserManagementIcon = (props: IconProps) => (
-  <svg
-    aria-hidden="true"
-    fill="none"
-    focusable="false"
-    height="1em"
-    role="presentation"
-    viewBox="0 0 24 24"
-    width="1em"
-    {...props}
-  >
-    <path
-      d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
-      fill="currentColor"
-    />
-    <path
-      d="M12 14.5C6.99 14.5 3 17.86 3 22H21C21 17.86 17.01 14.5 12 14.5Z"
-      fill="currentColor"
-      opacity={0.4}
-    />
-  </svg>
-);
-
 const RoleManagementIcon = (props: IconProps) => (
   <svg
     aria-hidden="true"
@@ -76,24 +65,6 @@ const RoleManagementIcon = (props: IconProps) => (
   >
     <path
       d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 5C13.66 5 15 6.34 15 8C15 9.66 13.66 11 12 11C10.34 11 9 9.66 9 8C9 6.34 10.34 5 12 5ZM12 19.2C9.5 19.2 7.29 17.92 6 15.98C6.03 13.99 10 12.9 12 12.9C13.99 12.9 17.97 13.99 18 15.98C16.71 17.92 14.5 19.2 12 19.2Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
-const PermissionManagementIcon = (props: IconProps) => (
-  <svg
-    aria-hidden="true"
-    fill="none"
-    focusable="false"
-    height="1em"
-    role="presentation"
-    viewBox="0 0 24 24"
-    width="1em"
-    {...props}
-  >
-    <path
-      d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM12 11.99H19C18.47 16.11 15.72 19.78 12 20.93V12H5V6.3L12 3.19V11.99Z"
       fill="currentColor"
     />
   </svg>
@@ -131,24 +102,6 @@ const InventoryOverviewIcon = (props: IconProps) => (
   >
     <path
       d="M20 2H4C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V4C22 2.9 21.1 2 20 2ZM8 20H4V16H8V20ZM8 14H4V10H8V14ZM8 8H4V4H8V8ZM14 20H10V16H14V20ZM14 14H10V10H14V14ZM14 8H10V4H14V8ZM20 20H16V16H20V20ZM20 14H16V10H20V14ZM20 8H16V4H20V8Z"
-      fill="currentColor"
-    />
-  </svg>
-);
-
-const AddRecordIcon = (props: IconProps) => (
-  <svg
-    aria-hidden="true"
-    fill="none"
-    focusable="false"
-    height="1em"
-    role="presentation"
-    viewBox="0 0 24 24"
-    width="1em"
-    {...props}
-  >
-    <path
-      d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z"
       fill="currentColor"
     />
   </svg>
@@ -203,49 +156,64 @@ interface MenuItem {
   label: string;
   href: string;
   icon: React.ComponentType<IconProps>;
+  order?: number;
 }
 
-const systemManagementItems: MenuItem[] = [
-  {
-    key: "users",
-    label: "用户管理",
-    href: "/system/users",
-    icon: UserManagementIcon,
-  },
-  {
-    key: "basic-settings",
-    label: "基础信息设置",
-    href: "/system/basic-settings",
-    icon: PermissionManagementIcon,
-  },
-];
+// 图标映射
+const iconMap: Record<string, React.ComponentType<IconProps>> = {
+  'UserManagementIcon': UserManagementIcon,
+  'PermissionManagementIcon': PermissionManagementIcon,
+  'InventoryManagementIcon': InventoryManagementIcon,
+  'AddRecordIcon': AddRecordIcon,
+  'RecordsManagementIcon': RecordsManagementIcon,
+  'StatisticsManagementIcon': StatisticsManagementIcon,
+};
 
-const suppliesManagementItems: MenuItem[] = [
-  {
-    key: "inventory-overview",
-    label: "库存总览",
-    href: "/supplies/inventory-overview",
-    icon: InventoryOverviewIcon,
-  },
-  {
-    key: "add-record",
-    label: "新增记录",
-    href: "/supplies/add-record",
-    icon: AddRecordIcon,
-  },
-  {
-    key: "records",
-    label: "变动台账",
-    href: "/supplies/records",
-    icon: RecordsIcon,
-  },
-  {
-    key: "statistics",
-    label: "数据统计",
-    href: "/supplies/statistics",
-    icon: StatisticsIcon,
-  },
-];
+// 将API菜单数据转换为下拉菜单格式
+const convertApiMenuToDropdownMenu = (apiMenus: any[]): { [key: string]: MenuItem[] } => {
+  const menuMap = new Map();
+  const dropdownMenus: { [key: string]: MenuItem[] } = {};
+
+  // 首先创建所有菜单项
+  apiMenus.forEach(menu => {
+    const Icon = menu.icon ? iconMap[menu.icon] : undefined;
+    menuMap.set(menu.id, {
+      key: menu.id.toString(),
+      label: menu.name,
+      href: menu.path,
+      icon: Icon || (() => null),
+      order: menu.order,
+    });
+  });
+
+  // 建立父子关系
+  apiMenus.forEach(menu => {
+    const menuItem = menuMap.get(menu.id);
+    if (menu.parent) {
+      const parent = menuMap.get(menu.parent);
+      if (parent) {
+        // 将子菜单添加到父菜单的组中
+        const parentName = apiMenus.find(m => m.id === menu.parent)?.name || '其他';
+        if (!dropdownMenus[parentName]) {
+          dropdownMenus[parentName] = [];
+        }
+        dropdownMenus[parentName].push(menuItem);
+      }
+    } else if (menu.menu_type === 'menu') {
+      // 根菜单作为下拉菜单标题
+      if (!dropdownMenus[menu.name]) {
+        dropdownMenus[menu.name] = [];
+      }
+    }
+  });
+
+  // 按order排序每个下拉菜单中的项目
+  Object.keys(dropdownMenus).forEach(key => {
+    dropdownMenus[key].sort((a, b) => (a.order || 0) - (b.order || 0));
+  });
+
+  return dropdownMenus;
+};
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -255,6 +223,10 @@ interface NavbarProps {
 
 export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProps) => {
   const navigate = useNavigate();
+  const { navbarMenus, loading, error } = useMenu();
+
+  // 转换API菜单数据为下拉菜单格式
+  const dynamicDropdownMenus = convertApiMenuToDropdownMenu(navbarMenus);
 
   const handleProfile = () => {
     navigate("/profile");
@@ -355,82 +327,56 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
               </Button>
             </NavbarItem>
           ))}
-          <NavbarItem>
-            <Dropdown>
-              <DropdownTrigger>
-                <Link
-                  className={clsx(
-                    linkStyles({ color: "foreground" }),
-                    "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer px-4",
-                    "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
-                    "transition-all duration-300"
-                  )}
-                  color="foreground"
-                >
-                  系统管理
-                </Link>
-              </DropdownTrigger>
-              <DropdownMenu 
-                aria-label="系统管理" 
-                items={systemManagementItems}
-                className="p-2"
-              >
-                {(item: MenuItem) => {
-                  const Icon = item.icon;
-                  return (
-                    <DropdownItem
-                      key={item.key}
-                      as={Link}
-                      href={item.href}
-                      className="text-sm tracking-wide"
-                      startContent={<Icon className="text-xl text-default-500 pointer-events-none flex-shrink-0" />}
-                    >
-                      {item.label}
-                    </DropdownItem>
-                  );
-                }}
-              </DropdownMenu>
-            </Dropdown>
-          </NavbarItem>
-          <NavbarItem>
-            <Dropdown>
-              <DropdownTrigger>
-                <Link
-                  className={clsx(
-                    linkStyles({ color: "foreground" }),
-                    "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer px-4",
-                    "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
-                    "transition-all duration-300"
-                  )}
-                  color="foreground"
-                >
-                  耗材管理
-                </Link>
-              </DropdownTrigger>
-              <DropdownMenu 
-                aria-label="耗材管理" 
-                items={suppliesManagementItems}
-                className="p-2"
-              >
-                {(item: MenuItem) => {
-                  const Icon = item.icon;
-                  return (
-                    <DropdownItem
-                      key={item.key}
-                      as={Link}
-                      href={item.href}
-                      className="text-sm tracking-wide"
-                      startContent={<Icon className="text-xl text-default-500 pointer-events-none flex-shrink-0" />}
-                    >
-                      {item.label}
-                    </DropdownItem>
-                  );
-                }}
-              </DropdownMenu>
-            </Dropdown>
-          </NavbarItem>
+          
+          {/* 动态下拉菜单 */}
+          {Object.entries(dynamicDropdownMenus).map(([menuName, menuItems]) => (
+            <NavbarItem key={menuName} className="px-4">
+              <Dropdown>
+                <DropdownTrigger>
+                  <Link
+                    className={clsx(
+                      linkStyles({ color: "foreground" }),
+                      "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
+                      "h-8 flex items-center text-sm tracking-wide cursor-pointer",
+                      "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                      "transition-all duration-300"
+                    )}
+                    color="foreground"
+                  >
+                    {menuName}
+                  </Link>
+                </DropdownTrigger>
+                <DropdownMenu aria-label={menuName} items={menuItems}>
+                  {(item: MenuItem) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownItem
+                        key={item.key}
+                        as={Link}
+                        href={item.href}
+                      >
+                        <Icon className="text-xl text-default-500 pointer-events-none flex-shrink-0" />
+                        {item.label}
+                      </DropdownItem>
+                    );
+                  }}
+                </DropdownMenu>
+              </Dropdown>
+            </NavbarItem>
+          ))}
+          
+          {loading ? (
+            <NavbarItem>
+              <div className="flex items-center px-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-sm text-gray-500">加载中...</span>
+              </div>
+            </NavbarItem>
+          ) : error ? (
+            <NavbarItem>
+              <div className="text-red-500 text-sm px-4">{error}</div>
+            </NavbarItem>
+          ) : null}
         </div>
       </NavbarContent>
 
@@ -538,72 +484,44 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
               仪表盘
             </Link>
           </NavbarMenuItem>
-          <NavbarMenuItem>
-            <Dropdown>
-              <DropdownTrigger>
-                <Link
-                  className={clsx(
-                    linkStyles({ color: "foreground" }),
-                    "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer",
-                    "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
-                    "transition-all duration-300"
-                  )}
-                  color="foreground"
-                >
-                  系统管理
-                </Link>
-              </DropdownTrigger>
-              <DropdownMenu aria-label="系统管理" items={systemManagementItems}>
-                {(item: MenuItem) => {
-                  const Icon = item.icon;
-                  return (
-                    <DropdownItem
-                      key={item.key}
-                      as={Link}
-                      href={item.href}
-                    >
-                      <Icon className="text-xl text-default-500 pointer-events-none flex-shrink-0" />
-                      {item.label}
-                    </DropdownItem>
-                  );
-                }}
-              </DropdownMenu>
-            </Dropdown>
-          </NavbarMenuItem>
-          <NavbarMenuItem>
-            <Dropdown>
-              <DropdownTrigger>
-                <Link
-                  className={clsx(
-                    linkStyles({ color: "foreground" }),
-                    "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-                    "h-8 flex items-center text-sm tracking-wide cursor-pointer",
-                    "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
-                    "transition-all duration-300"
-                  )}
-                  color="foreground"
-                >
-                  耗材管理
-                </Link>
-              </DropdownTrigger>
-              <DropdownMenu aria-label="耗材管理" items={suppliesManagementItems}>
-                {(item: MenuItem) => {
-                  const Icon = item.icon;
-                  return (
-                    <DropdownItem
-                      key={item.key}
-                      as={Link}
-                      href={item.href}
-                    >
-                      <Icon className="text-xl text-default-500 pointer-events-none flex-shrink-0" />
-                      {item.label}
-                    </DropdownItem>
-                  );
-                }}
-              </DropdownMenu>
-            </Dropdown>
-          </NavbarMenuItem>
+          
+          {/* 动态下拉菜单 - 移动端 */}
+          {Object.entries(dynamicDropdownMenus).map(([menuName, menuItems]) => (
+            <NavbarMenuItem key={menuName}>
+              <Dropdown>
+                <DropdownTrigger>
+                  <Link
+                    className={clsx(
+                      linkStyles({ color: "foreground" }),
+                      "data-[active=true]:text-blue-600 data-[active=true]:font-medium",
+                      "h-8 flex items-center text-sm tracking-wide cursor-pointer",
+                      "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
+                      "transition-all duration-300"
+                    )}
+                    color="foreground"
+                  >
+                    {menuName}
+                  </Link>
+                </DropdownTrigger>
+                <DropdownMenu aria-label={menuName} items={menuItems}>
+                  {(item: MenuItem) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownItem
+                        key={item.key}
+                        as={Link}
+                        href={item.href}
+                      >
+                        <Icon className="text-xl text-default-500 pointer-events-none flex-shrink-0" />
+                        {item.label}
+                      </DropdownItem>
+                    );
+                  }}
+                </DropdownMenu>
+              </Dropdown>
+            </NavbarMenuItem>
+          ))}
+          
           {siteConfig.navMenuItems.map((item, index) => (
             <NavbarMenuItem key={`${item}-${index}`}>
               <Link

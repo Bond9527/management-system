@@ -42,8 +42,8 @@ const TestCategorySummaryPage: FC = () => {
     
     const summaries: CategorySummary[] = categories.map(category => {
       const categoryItems = supplies.filter(item => item.category === category);
-      const totalStock = categoryItems.reduce((sum, item) => sum + item.currentStock, 0);
-      const lowStockCount = categoryItems.filter(item => item.currentStock <= item.safetyStock).length;
+      const totalStock = categoryItems.reduce((sum, item) => sum + item.current_stock, 0);
+      const lowStockCount = categoryItems.filter(item => item.current_stock <= item.safety_stock).length;
       const averageStock = categoryItems.length > 0 ? totalStock / categoryItems.length : 0;
       
       return {
@@ -80,20 +80,20 @@ const TestCategorySummaryPage: FC = () => {
     });
 
     // 检查库存为负数的情况
-    const negativeStockItems = supplies.filter(item => item.currentStock < 0);
+    const negativeStockItems = supplies.filter(item => item.current_stock < 0);
     if (negativeStockItems.length > 0) {
       detectedIssues.push(`发现${negativeStockItems.length}个耗材库存为负数`);
     }
 
     // 检查安全库存为负数的情况
-    const negativeSafetyItems = supplies.filter(item => item.safetyStock < 0);
+    const negativeSafetyItems = supplies.filter(item => item.safety_stock < 0);
     if (negativeSafetyItems.length > 0) {
       detectedIssues.push(`发现${negativeSafetyItems.length}个耗材安全库存为负数`);
     }
 
     // 检查库存超过安全库存但标记为库存不足的情况
     const inconsistentStatusItems = supplies.filter(item => 
-      item.currentStock > item.safetyStock && item.currentStock <= item.safetyStock
+      item.current_stock > item.safety_stock && item.current_stock <= item.safety_stock
     );
     if (inconsistentStatusItems.length > 0) {
       detectedIssues.push(`发现${inconsistentStatusItems.length}个耗材状态标记不一致`);
@@ -103,12 +103,12 @@ const TestCategorySummaryPage: FC = () => {
   };
 
   const getStockStatusColor = (item: SupplyItem) => {
-    if (item.currentStock <= item.safetyStock) return "danger";
+    if (item.current_stock <= item.safety_stock) return "danger";
     return "success";
   };
 
   const getStockStatusText = (item: SupplyItem) => {
-    if (item.currentStock <= item.safetyStock) return "库存不足";
+    if (item.current_stock <= item.safety_stock) return "库存不足";
     return "库存充足";
   };
 
@@ -135,7 +135,7 @@ const TestCategorySummaryPage: FC = () => {
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
-                {supplies.reduce((sum, item) => sum + item.currentStock, 0)}
+                {supplies.reduce((sum, item) => sum + item.current_stock, 0)}
               </div>
               <div className="text-sm text-gray-600">总库存量</div>
             </div>
@@ -247,12 +247,12 @@ const TestCategorySummaryPage: FC = () => {
                         color={getStockStatusColor(item)}
                         variant="flat"
                       >
-                        {item.currentStock}
+                        {item.current_stock}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Chip color="default" variant="flat" size="sm">
-                        {item.safetyStock}
+                        {item.safety_stock}
                       </Chip>
                     </TableCell>
                     <TableCell>

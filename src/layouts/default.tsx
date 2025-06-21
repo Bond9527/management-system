@@ -4,11 +4,13 @@ import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Breadcrumbs, BreadcrumbItem } from "@heroui/breadcrumbs";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DefaultLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1024);
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // 动态面包屑生成
   const location = useLocation();
@@ -53,6 +55,13 @@ export default function DefaultLayout() {
     return true;
   };
 
+  // 认证保护
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
   useEffect(() => {
     const handleResize = () => {
       const largeScreen = window.innerWidth >= 1024;
@@ -70,6 +79,23 @@ export default function DefaultLayout() {
     handleResize();
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // 如果正在加载或未认证，显示加载状态
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 如果未认证，不渲染内容（会被重定向到登录页面）
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

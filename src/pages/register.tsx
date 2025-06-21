@@ -1,8 +1,10 @@
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Checkbox } from "@heroui/checkbox";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { useState, FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { register, RegisterRequest } from "@/services/api";
 
 interface FormData {
   username: string;
@@ -22,6 +24,8 @@ export default function Register() {
   const [errors, setErrors] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState<FormData | null>(null);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const validateForm = () => {
     const newErrors: string[] = [];
@@ -48,9 +52,12 @@ export default function Register() {
     return newErrors.length === 0;
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm()) {
+      setIsLoading(true);
+      setErrors([]);
+      
       const formData: FormData = {
         username,
         email,
@@ -58,9 +65,26 @@ export default function Register() {
         confirmPassword
       };
       setSubmitted(formData);
-      console.log("Form submitted:", formData);
-      // 注册成功后跳转到登录页
-      navigate("/");
+
+      try {
+        // 调用注册API
+        const registerData: RegisterRequest = {
+          username,
+          email,
+          password
+        };
+        
+        const response = await register(registerData);
+        console.log("Registration successful:", response);
+        
+        // 注册成功后跳转到登录页
+        navigate("/login");
+      } catch (error) {
+        console.error("Registration failed:", error);
+        setErrors([error instanceof Error ? error.message : "注册失败，请重试"]);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -92,6 +116,7 @@ export default function Register() {
               onValueChange={setUsername}
               isInvalid={errors.includes("请输入用户名")}
               errorMessage={errors.includes("请输入用户名") ? "请输入用户名" : ""}
+              isDisabled={isLoading}
               classNames={{
                 input: "h-12",
                 inputWrapper: "h-12 bg-gray-50/50 hover:bg-gray-100/50 focus-within:bg-white/80 backdrop-blur-sm",
@@ -112,6 +137,7 @@ export default function Register() {
               onValueChange={setEmail}
               isInvalid={errors.includes("请输入账号")}
               errorMessage={errors.includes("请输入账号") ? "请输入账号" : ""}
+              isDisabled={isLoading}
               classNames={{
                 input: "h-12",
                 inputWrapper: "h-12 bg-gray-50/50 hover:bg-gray-100/50 focus-within:bg-white/80 backdrop-blur-sm",
@@ -128,6 +154,7 @@ export default function Register() {
               isInvalid={errors.includes("请输入密码") || errors.includes("密码长度至少为6位")}
               errorMessage={errors.includes("请输入密码") ? "请输入密码" :
                           errors.includes("密码长度至少为6位") ? "密码长度至少为6位" : ""}
+              isDisabled={isLoading}
               classNames={{
                 input: "h-12",
                 inputWrapper: "h-12 bg-gray-50/50 hover:bg-gray-100/50 focus-within:bg-white/80 backdrop-blur-sm",
@@ -137,6 +164,7 @@ export default function Register() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="focus:outline-none text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -162,6 +190,7 @@ export default function Register() {
               isInvalid={errors.includes("请确认密码") || errors.includes("两次输入的密码不一致")}
               errorMessage={errors.includes("请确认密码") ? "请确认密码" :
                           errors.includes("两次输入的密码不一致") ? "两次输入的密码不一致" : ""}
+              isDisabled={isLoading}
               classNames={{
                 input: "h-12",
                 inputWrapper: "h-12 bg-gray-50/50 hover:bg-gray-100/50 focus-within:bg-white/80 backdrop-blur-sm",
@@ -171,6 +200,7 @@ export default function Register() {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="focus:outline-none text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isLoading}
                 >
                   {showConfirmPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -187,31 +217,50 @@ export default function Register() {
             />
           </div>
 
-          <div className="flex items-center">
+          {/* 显示API错误信息 */}
+          {errors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+              {errors.map((error, index) => (
+                <p key={index} className="text-sm text-red-600">
+                  {error}
+                </p>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-start gap-2">
             <Checkbox
               isSelected={agreeTerms}
               onValueChange={setAgreeTerms}
               size="sm"
               color="primary"
-            >
+              isDisabled={isLoading}
+            />
+            <div className="flex-1 text-sm text-gray-700">
               我已阅读并同意
-              <Link to="/terms" className="text-blue-600 hover:text-blue-500 ml-1">
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(true)}
+                className="text-blue-600 hover:text-blue-500 ml-1 underline"
+              >
                 服务条款
-              </Link>
-            </Checkbox>
+              </button>
+            </div>
           </div>
 
           <div>
             <Button
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+              isLoading={isLoading}
+              disabled={isLoading}
             >
-              注册
+              {isLoading ? "注册中..." : "创建账号"}
             </Button>
           </div>
         </form>
 
-        {submitted && (
+        {submitted && !isLoading && (
           <div className="text-center mt-4">
             <p className="text-sm text-gray-600">
               注册信息: <code>{JSON.stringify(submitted)}</code>
@@ -222,12 +271,116 @@ export default function Register() {
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
             已有账号?{" "}
-            <Link to="/" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
               立即登录
             </Link>
           </p>
         </div>
       </div>
+
+      {/* 服务条款弹窗 */}
+      <Modal 
+        isOpen={showTermsModal} 
+        onClose={() => setShowTermsModal(false)}
+        size="lg"
+        scrollBehavior="inside"
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            <h3 className="text-xl font-semibold">服务条款</h3>
+            <p className="text-sm text-gray-500">请仔细阅读以下条款</p>
+          </ModalHeader>
+          <ModalBody>
+            <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">1. 服务说明</h4>
+                <p>欢迎使用我们的管理系统。本系统提供企业资源管理、库存管理、用户管理等功能，旨在帮助企业提高运营效率。</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">2. 用户责任</h4>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>用户应妥善保管账号密码，不得将账号提供给他人使用</li>
+                  <li>用户应遵守相关法律法规，不得利用系统进行违法活动</li>
+                  <li>用户应及时更新个人信息，确保信息的准确性</li>
+                  <li>用户应合理使用系统资源，不得恶意占用或破坏系统</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">3. 隐私保护</h4>
+                <p>我们承诺保护用户隐私，不会向第三方泄露用户的个人信息，除非：</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>获得用户明确同意</li>
+                  <li>法律法规要求</li>
+                  <li>为保护用户或公众安全</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">4. 数据安全</h4>
+                <p>我们采用行业标准的安全措施保护用户数据，包括但不限于：</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>数据加密传输和存储</li>
+                  <li>定期安全审计</li>
+                  <li>访问权限控制</li>
+                  <li>数据备份和恢复</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">5. 服务变更</h4>
+                <p>我们保留随时修改或终止服务的权利，但会提前通知用户。重大变更将通过系统公告或邮件方式通知。</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">6. 免责声明</h4>
+                <p>在法律允许的范围内，我们不对因以下原因造成的损失承担责任：</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>不可抗力因素</li>
+                  <li>用户操作不当</li>
+                  <li>第三方服务故障</li>
+                  <li>系统维护或升级</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">7. 联系方式</h4>
+                <p>如您对本服务条款有任何疑问，请联系我们的客服团队：</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>邮箱：support@company.com</li>
+                  <li>电话：400-123-4567</li>
+                  <li>工作时间：周一至周五 9:00-18:00</li>
+                </ul>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                <p className="text-blue-800 text-xs">
+                  <strong>重要提示：</strong>注册即表示您已阅读、理解并同意遵守上述所有条款。如果您不同意任何条款，请勿使用本系统。
+                </p>
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button 
+              color="primary" 
+              onClick={() => {
+                setShowTermsModal(false);
+                setAgreeTerms(true);
+              }}
+            >
+              我已阅读并同意
+            </Button>
+            <Button 
+              color="default" 
+              variant="flat" 
+              onClick={() => setShowTermsModal(false)}
+            >
+              关闭
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 } 

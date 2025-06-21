@@ -14,6 +14,7 @@ import {
 } from "@heroui/react";
 import { useSupplies } from "@/hooks/useSupplies";
 import { validateDataConsistency, generateInventorySummary } from "@/utils/dataConsistencyTest";
+import { formatTimestamp } from "@/utils/dateUtils";
 
 const TestConsistencyPage: FC = () => {
   const { supplies, records } = useSupplies();
@@ -111,20 +112,20 @@ const TestConsistencyPage: FC = () => {
                     <TableCell>{supply.name}</TableCell>
                     <TableCell>
                       <Badge
-                        color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                        color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                         variant="flat"
                       >
-                        {supply.currentStock} {supply.unit}
+                        {supply.current_stock} {supply.unit}
                       </Badge>
                     </TableCell>
-                    <TableCell>{supply.safetyStock} {supply.unit}</TableCell>
+                    <TableCell>{supply.safety_stock} {supply.unit}</TableCell>
                     <TableCell>
                       <Chip
-                        color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                        color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                         variant="flat"
                         size="sm"
                       >
-                        {supply.currentStock <= supply.safetyStock ? "库存不足" : "库存充足"}
+                        {supply.current_stock <= supply.safety_stock ? "库存不足" : "库存充足"}
                       </Chip>
                     </TableCell>
                   </TableRow>
@@ -148,7 +149,7 @@ const TestConsistencyPage: FC = () => {
               <TableBody>
                 {records.slice(0, 10).map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{record.itemName}</TableCell>
+                    <TableCell>{record.supply_name}</TableCell>
                     <TableCell>
                       <Chip
                         color={
@@ -176,11 +177,11 @@ const TestConsistencyPage: FC = () => {
                         variant="flat"
                       >
                         {record.type === "in" ? "+" : record.type === "out" ? "-" : ""}
-                        {record.quantity} {record.unit}
+                        {record.quantity} {record.supply_unit}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {record.timestamp}
+                      {formatTimestamp(record.timestamp)}
                     </TableCell>
                   </TableRow>
                 ))}

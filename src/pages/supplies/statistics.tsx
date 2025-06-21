@@ -32,6 +32,7 @@ import {
 } from "recharts";
 import { useSupplies, SupplyItem, InventoryRecord } from "@/hooks/useSupplies";
 import { generateInventorySummary } from "@/utils/dataConsistencyTest";
+import { formatDate } from "@/utils/dateUtils";
 
 const COLORS = {
   primary: "#3B82F6",
@@ -103,7 +104,7 @@ export default function SuppliesStatisticsPage() {
 
     return last7Days.map(date => {
       const dayRecords = records.filter(record => {
-        const recordDate = new Date(record.timestamp).toISOString().split('T')[0];
+        const recordDate = formatDate(record.timestamp);
         return recordDate === date;
       });
 
@@ -122,7 +123,7 @@ export default function SuppliesStatisticsPage() {
   const generateCategoryData = () => {
     return categories.map(category => {
       const categorySupplies = supplies.filter(item => item.category === category);
-      const totalStock = categorySupplies.reduce((sum, item) => sum + item.currentStock, 0);
+      const totalStock = categorySupplies.reduce((sum, item) => sum + item.current_stock, 0);
       return {
         name: category,
         value: totalStock
@@ -135,7 +136,7 @@ export default function SuppliesStatisticsPage() {
     return supplies
       .map(item => ({
         name: item.name,
-        value: item.currentStock,
+        value: item.current_stock,
         unit: item.unit,
         category: item.category
       }))
@@ -146,11 +147,11 @@ export default function SuppliesStatisticsPage() {
   // 生成真实的低库存数据
   const generateLowStockData = () => {
     return supplies
-      .filter(item => item.currentStock <= item.safetyStock)
+      .filter(item => item.current_stock <= item.safety_stock)
       .map(item => ({
         name: item.name,
-        current: item.currentStock,
-        threshold: item.safetyStock,
+        current: item.current_stock,
+        threshold: item.safety_stock,
         unit: item.unit,
         category: item.category
       }))

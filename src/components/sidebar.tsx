@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Button } from "@heroui/button";
 import { SVGProps } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMenu } from "@/context/MenuContext";
 
 // 导入所有图标组件
 import {
@@ -22,7 +23,8 @@ interface SidebarProps {
 }
 
 interface IconProps extends SVGProps<SVGSVGElement> {
-  className?: string;
+  size?: number;
+  absoluteStrokeWidth?: boolean;
 }
 
 interface MenuItem {
@@ -30,7 +32,62 @@ interface MenuItem {
   href?: string;
   icon?: React.ComponentType<IconProps>;
   children?: MenuItem[];
+  order?: number;
 }
+
+// 图标映射
+const iconMap: Record<string, React.ComponentType<IconProps>> = {
+  'UserManagementIcon': UserManagementIcon,
+  'PermissionManagementIcon': PermissionManagementIcon,
+  'InventoryManagementIcon': InventoryManagementIcon,
+  'AddRecordIcon': AddRecordIcon,
+  'RecordsManagementIcon': RecordsManagementIcon,
+  'StatisticsManagementIcon': StatisticsManagementIcon,
+};
+
+// 将API菜单数据转换为组件菜单格式
+const convertApiMenuToComponentMenu = (apiMenus: any[]): MenuItem[] => {
+  const menuMap = new Map();
+  const rootMenus: MenuItem[] = [];
+
+  // 首先创建所有菜单项
+  apiMenus.forEach(menu => {
+    const Icon = menu.icon ? iconMap[menu.icon] : undefined;
+    menuMap.set(menu.id, {
+      label: menu.name,
+      href: menu.path,
+      icon: Icon,
+      children: [],
+      order: menu.order,
+    });
+  });
+
+  // 建立父子关系
+  apiMenus.forEach(menu => {
+    const menuItem = menuMap.get(menu.id);
+    if (menu.parent) {
+      const parent = menuMap.get(menu.parent);
+      if (parent) {
+        parent.children.push(menuItem);
+      }
+    } else {
+      rootMenus.push(menuItem);
+    }
+  });
+
+  // 按order排序
+  const sortMenus = (menus: MenuItem[]) => {
+    menus.sort((a, b) => (a.order || 0) - (b.order || 0));
+    menus.forEach(menu => {
+      if (menu.children && menu.children.length > 0) {
+        sortMenus(menu.children);
+      }
+    });
+  };
+  sortMenus(rootMenus);
+
+  return rootMenus;
+};
 
 export const systemMenuItems: MenuItem[] = [
   {
@@ -78,6 +135,10 @@ export const systemMenuItems: MenuItem[] = [
 export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const navigate = useNavigate();
+  const { sidebarMenus, loading, error } = useMenu();
+
+  // 转换API菜单数据为组件菜单格式
+  const dynamicMenuItems = convertApiMenuToComponentMenu(sidebarMenus);
 
   const toggleMenu = (label: string) => {
     setExpandedMenus(prev =>
@@ -176,7 +237,18 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {/* System Management Menu */}
         <div className="mt-4">
-          {systemMenuItems.map(item => renderMenuItem(item))}
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-sm text-gray-500">加载菜单中...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-4 text-red-500 text-sm">
+              {error}
+            </div>
+          ) : (
+            dynamicMenuItems.map(item => renderMenuItem(item))
+          )}
         </div>
       </nav>
     </div>

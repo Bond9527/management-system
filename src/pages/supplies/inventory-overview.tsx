@@ -44,6 +44,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { getCurrentDateForFilename } from "@/utils/dateUtils";
 
 // 根据类别返回对应的单位
 const getUnitByCategory = (category: string): string => {
@@ -60,6 +61,18 @@ const getUnitByCategory = (category: string): string => {
     "其他": "个"
   };
   return unitMap[category] || "个";
+};
+
+// 格式化价格显示
+const formatPrice = (price: number): string => {
+  return `¥${price.toFixed(2)}`;
+};
+
+// 计算总价值
+const calculateTotalValue = (supplies: SupplyItem[]): number => {
+  return supplies.reduce((total, supply) => {
+    return total + (supply.current_stock * parseFloat(supply.unit_price));
+  }, 0);
 };
 
 const COLORS = [
@@ -90,8 +103,8 @@ const SuppliesInventoryOverviewPage: FC = () => {
   const filteredData = supplies.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
-    const matchesQuantity = (!minQuantity || item.currentStock >= Number(minQuantity)) &&
-                          (!maxQuantity || item.currentStock <= Number(maxQuantity));
+    const matchesQuantity = (!minQuantity || item.current_stock >= Number(minQuantity)) &&
+                          (!maxQuantity || item.current_stock <= Number(maxQuantity));
     return matchesSearch && matchesCategory && matchesQuantity;
   });
 
@@ -105,7 +118,7 @@ const SuppliesInventoryOverviewPage: FC = () => {
   // 准备饼图数据 - 按类别汇总
   const pieChartData = categories.map(category => {
     const categorySupplies = supplies.filter(item => item.category === category);
-    const totalQuantity = categorySupplies.reduce((sum, item) => sum + item.currentStock, 0);
+    const totalQuantity = categorySupplies.reduce((sum, item) => sum + item.current_stock, 0);
     return {
       name: category,
       value: totalQuantity
@@ -115,8 +128,8 @@ const SuppliesInventoryOverviewPage: FC = () => {
   // 准备柱状图数据
   const barChartData = supplies.map((item) => ({
     name: item.name,
-    quantity: item.currentStock,
-    safetyStock: item.safetyStock,
+    quantity: item.current_stock,
+    safetyStock: item.safety_stock,
   }));
 
   const handleExportExcel = () => {
@@ -126,14 +139,16 @@ const SuppliesInventoryOverviewPage: FC = () => {
 
   const handleExportCSV = () => {
     // 准备CSV数据
-    const headers = ["耗材名称", "分类", "单位", "当前库存", "安全库存", "库存状态"];
+    const headers = ["耗材名称", "分类", "单位", "单价", "当前库存", "总价值", "安全库存", "库存状态"];
     const csvData = filteredData.map(item => [
       item.name,
       item.category,
       item.unit,
-      item.currentStock,
-      item.safetyStock,
-      item.currentStock <= item.safetyStock ? "库存不足" : "库存充足"
+      formatPrice(parseFloat(item.unit_price)),
+      item.current_stock,
+      formatPrice(item.current_stock * parseFloat(item.unit_price)),
+      item.safety_stock,
+      item.current_stock <= item.safety_stock ? "库存不足" : "库存充足"
     ]);
 
     // 转换为CSV格式
@@ -149,7 +164,7 @@ const SuppliesInventoryOverviewPage: FC = () => {
     // 创建下载链接并触发下载
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `库存总览_${new Date().toLocaleDateString()}.csv`);
+    link.setAttribute("download", `库存总览_${getCurrentDateForFilename()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -170,12 +185,12 @@ const SuppliesInventoryOverviewPage: FC = () => {
   };
 
   const handleFixInconsistencies = async () => {
-    const { updatedSupplies, issues } = fixDataInconsistencies(supplies, records);
+    const { fixedSupplies, issues } = fixDataInconsistencies(supplies, records);
     
     // 批量更新耗材库存
-    for (const updatedSupply of updatedSupplies) {
+    for (const updatedSupply of fixedSupplies) {
       const originalSupply = supplies.find(s => s.id === updatedSupply.id);
-      if (originalSupply && originalSupply.currentStock !== updatedSupply.currentStock) {
+      if (originalSupply && originalSupply.current_stock !== updatedSupply.current_stock) {
         await updateSupply(updatedSupply);
       }
     }
@@ -204,7 +219,7 @@ const SuppliesInventoryOverviewPage: FC = () => {
       </div>
 
       {/* 统计摘要 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="shadow-lg">
           <CardBody className="text-center">
             <div className="text-2xl font-bold text-primary">{summary.totalSupplies}</div>
@@ -227,6 +242,12 @@ const SuppliesInventoryOverviewPage: FC = () => {
           <CardBody className="text-center">
             <div className="text-2xl font-bold text-warning">{summary.recentActivity}</div>
             <div className="text-sm text-gray-600">本周变动</div>
+          </CardBody>
+        </Card>
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{formatPrice(calculateTotalValue(supplies))}</div>
+            <div className="text-sm text-gray-600">库存总价值</div>
           </CardBody>
         </Card>
       </div>
@@ -310,7 +331,9 @@ const SuppliesInventoryOverviewPage: FC = () => {
               <TableColumn>耗材名称</TableColumn>
               <TableColumn>分类</TableColumn>
               <TableColumn>单位</TableColumn>
+              <TableColumn>单价</TableColumn>
               <TableColumn>当前库存</TableColumn>
+              <TableColumn>总价值</TableColumn>
               <TableColumn>安全库存</TableColumn>
               <TableColumn>库存状态</TableColumn>
               <TableColumn>操作</TableColumn>
@@ -334,24 +357,34 @@ const SuppliesInventoryOverviewPage: FC = () => {
                   </TableCell>
                   <TableCell>{item.unit}</TableCell>
                   <TableCell>
+                    <span className="font-medium text-green-600">
+                      {formatPrice(parseFloat(item.unit_price))}
+                    </span>
+                  </TableCell>
+                  <TableCell>
                     <Badge
-                      color={item.currentStock <= item.safetyStock ? "danger" : "success"}
+                      color={item.current_stock <= item.safety_stock ? "danger" : "success"}
                       variant="flat"
                     >
-                      {item.currentStock}
+                      {item.current_stock}
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <span className="font-semibold text-blue-600">
+                      {formatPrice(item.current_stock * parseFloat(item.unit_price))}
+                    </span>
+                  </TableCell>
+                  <TableCell>
                     <Chip color="default" variant="flat">
-                      {item.safetyStock}
+                      {item.safety_stock}
                     </Chip>
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={item.currentStock <= item.safetyStock ? "danger" : "success"}
+                      color={item.current_stock <= item.safety_stock ? "danger" : "success"}
                       variant="flat"
                     >
-                      {item.currentStock <= item.safetyStock ? "库存不足" : "库存充足"}
+                      {item.current_stock <= item.safety_stock ? "库存不足" : "库存充足"}
                     </Chip>
                   </TableCell>
                   <TableCell>
@@ -427,7 +460,7 @@ const SuppliesInventoryOverviewPage: FC = () => {
             </div>
             <div className="space-y-3">
               {supplies
-                .filter((item) => item.currentStock <= item.safetyStock)
+                .filter((item) => item.current_stock <= item.safety_stock)
                 .map((item) => (
                   <div key={item.id} className="flex justify-between items-center p-3 bg-danger-50 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -438,10 +471,10 @@ const SuppliesInventoryOverviewPage: FC = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge color="danger" variant="flat">
-                        {item.currentStock} {item.unit}
+                        {item.current_stock} {item.unit}
                       </Badge>
                       <Chip color="danger" variant="flat" size="sm">
-                        安全库存: {item.safetyStock}
+                        安全库存: {item.safety_stock}
                       </Chip>
                     </div>
                   </div>
@@ -515,7 +548,7 @@ const SuppliesInventoryOverviewPage: FC = () => {
       <Modal
         isOpen={showConsistencyModal}
         onClose={() => setShowConsistencyModal(false)}
-        size="2xl"
+        size="lg"
       >
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">
@@ -533,27 +566,27 @@ const SuppliesInventoryOverviewPage: FC = () => {
           </ModalHeader>
           <ModalBody>
             {isConsistencyValid ? (
-              <div className="text-center py-8">
-                <InfoIcon className="text-success text-6xl mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-success mb-2">数据一致性良好</h3>
-                <p className="text-gray-600">库存总览和变动台账的数据完全一致，没有发现任何问题。</p>
+              <div className="text-center py-6">
+                <InfoIcon className="text-success text-5xl mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-success mb-2">数据一致性良好</h3>
+                <p className="text-gray-600 text-sm">库存总览和变动台账的数据完全一致，没有发现任何问题。</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="bg-warning-50 border border-warning-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-warning-800 mb-2">发现以下问题：</h4>
-                  <ul className="space-y-2">
+              <div className="space-y-3">
+                <div className="bg-warning-50 border border-warning-200 rounded-lg p-3">
+                  <h4 className="font-semibold text-warning-800 mb-2 text-sm">发现以下问题：</h4>
+                  <ul className="space-y-1">
                     {consistencyIssues.map((issue, index) => (
-                      <li key={index} className="text-sm text-warning-700 flex items-start gap-2">
+                      <li key={index} className="text-xs text-warning-700 flex items-start gap-2">
                         <span className="text-warning-500 mt-1">•</span>
                         {issue}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="bg-info-50 border border-info-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-info-800 mb-2">建议操作：</h4>
-                  <p className="text-sm text-info-700">
+                <div className="bg-info-50 border border-info-200 rounded-lg p-3">
+                  <h4 className="font-semibold text-info-800 mb-2 text-sm">建议操作：</h4>
+                  <p className="text-xs text-info-700">
                     点击"修复数据"按钮将根据变动记录自动修正库存数据，确保数据一致性。
                   </p>
                 </div>

@@ -16,6 +16,7 @@ import {
   SelectItem,
 } from "@heroui/react";
 import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
+import { getCurrentTimestamp } from "@/utils/dateUtils";
 
 const DebugSyncPage: FC = () => {
   const { supplies, addSupply } = useSupplies();
@@ -37,8 +38,11 @@ const DebugSyncPage: FC = () => {
       name: newSupplyName,
       category: newSupplyCategory,
       unit: newSupplyUnit,
-      currentStock: Number(newSupplyStock),
-      safetyStock: Number(newSupplySafety),
+      unit_price: "0",
+      created_at: getCurrentTimestamp(),
+      updated_at: getCurrentTimestamp(),
+      current_stock: Number(newSupplyStock),
+      safety_stock: Number(newSupplySafety),
     };
 
     await addSupply(newSupply);
@@ -114,8 +118,8 @@ const DebugSyncPage: FC = () => {
                 <p>名称: {lastAddedSupply.name}</p>
                 <p>类别: {lastAddedSupply.category}</p>
                 <p>单位: {lastAddedSupply.unit}</p>
-                <p>当前库存: {lastAddedSupply.currentStock}</p>
-                <p>安全库存: {lastAddedSupply.safetyStock}</p>
+                <p>当前库存: {lastAddedSupply.current_stock}</p>
+                <p>安全库存: {lastAddedSupply.safety_stock}</p>
               </div>
             </div>
           )}
@@ -149,20 +153,20 @@ const DebugSyncPage: FC = () => {
                   <TableCell>{supply.unit}</TableCell>
                   <TableCell>
                     <Badge
-                      color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                      color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                       variant="flat"
                     >
-                      {supply.currentStock}
+                      {supply.current_stock}
                     </Badge>
                   </TableCell>
-                  <TableCell>{supply.safetyStock}</TableCell>
+                  <TableCell>{supply.safety_stock}</TableCell>
                   <TableCell>
                     <Chip
-                      color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                      color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                       variant="flat"
                       size="sm"
                     >
-                      {supply.currentStock <= supply.safetyStock ? "库存不足" : "库存充足"}
+                      {supply.current_stock <= supply.safety_stock ? "库存不足" : "库存充足"}
                     </Chip>
                   </TableCell>
                 </TableRow>
@@ -183,13 +187,13 @@ const DebugSyncPage: FC = () => {
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
-                {supplies.filter(s => s.currentStock > s.safetyStock).length}
+                {supplies.filter(s => s.current_stock > s.safety_stock).length}
               </div>
               <div className="text-sm text-gray-600">库存充足</div>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-lg">
               <div className="text-2xl font-bold text-red-600">
-                {supplies.filter(s => s.currentStock <= s.safetyStock).length}
+                {supplies.filter(s => s.current_stock <= s.safety_stock).length}
               </div>
               <div className="text-sm text-gray-600">库存不足</div>
             </div>

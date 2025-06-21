@@ -45,6 +45,7 @@ import {
   Cell,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { formatTimestamp, getCurrentDateForFilename } from "@/utils/dateUtils";
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 
@@ -73,9 +74,9 @@ const SuppliesRecordsPage: FC = () => {
   };
 
   const filteredRecords = records.filter((record) => {
-    const matchesSearch = record.itemName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (record.supply_name || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = !selectedType || record.type === selectedType;
-    const matchesCategory = !selectedCategory || record.category === selectedCategory;
+    const matchesCategory = !selectedCategory || record.supply_category === selectedCategory;
     const matchesDepartment = !selectedDepartment || record.department === selectedDepartment;
     const recordDate = new Date(record.timestamp);
     const startDate = dateRange?.start ? new Date(dateRange.start.toString()) : null;
@@ -98,11 +99,11 @@ const SuppliesRecordsPage: FC = () => {
   ];
 
   const supplyRankingData = filteredRecords.reduce((acc, record) => {
-    const existing = acc.find(item => item.name === record.itemName);
+    const existing = acc.find(item => item.name === record.supply_name);
     if (existing) {
       existing.value += Math.abs(record.quantity);
     } else {
-      acc.push({ name: record.itemName, value: Math.abs(record.quantity) });
+      acc.push({ name: record.supply_name || '未知耗材', value: Math.abs(record.quantity) });
     }
     return acc;
   }, [] as { name: string; value: number }[]).sort((a, b) => b.value - a.value).slice(0, 5);
@@ -118,10 +119,10 @@ const SuppliesRecordsPage: FC = () => {
     const headers = ["日期/时间", "耗材名称", "操作类型", "数量", "单位", "操作人", "部门", "备注"];
     const csvData = filteredRecords.map(record => [
       record.timestamp,
-      record.itemName,
+      record.supply_name || '未知耗材',
       record.type === "in" ? "入库" : record.type === "out" ? "出库" : "调整",
       record.quantity,
-      record.unit,
+      record.supply_unit || '个',
       record.operator,
       record.department,
       record.remark
@@ -140,7 +141,7 @@ const SuppliesRecordsPage: FC = () => {
     // 创建下载链接并触发下载
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `库存变动记录_${new Date().toLocaleDateString()}.csv`);
+    link.setAttribute("download", `库存变动记录_${getCurrentDateForFilename()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -404,16 +405,16 @@ const SuppliesRecordsPage: FC = () => {
                       color="default"
                       startContent={<ClockIcon className="text-default-500" />}
                     >
-                      {record.timestamp}
+                      {formatTimestamp(record.timestamp)}
                     </Chip>
                   </TableCell>
                   <TableCell>
                     <Link
                       color="primary"
                       className="cursor-pointer"
-                      onClick={() => handleSupplyClick(record.itemName)}
+                      onClick={() => handleSupplyClick(record.supply_name || '')}
                     >
-                      {record.itemName}
+                      {record.supply_name || '未知耗材'}
                     </Link>
                   </TableCell>
                   <TableCell>
@@ -449,7 +450,7 @@ const SuppliesRecordsPage: FC = () => {
                       {record.quantity}
                     </Badge>
                   </TableCell>
-                  <TableCell>{record.unit}</TableCell>
+                  <TableCell>{record.supply_unit || '个'}</TableCell>
                   <TableCell>
                     <Chip variant="flat" color="primary">
                       {record.operator}

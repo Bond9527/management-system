@@ -24,6 +24,7 @@ import { PlusIcon, MinusIcon, EditIcon, UserIcon, ClockIcon, InfoIcon, ListIcon,
 import { useNavigate } from "react-router-dom";
 import { supplyCategories } from "@/config/supplies";
 import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
+import { formatTimestamp } from "@/utils/dateUtils";
 
 interface NewSupplyForm {
   name: string;
@@ -31,6 +32,7 @@ interface NewSupplyForm {
   unit: string;
   currentStock: string;
   safetyStock: string;
+  unitPrice: string; // 固定单价
 }
 
 interface NewSupplyErrors {
@@ -39,6 +41,7 @@ interface NewSupplyErrors {
   unit?: string;
   currentStock?: string;
   safetyStock?: string;
+  unitPrice?: string;
 }
 
 interface FormErrors {
@@ -79,6 +82,7 @@ const SuppliesAddRecordPage: FC = () => {
     unit: "",
     currentStock: "",
     safetyStock: "",
+    unitPrice: "",
   });
   const [newSupplyErrors, setNewSupplyErrors] = useState<NewSupplyErrors>({});
   const [isCreatingSupply, setIsCreatingSupply] = useState(false);
@@ -96,15 +100,7 @@ const SuppliesAddRecordPage: FC = () => {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setCurrentTime(now.toLocaleString("zh-CN", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }));
+      setCurrentTime(formatTimestamp(now.toISOString()));
     };
 
     updateTime();
@@ -120,17 +116,17 @@ const SuppliesAddRecordPage: FC = () => {
       if (supply) {
         let warning = "";
         if (operationType === "out") {
-          if (numQuantity > supply.currentStock) {
-            warning = `❌ 出库数量不能超过当前库存！当前库存: ${supply.currentStock}${supply.unit}，申请数量: ${numQuantity}${supply.unit}`;
-          } else if (numQuantity === supply.currentStock) {
+          if (numQuantity > supply.current_stock) {
+            warning = `❌ 出库数量不能超过当前库存！当前库存: ${supply.current_stock}${supply.unit}，申请数量: ${numQuantity}${supply.unit}`;
+          } else if (numQuantity === supply.current_stock) {
             warning = `⚠️ 出库后库存将为0，请注意及时补货`;
-          } else if (supply.currentStock - numQuantity <= supply.safetyStock) {
-            warning = `⚠️ 出库后库存将低于安全库存(${supply.safetyStock}${supply.unit})，建议及时补货`;
+          } else if (supply.current_stock - numQuantity <= supply.safety_stock) {
+            warning = `⚠️ 出库后库存将低于安全库存(${supply.safety_stock}${supply.unit})，建议及时补货`;
           }
         } else if (operationType === "adjust") {
           const newStock = numQuantity;
-          if (newStock < supply.safetyStock) {
-            warning = `⚠️ 调整后的库存低于安全库存(${supply.safetyStock}${supply.unit})`;
+          if (newStock < supply.safety_stock) {
+            warning = `⚠️ 调整后的库存低于安全库存(${supply.safety_stock}${supply.unit})`;
           }
         }
         setStockWarning(warning);
@@ -152,7 +148,7 @@ const SuppliesAddRecordPage: FC = () => {
   const getStockChangeInfo = () => {
     if (!selectedSupplyItem || !quantity) return null;
     
-    const currentStock = selectedSupplyItem.currentStock;
+    const currentStock = selectedSupplyItem.current_stock;
     const newStock = operationType === "adjust" ? Number(quantity) : 
                     operationType === "in" ? currentStock + Number(quantity) : 
                     currentStock - Number(quantity);
@@ -181,8 +177,8 @@ const SuppliesAddRecordPage: FC = () => {
         newErrors.quantity = "请输入有效的数量";
       } else if (operationType === "out" && supply) {
         // 严格检查出库数量不能超过当前库存
-        if (numQuantity > supply.currentStock) {
-          newErrors.quantity = `❌ 出库数量不能超过当前库存！当前库存: ${supply.currentStock}${supply.unit}`;
+        if (numQuantity > supply.current_stock) {
+          newErrors.quantity = `❌ 出库数量不能超过当前库存！当前库存: ${supply.current_stock}${supply.unit}`;
         }
       }
     }
@@ -210,12 +206,12 @@ const SuppliesAddRecordPage: FC = () => {
       const numQuantity = Number(quantity);
       
       // 出库时再次严格检查库存（防止并发操作）
-      if (operationType === "out" && numQuantity > supply.currentStock) {
-        throw new Error(`❌ 出库数量不能超过当前库存！当前库存: ${supply.currentStock}${supply.unit}，申请数量: ${numQuantity}${supply.unit}`);
+      if (operationType === "out" && numQuantity > supply.current_stock) {
+        throw new Error(`❌ 出库数量不能超过当前库存！当前库存: ${supply.current_stock}${supply.unit}，申请数量: ${numQuantity}${supply.unit}`);
       }
 
       // 计算新的库存数量
-      let newStock = supply.currentStock;
+      let newStock = supply.current_stock;
       switch (operationType) {
         case "in":
           newStock += numQuantity;
@@ -231,22 +227,15 @@ const SuppliesAddRecordPage: FC = () => {
       // 更新耗材库存
       await updateSupply({
         ...supply,
-        currentStock: newStock,
+        current_stock: newStock,
       });
 
       // 添加记录
       addRecord({
         type: operationType,
-        supplyId: supply.id,
-        itemName: supply.name,
-        category: supply.category,
+        supply_id: supply.id,
         quantity: numQuantity,
-        unit: supply.unit,
-        operator: currentUser,
-        department: "技术部", // 实际应用中从用户上下文获取
         remark: remark,
-        previousStock: supply.currentStock,
-        newStock: newStock,
       });
 
       setSuccessMessage(`${getOperationTypeText(operationType)}成功：${supply.name} ${numQuantity}${supply.unit}`);
@@ -349,6 +338,15 @@ const SuppliesAddRecordPage: FC = () => {
       }
     }
 
+    if (!newSupply.unitPrice.trim()) {
+      newErrors.unitPrice = "请输入单价";
+    } else {
+      const price = Number(newSupply.unitPrice);
+      if (isNaN(price) || price < 0) {
+        newErrors.unitPrice = "请输入有效的单价";
+      }
+    }
+
     setNewSupplyErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -360,16 +358,16 @@ const SuppliesAddRecordPage: FC = () => {
 
     setIsCreatingSupply(true);
     try {
-      const newSupplyItem: SupplyItem = {
-        id: Date.now(),
+      const supplyData = {
         name: newSupply.name.trim(),
         category: newSupply.category,
         unit: newSupply.unit.trim(),
-        currentStock: Number(newSupply.currentStock),
-        safetyStock: Number(newSupply.safetyStock),
+        current_stock: Number(newSupply.currentStock),
+        safety_stock: Number(newSupply.safetyStock),
+        unit_price: Number(newSupply.unitPrice).toString(),
       };
 
-      await addSupply(newSupplyItem);
+      await addSupply(supplyData);
       setShowNewSupplyModal(false);
       setNewSupply({
         name: "",
@@ -377,6 +375,7 @@ const SuppliesAddRecordPage: FC = () => {
         unit: "",
         currentStock: "",
         safetyStock: "",
+        unitPrice: "",
       });
       setNewSupplyErrors({});
     } catch (error) {
@@ -504,11 +503,11 @@ const SuppliesAddRecordPage: FC = () => {
                             {supply.category}
                           </Chip>
                           <Badge
-                            color={supply.currentStock <= supply.safetyStock ? "danger" : "success"}
+                            color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                             variant="flat"
                             size="sm"
                           >
-                            {supply.currentStock}{supply.unit}
+                            {supply.current_stock}{supply.unit}
                           </Badge>
                         </div>
                       </div>
@@ -532,14 +531,14 @@ const SuppliesAddRecordPage: FC = () => {
                     <span className="text-sm text-gray-600">当前库存:</span>
                     <div className="flex items-center gap-2">
                       <Badge
-                        color={selectedSupplyItem.currentStock <= selectedSupplyItem.safetyStock ? "danger" : "success"}
+                        color={selectedSupplyItem.current_stock <= selectedSupplyItem.safety_stock ? "danger" : "success"}
                         variant="flat"
                         size="lg"
                       >
-                        {selectedSupplyItem.currentStock} {selectedSupplyItem.unit}
+                        {selectedSupplyItem.current_stock} {selectedSupplyItem.unit}
                       </Badge>
-                      {selectedSupplyItem.currentStock <= selectedSupplyItem.safetyStock && (
-                        <Tooltip content={`安全库存: ${selectedSupplyItem.safetyStock}${selectedSupplyItem.unit}`}>
+                      {selectedSupplyItem.current_stock <= selectedSupplyItem.safety_stock && (
+                        <Tooltip content={`安全库存: ${selectedSupplyItem.safety_stock}${selectedSupplyItem.unit}`}>
                           <Chip
                             color="danger"
                             variant="flat"
@@ -964,6 +963,22 @@ const SuppliesAddRecordPage: FC = () => {
                   }}
                   isInvalid={!!newSupplyErrors.safetyStock}
                   errorMessage={newSupplyErrors.safetyStock}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  单价 <span className="text-danger">*</span>
+                </label>
+                <Input
+                  type="number"
+                  placeholder="请输入单价"
+                  value={newSupply.unitPrice}
+                  onValueChange={(value) => {
+                    setNewSupply(prev => ({ ...prev, unitPrice: value }));
+                    setNewSupplyErrors(prev => ({ ...prev, unitPrice: undefined }));
+                  }}
+                  isInvalid={!!newSupplyErrors.unitPrice}
+                  errorMessage={newSupplyErrors.unitPrice}
                 />
               </div>
             </div>

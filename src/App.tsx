@@ -6,7 +6,9 @@ import DocsPage from "./pages/docs";
 import PricingPage from "./pages/pricing";
 import BlogPage from "./pages/blog";
 import AboutPage from "./pages/about";
+import ProfilePage from "./pages/profile";
 import DefaultLayout from "./layouts/default";
+import TestMenu from "./pages/test-menu";
 
 // System Management Pages
 import UsersPage from "./pages/system/users";
@@ -38,6 +40,7 @@ function App() {
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
 
         {/* System Management Routes */}
         <Route path="/system/users" element={<UsersPage />} />
@@ -52,6 +55,8 @@ function App() {
         <Route path="/supplies/debug-sync" element={<DebugSyncPage />} />
         <Route path="/supplies/test-category-summary" element={<TestCategorySummaryPage />} />
         <Route path="/supplies/data-comparison" element={<DataComparisonPage />} />
+
+        <Route path="/test-menu" element={<TestMenu />} />
       </Route>
     </Routes>
   );

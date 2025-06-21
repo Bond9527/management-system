@@ -16,6 +16,7 @@ import {
 } from "@heroui/react";
 import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
 import { generateInventorySummary } from "@/utils/dataConsistencyTest";
+import { formatDate } from "@/utils/dateUtils";
 
 interface ComparisonResult {
   metric: string;
@@ -42,13 +43,13 @@ const DataComparisonPage: FC = () => {
     const inventoryOverviewData = {
       totalSupplies: supplies.length,
       totalRecords: records.length,
-      lowStockItems: supplies.filter(s => s.currentStock <= s.safetyStock).length,
+      lowStockItems: supplies.filter(s => s.current_stock <= s.safety_stock).length,
       recentActivity: records.filter(r => {
         const recordDate = new Date(r.timestamp);
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         return recordDate >= weekAgo;
       }).length,
-      totalStock: supplies.reduce((sum, item) => sum + item.currentStock, 0),
+      totalStock: supplies.reduce((sum, item) => sum + item.current_stock, 0),
       categories: Array.from(new Set(supplies.map(item => item.category))).length,
     };
 
@@ -58,7 +59,7 @@ const DataComparisonPage: FC = () => {
       totalRecords: summary.totalRecords,
       lowStockItems: summary.lowStockItems,
       recentActivity: summary.recentActivity,
-      totalStock: supplies.reduce((sum, item) => sum + item.currentStock, 0),
+      totalStock: supplies.reduce((sum, item) => sum + item.current_stock, 0),
       categories: Array.from(new Set(supplies.map(item => item.category))).length,
     };
 
@@ -114,8 +115,8 @@ const DataComparisonPage: FC = () => {
     const categories = Array.from(new Set(supplies.map(item => item.category)));
     const categoryData = categories.map(category => {
       const categorySupplies = supplies.filter(item => item.category === category);
-      const totalStock = categorySupplies.reduce((sum, item) => sum + item.currentStock, 0);
-      const lowStockCount = categorySupplies.filter(item => item.currentStock <= item.safetyStock).length;
+      const totalStock = categorySupplies.reduce((sum, item) => sum + item.current_stock, 0);
+      const lowStockCount = categorySupplies.filter(item => item.current_stock <= item.safety_stock).length;
       
       return {
         category,

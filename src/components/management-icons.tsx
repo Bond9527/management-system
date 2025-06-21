@@ -64,28 +64,19 @@ export const PermissionManagementIcon = (props: IconProps) => (
   </svg>
 );
 
-export const MenuManagementIcon = (props: IconProps) => (
+export const MenuManagementIcon = ({ className }: { className?: string }) => (
   <svg
-    aria-hidden="true"
+    className={className}
     fill="none"
-    focusable="false"
-    height="1em"
-    role="presentation"
+    stroke="currentColor"
     viewBox="0 0 24 24"
-    width="1em"
-    {...props}
+    xmlns="http://www.w3.org/2000/svg"
   >
     <path
-      d="M3 13.125C3 12.504 3.504 12 4.125 12H19.875C20.496 12 21 12.504 21 13.125C21 13.746 20.496 14.25 19.875 14.25H4.125C3.504 14.25 3 13.746 3 13.125Z"
-      fill="currentColor"
-    />
-    <path
-      d="M3 6.375C3 5.754 3.504 5.25 4.125 5.25H19.875C20.496 5.25 21 5.754 21 6.375C21 6.996 20.496 7.5 19.875 7.5H4.125C3.504 7.5 3 6.996 3 6.375Z"
-      fill="currentColor"
-    />
-    <path
-      d="M3 19.875C3 19.254 3.504 18.75 4.125 18.75H19.875C20.496 18.75 21 19.254 21 19.875C21 20.496 20.496 21 19.875 21H4.125C3.504 21 3 20.496 3 19.875Z"
-      fill="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M4 6h16M4 12h16M4 18h16"
     />
   </svg>
 );

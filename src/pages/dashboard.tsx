@@ -43,6 +43,7 @@ import {
 import { useSupplies, SupplyItem, InventoryRecord } from "@/hooks/useSupplies";
 import { generateInventorySummary } from "@/utils/dataConsistencyTest";
 import { useNavigate } from "react-router-dom";
+import { formatRelativeTime } from "@/utils/dateUtils";
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
 
@@ -66,7 +67,7 @@ const DashboardPage: FC = () => {
     setRecentRecords(recent);
 
     // 获取库存不足的耗材
-    const lowStock = supplies.filter(item => item.currentStock <= item.safetyStock);
+    const lowStock = supplies.filter(item => item.current_stock <= item.safety_stock);
     setLowStockItems(lowStock);
   };
 
@@ -75,7 +76,7 @@ const DashboardPage: FC = () => {
     const categories = Array.from(new Set(supplies.map(item => item.category)));
     return categories.map(category => {
       const categorySupplies = supplies.filter(item => item.category === category);
-      const totalStock = categorySupplies.reduce((sum, item) => sum + item.currentStock, 0);
+      const totalStock = categorySupplies.reduce((sum, item) => sum + item.current_stock, 0);
       return {
         name: category,
         value: totalStock,
@@ -143,17 +144,7 @@ const DashboardPage: FC = () => {
   };
 
   const formatTimeAgo = (timestamp: string) => {
-    const now = new Date();
-    const recordTime = new Date(timestamp);
-    const diffInMinutes = Math.floor((now.getTime() - recordTime.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}分钟前`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)}小时前`;
-    } else {
-      return `${Math.floor(diffInMinutes / 1440)}天前`;
-    }
+    return formatRelativeTime(timestamp);
   };
 
   const getOperationIcon = (type: string) => {
@@ -217,7 +208,7 @@ const DashboardPage: FC = () => {
       </div>
 
       {/* 统计概览卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card className="shadow-lg">
           <CardBody className="text-center">
             <div className="flex items-center justify-center mb-4">
@@ -284,6 +275,26 @@ const DashboardPage: FC = () => {
             <Progress 
               value={summary.recentActivity > 0 ? 100 : 0} 
               color="warning" 
+              size="sm" 
+              className="max-w-md"
+            />
+          </CardBody>
+        </Card>
+
+        <Card className="shadow-lg">
+          <CardBody className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <div className="p-3 bg-purple-100 rounded-full">
+                <ChartIcon className="text-purple-600 text-xl" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-purple-600 mb-2">
+              ¥{supplies.reduce((total, item) => total + (item.current_stock * parseFloat(item.unit_price)), 0).toFixed(2)}
+            </div>
+            <div className="text-gray-600 mb-2">库存总价值</div>
+            <Progress 
+              value={100} 
+              color="secondary" 
               size="sm" 
               className="max-w-md"
             />
@@ -443,7 +454,7 @@ const DashboardPage: FC = () => {
                   <div>
                     <div className="font-medium text-red-800">{item.name}</div>
                     <div className="text-sm text-red-600">
-                      当前: {item.currentStock}{item.unit} / 安全: {item.safetyStock}{item.unit}
+                      当前: {item.current_stock}{item.unit} / 安全: {item.safety_stock}{item.unit}
                     </div>
                   </div>
                   <Chip color="danger" variant="flat" size="sm">
@@ -486,7 +497,7 @@ const DashboardPage: FC = () => {
                       {getOperationIcon(record.type)}
                     </div>
                     <div>
-                      <div className="font-medium">{record.itemName}</div>
+                      <div className="font-medium">{record.supply_name}</div>
                       <div className="text-sm text-gray-600">
                         {record.operator} • {record.department}
                       </div>
@@ -494,7 +505,7 @@ const DashboardPage: FC = () => {
                   </div>
                   <div className="text-right">
                     <Chip color={getOperationColor(record.type)} variant="flat" size="sm">
-                      {record.type === 'in' ? '+' : record.type === 'out' ? '-' : '='}{record.quantity}{record.unit}
+                      {record.type === 'in' ? '+' : record.type === 'out' ? '-' : '='}{record.quantity}{record.supply_unit}
                     </Chip>
                     <div className="text-xs text-gray-500 mt-1">
                       {formatTimeAgo(record.timestamp)}

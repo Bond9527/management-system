@@ -3,6 +3,8 @@ import { Button } from "@heroui/button";
 import { Checkbox } from "@heroui/checkbox";
 import { useState, FormEvent, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { login, LoginRequest } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 
 interface FormData {
   username: string;
@@ -17,12 +19,14 @@ interface SavedLoginInfo {
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState<FormData | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // 从 localStorage 读取保存的登录信息
   useEffect(() => {
@@ -54,30 +58,46 @@ export default function Login() {
     return newErrors.length === 0;
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm()) {
+      setIsLoading(true);
+      setErrors([]);
+      
       const formData: FormData = {
         username,
         password
       };
       setSubmitted(formData);
-      console.log("Form submitted:", formData);
 
-      // 处理记住密码
-      if (rememberMe) {
-        const loginInfo: SavedLoginInfo = {
-          username,
-          password,
-          rememberMe: true
-        };
-        localStorage.setItem("loginInfo", JSON.stringify(loginInfo));
-      } else {
-        localStorage.removeItem("loginInfo");
+      try {
+        // 调用登录API
+        const response = await login(formData);
+        console.log("Login successful:", response);
+
+        // 更新认证上下文
+        authLogin(response.user);
+
+        // 处理记住密码
+        if (rememberMe) {
+          const loginInfo: SavedLoginInfo = {
+            username,
+            password,
+            rememberMe: true
+          };
+          localStorage.setItem("loginInfo", JSON.stringify(loginInfo));
+        } else {
+          localStorage.removeItem("loginInfo");
+        }
+
+        // 登录成功后跳转到首页
+        navigate("/dashboard");
+      } catch (error) {
+        console.error("Login failed:", error);
+        setErrors([error instanceof Error ? error.message : "登录失败，请检查用户名和密码"]);
+      } finally {
+        setIsLoading(false);
       }
-
-      // 登录成功后跳转到首页
-      navigate("/dashboard");
     }
   };
 
@@ -109,6 +129,7 @@ export default function Login() {
               onValueChange={setUsername}
               isInvalid={errors.includes("请输入账号")}
               errorMessage={errors.includes("请输入账号") ? "请输入账号" : ""}
+              isDisabled={isLoading}
             />
             
             <Input
@@ -120,11 +141,13 @@ export default function Login() {
               onValueChange={setPassword}
               isInvalid={errors.includes("请输入密码")}
               errorMessage={errors.includes("请输入密码") ? "请输入密码" : ""}
+              isDisabled={isLoading}
               endContent={
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="focus:outline-none"
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -141,6 +164,17 @@ export default function Login() {
             />
           </div>
 
+          {/* 显示API错误信息 */}
+          {errors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+              {errors.map((error, index) => (
+                <p key={index} className="text-sm text-red-600">
+                  {error}
+                </p>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Checkbox
@@ -148,6 +182,7 @@ export default function Login() {
                 onValueChange={setRememberMe}
                 size="sm"
                 color="primary"
+                isDisabled={isLoading}
               >
                 记住我
               </Checkbox>
@@ -164,13 +199,15 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+              isLoading={isLoading}
+              disabled={isLoading}
             >
-              登录
+              {isLoading ? "登录中..." : "登录"}
             </Button>
           </div>
         </form>
 
-        {submitted && (
+        {submitted && !isLoading && (
           <div className="text-center mt-4">
             <p className="text-sm text-gray-600">
               登录信息: <code>{JSON.stringify(submitted)}</code>

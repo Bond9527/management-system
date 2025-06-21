@@ -1,173 +1,228 @@
-import { Card, CardBody, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Checkbox, Pagination } from "@heroui/react";
-import React, { useState, useEffect } from "react";
-import { SearchIcon } from "@/components/icons";
-
-const STORAGE_KEY = "positionTabData";
+import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  CardBody,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Select,
+  SelectItem,
+  Switch,
+  Chip,
+  Tooltip,
+  Pagination,
+  Checkbox,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@heroui/react";
+import { SearchIcon, PlusIcon, EditIcon, TrashIcon } from "@/components/icons";
+import { api } from '@/services/api';
 
 interface Position {
   id: number;
-  title: string;
-  date: string;
+  name: string;
+  description: string;
+  department: number;
+  department_name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-const defaultPositions: Position[] = [
-  { id: 1, title: "技术总监", date: "2020-03-31" },
-  { id: 2, title: "运营总监", date: "2020-03-31" },
-  { id: 3, title: "市场总监", date: "2020-03-31" },
-  { id: 4, title: "研发工程师", date: "2020-03-31" },
-  { id: 5, title: "运维工程师", date: "2020-03-31" },
-];
+interface Department {
+  id: number;
+  name: string;
+}
 
 export default function PositionTab() {
-  const [positions, setPositions] = useState<Position[]>(defaultPositions);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>("add");
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [editId, setEditId] = useState<number | null>(null);
-  const [newTitle, setNewTitle] = useState("");
-  const [newDate, setNewDate] = useState("");
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [page, setPage] = useState(1);
-  const [formErrors, setFormErrors] = useState<{ title?: string; date?: string }>({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
+  const [loading, setLoading] = useState(false);
+  
+  // 表单数据
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    department: null as number | null,
+    is_active: true,
+  });
+
   const rowsPerPage = 10;
 
-  // 读取 localStorage
-  useEffect(() => {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-      try {
-        setPositions(JSON.parse(data));
-      } catch {}
+  // 获取职位列表
+  const fetchPositions = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/positions/', {
+        params: {
+          search: search,
+          page: page,
+          page_size: rowsPerPage,
+        }
+      });
+      setPositions(response.data.results || response.data);
+    } catch (error) {
+      console.error('获取职位列表失败:', error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
 
-  // 写入 localStorage
+  // 获取部门列表
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get('/departments/');
+      setDepartments(response.data.results || response.data);
+    } catch (error) {
+      console.error('获取部门列表失败:', error);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
-  }, [positions]);
-
-  // 过滤和分页数据
-  const filteredPositions = positions.filter(position => 
-    position.title.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const paginatedPositions = filteredPositions.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
-  );
+    fetchPositions();
+    fetchDepartments();
+  }, [search, page]);
 
   // 打开新增弹窗
   const openAddModal = () => {
-    setModalMode("add");
-    setNewTitle("");
-    setNewDate(new Date().toISOString().split('T')[0]);
-    setShowModal(true);
-    setEditId(null);
+    setModalMode('add');
+    setFormData({
+      name: '',
+      description: '',
+      department: null,
+      is_active: true,
+    });
     setFormErrors({});
+    setShowModal(true);
   };
 
   // 打开编辑弹窗
   const openEditModal = (position: Position) => {
-    setModalMode("edit");
+    setModalMode('edit');
     setEditId(position.id);
-    setNewTitle(position.title);
-    setNewDate(position.date);
-    setShowModal(true);
+    setFormData({
+      name: position.name,
+      description: position.description,
+      department: position.department,
+      is_active: position.is_active,
+    });
     setFormErrors({});
+    setShowModal(true);
   };
 
   // 表单验证
   const validateForm = () => {
-    const errors: { title?: string; date?: string } = {};
-    if (!newTitle.trim()) {
-      errors.title = "职位名称不能为空";
-    } else if (newTitle.length > 50) {
-      errors.title = "职位名称不能超过50个字符";
+    const errors: {[key: string]: string} = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = '职位名称不能为空';
+    } else if (formData.name.length > 100) {
+      errors.name = '职位名称不能超过100个字符';
     }
-    if (!newDate) {
-      errors.date = "日期不能为空";
-    } else {
-      const selectedDate = new Date(newDate);
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-      if (selectedDate > today) {
-        errors.date = "创建日期不能超过今天";
-      }
+    
+    if (!formData.department) {
+      errors.department = '请选择所属部门';
     }
+    
+    if (formData.description.length > 500) {
+      errors.description = '职位描述不能超过500个字符';
+    }
+    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // 保存（新增或编辑）
-  const handleSave = () => {
+  // 保存职位
+  const handleSave = async () => {
     if (!validateForm()) return;
 
-    if (modalMode === "add") {
-      setPositions(prev => [
-        ...prev,
-        { id: prev.length ? prev[prev.length - 1].id + 1 : 1, title: newTitle.trim(), date: newDate }
-      ]);
-    } else if (modalMode === "edit" && editId !== null) {
-      setPositions(prev => prev.map(p => p.id === editId ? { ...p, title: newTitle.trim(), date: newDate } : p));
+    try {
+      if (modalMode === 'add') {
+        await api.post('/positions/', formData);
+      } else if (editId !== null) {
+        await api.put(`/positions/${editId}/`, formData);
+      }
+      
+      setShowModal(false);
+      fetchPositions();
+    } catch (error: any) {
+      console.error('保存职位失败:', error);
+      if (error.response?.data) {
+        setFormErrors(error.response.data);
+      }
     }
-    setShowModal(false);
-    setNewTitle("");
-    setNewDate("");
-    setEditId(null);
-    setFormErrors({});
   };
 
-  // 处理取消编辑
-  const handleCancel = () => {
-    setShowModal(false);
-    setNewTitle("");
-    setNewDate("");
-    setEditId(null);
-    setFormErrors({});
-  };
-
-  // 打开删除弹窗
-  const openDeleteModal = (id: number) => {
+  // 删除职位
+  const handleDelete = (id: number) => {
     setDeleteId(id);
     setShowDeleteModal(true);
   };
 
   // 确认删除
-  const handleDelete = () => {
+  const confirmDelete = async () => {
     if (deleteId !== null) {
-      setPositions(prev => prev.filter(p => p.id !== deleteId));
+      try {
+        await api.delete(`/positions/${deleteId}/`);
+        setShowDeleteModal(false);
+        setDeleteId(null);
+        fetchPositions();
+      } catch (error) {
+        console.error('删除职位失败:', error);
+      }
     }
-    setShowDeleteModal(false);
-    setDeleteId(null);
   };
 
-  // 批量删除
-  const handleBatchDelete = () => {
-    if (selectedRows.length === 0) return;
-    
-    // 获取选中的职位名称列表
-    const selectedTitles = positions
-      .filter(position => selectedRows.includes(position.id))
-      .map(position => position.title)
-      .join("、");
-
-    setPositions(prev => prev.filter(p => !selectedRows.includes(p.id)));
-    setSelectedRows([]);
-    setShowDeleteModal(false);
-  };
-
-  // 选择所有行
+  // 批量选择
   const handleSelectAll = (checked: boolean) => {
-    setSelectedRows(checked ? paginatedPositions.map(position => position.id) : []);
+    if (checked) {
+      setSelectedRows(positions.map(pos => pos.id));
+    } else {
+      setSelectedRows([]);
+    }
   };
 
-  // 选择单行
   const handleSelectRow = (id: number, checked: boolean) => {
-    setSelectedRows(prev => 
-      checked ? [...prev, id] : prev.filter(rowId => rowId !== id)
-    );
+    if (checked) {
+      setSelectedRows(prev => [...prev, id]);
+    } else {
+      setSelectedRows(prev => prev.filter(rowId => rowId !== id));
+    }
+  };
+
+  // 批量更新状态
+  const handleBatchUpdate = async (is_active: boolean) => {
+    try {
+      await api.post('/positions/batch_update/', {
+        ids: selectedRows,
+        is_active: is_active
+      });
+      setSelectedRows([]);
+      fetchPositions();
+    } catch (error) {
+      console.error('批量更新失败:', error);
+    }
   };
 
   return (
@@ -175,7 +230,8 @@ export default function PositionTab() {
       <CardBody>
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">职位管理</h2>
-          <p className="text-gray-600">在这里管理系统职位和权限分配</p>
+          <p className="text-gray-600">在这里管理公司职位信息</p>
+          
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-[284px]">
@@ -186,37 +242,48 @@ export default function PositionTab() {
                   startContent={<SearchIcon className="text-base text-gray-400 pointer-events-none flex-shrink-0" />}
                 />
               </div>
-              <Button color="primary" startContent={<span className="text-lg">＋</span>} onClick={openAddModal}>新增</Button>
+              <Button color="primary" startContent={<PlusIcon className="text-lg" />} onClick={openAddModal}>
+                新增职位
+              </Button>
               {selectedRows.length > 0 && (
-                <Button 
-                  color="danger" 
-                  onClick={() => setShowDeleteModal(true)}
-                  startContent={<span className="text-lg">×</span>}
-                >
-                  批量删除
-                </Button>
+                <Dropdown>
+                  <DropdownTrigger>
+                    <Button color="secondary">
+                      批量操作 ({selectedRows.length})
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu>
+                    <DropdownItem key="activate" onClick={() => handleBatchUpdate(true)}>
+                      批量激活
+                    </DropdownItem>
+                    <DropdownItem key="deactivate" onClick={() => handleBatchUpdate(false)}>
+                      批量停用
+                    </DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
               )}
             </div>
           </div>
-          <Table
-            aria-label="职位管理表格"
-            className="mt-6"
-          >
+
+          <Table aria-label="职位管理表格">
             <TableHeader>
               <TableColumn>
                 <Checkbox
-                  isSelected={selectedRows.length === paginatedPositions.length}
-                  isIndeterminate={selectedRows.length > 0 && selectedRows.length < paginatedPositions.length}
+                  isSelected={selectedRows.length === positions.length}
+                  isIndeterminate={selectedRows.length > 0 && selectedRows.length < positions.length}
                   onValueChange={handleSelectAll}
                 />
               </TableColumn>
-              <TableColumn>编号</TableColumn>
-              <TableColumn>职位</TableColumn>
+              <TableColumn>ID</TableColumn>
+              <TableColumn>职位名称</TableColumn>
+              <TableColumn>描述</TableColumn>
+              <TableColumn>所属部门</TableColumn>
+              <TableColumn>状态</TableColumn>
               <TableColumn>创建时间</TableColumn>
               <TableColumn>操作</TableColumn>
             </TableHeader>
             <TableBody>
-              {paginatedPositions.map((position) => (
+              {positions.map((position) => (
                 <TableRow key={position.id}>
                   <TableCell>
                     <Checkbox
@@ -225,11 +292,53 @@ export default function PositionTab() {
                     />
                   </TableCell>
                   <TableCell>{position.id}</TableCell>
-                  <TableCell>{position.title}</TableCell>
-                  <TableCell>{position.date}</TableCell>
                   <TableCell>
-                    <Button size="sm" color="primary" variant="flat" className="mr-2" onClick={() => openEditModal(position)}>编辑</Button>
-                    <Button size="sm" color="danger" variant="flat" onClick={() => openDeleteModal(position.id)}>删除</Button>
+                    <span className="font-medium">{position.name}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip content={position.description}>
+                      <span className="truncate max-w-[200px] block">
+                        {position.description || '-'}
+                      </span>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <Chip size="sm" color="primary" variant="flat">
+                      {position.department_name}
+                    </Chip>
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      size="sm"
+                      isSelected={position.is_active}
+                      color="success"
+                      isReadOnly
+                    />
+                  </TableCell>
+                  <TableCell>{new Date(position.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Dropdown>
+                      <DropdownTrigger>
+                        <Button isIconOnly size="sm" variant="light">
+                          ⋮
+                        </Button>
+                      </DropdownTrigger>
+                      <DropdownMenu>
+                        <DropdownItem key="edit" onClick={() => openEditModal(position)}>
+                          <EditIcon className="text-lg" />
+                          编辑
+                        </DropdownItem>
+                        <DropdownItem 
+                          key="delete"
+                          className="text-danger" 
+                          color="danger"
+                          onClick={() => handleDelete(position.id)}
+                        >
+                          <TrashIcon className="text-lg" />
+                          删除
+                        </DropdownItem>
+                      </DropdownMenu>
+                    </Dropdown>
                   </TableCell>
                 </TableRow>
               ))}
@@ -242,7 +351,7 @@ export default function PositionTab() {
               showControls
               initialPage={page}
               page={page}
-              total={Math.ceil(filteredPositions.length / rowsPerPage)}
+              total={Math.ceil(positions.length / rowsPerPage)}
               onChange={setPage}
               classNames={{
                 cursor: "bg-primary-500 text-white",
@@ -255,51 +364,62 @@ export default function PositionTab() {
         </div>
 
         {/* 新增/编辑职位弹窗 */}
-        <Modal 
-          isOpen={showModal} 
-          onClose={handleCancel}
-          size="lg"
-        >
+        <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="2xl">
           <ModalContent>
             <ModalHeader>
-              <div className="flex items-center gap-2">
-                <span>{modalMode === "add" ? "新增职位" : "编辑职位"}</span>
-                {modalMode === "edit" && (
-                  <span className="text-sm text-gray-500">(ID: {editId})</span>
-                )}
-              </div>
+              {modalMode === 'add' ? '新增职位' : '编辑职位'}
             </ModalHeader>
             <ModalBody>
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <Input
                   label="职位名称"
                   placeholder="请输入职位名称"
-                  value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  errorMessage={formErrors.title}
-                  maxLength={50}
-                  description="最多50个字符"
+                  value={formData.name}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  errorMessage={formErrors.name}
+                  maxLength={100}
+                  description="最多100个字符"
                   autoFocus
                 />
-                <Input
-                  type="date"
-                  label="创建时间"
-                  value={newDate}
-                  onChange={e => setNewDate(e.target.value)}
-                  errorMessage={formErrors.date}
-                  description="不能超过今天"
-                />
+                <Select
+                  label="所属部门"
+                  selectedKeys={formData.department ? [formData.department.toString()] : []}
+                  onSelectionChange={keys => setFormData(prev => ({ 
+                    ...prev, 
+                    department: Array.from(keys)[0] ? parseInt(Array.from(keys)[0] as string) : null 
+                  }))}
+                  errorMessage={formErrors.department}
+                >
+                  {departments.map(dept => (
+                    <SelectItem key={dept.id.toString()}>{dept.name}</SelectItem>
+                  ))}
+                </Select>
+                <div className="col-span-2">
+                  <Input
+                    label="职位描述"
+                    placeholder="请输入职位描述"
+                    value={formData.description}
+                    onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    errorMessage={formErrors.description}
+                    maxLength={500}
+                    description="最多500个字符"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Switch
+                    isSelected={formData.is_active}
+                    onValueChange={checked => setFormData(prev => ({ ...prev, is_active: checked }))}
+                  >
+                    是否激活
+                  </Switch>
+                </div>
               </div>
             </ModalBody>
             <ModalFooter>
-              <Button color="default" variant="flat" onClick={handleCancel}>
+              <Button color="default" variant="flat" onClick={() => setShowModal(false)}>
                 取消
               </Button>
-              <Button 
-                color="primary" 
-                onClick={handleSave}
-                isDisabled={!newTitle.trim() || !newDate}
-              >
+              <Button color="primary" onClick={handleSave}>
                 保存
               </Button>
             </ModalFooter>
@@ -311,35 +431,13 @@ export default function PositionTab() {
           <ModalContent>
             <ModalHeader>确认删除</ModalHeader>
             <ModalBody>
-              {selectedRows.length > 0 ? (
-                <div>
-                  <p>确定要删除以下职位吗？此操作不可恢复。</p>
-                  <div className="mt-2 p-2 bg-gray-50 rounded">
-                    {positions
-                      .filter(position => selectedRows.includes(position.id))
-                      .map(position => (
-                        <div key={position.id} className="text-sm text-gray-600">
-                          {position.title}
-                        </div>
-                      ))
-                    }
-                  </div>
-                </div>
-              ) : (
-                `确定要删除该职位吗？此操作不可恢复。`
-              )}
+              确定要删除这个职位吗？此操作不可恢复。
             </ModalBody>
             <ModalFooter>
               <Button color="default" variant="flat" onClick={() => setShowDeleteModal(false)}>
                 取消
               </Button>
-              <Button color="danger" onClick={() => {
-                if (selectedRows.length > 0) {
-                  handleBatchDelete();
-                } else if (deleteId !== null) {
-                  handleDelete();
-                }
-              }}>
+              <Button color="danger" onClick={confirmDelete}>
                 确认删除
               </Button>
             </ModalFooter>

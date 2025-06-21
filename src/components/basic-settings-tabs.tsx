@@ -1,9 +1,10 @@
 import { Tabs, Tab } from "@heroui/react";
-import { DepartmentManagementIcon, RoleManagementIcon, PositionManagementIcon, PermissionManagementIcon } from "@/components/management-icons";
+import { DepartmentManagementIcon, RoleManagementIcon, PositionManagementIcon, PermissionManagementIcon, MenuManagementIcon } from "@/components/management-icons";
 import DepartmentTab from "./basic-settings/DepartmentTab";
 import JobTitleTab from "./basic-settings/JobTitleTab";
 import PositionTab from "./basic-settings/PositionTab";
 import PermissionTab from "./basic-settings/PermissionTab";
+import MenuTab from "./basic-settings/MenuTab";
 
 export default function BasicSettingsTabs() {
   return (
@@ -58,6 +59,19 @@ export default function BasicSettingsTabs() {
       >
         <div className="mt-4">
           <PermissionTab />
+        </div>
+      </Tab>
+      <Tab
+        key="menus"
+        title={
+          <div className="flex items-center space-x-2">
+            <MenuManagementIcon className="w-5 h-5" />
+            <span>菜单管理</span>
+          </div>
+        }
+      >
+        <div className="mt-4">
+          <MenuTab />
         </div>
       </Tab>
     </Tabs>

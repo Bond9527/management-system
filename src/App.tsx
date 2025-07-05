@@ -7,8 +7,14 @@ import PricingPage from "./pages/pricing";
 import BlogPage from "./pages/blog";
 import AboutPage from "./pages/about";
 import ProfilePage from "./pages/profile";
+import AccountSettingsPage from "./pages/account-settings";
 import DefaultLayout from "./layouts/default";
 import TestMenu from "./pages/test-menu";
+import TestAuthPage from "./pages/test-auth";
+import TestMonthlyFieldsPage from "./pages/test-monthly-fields";
+import TestDataRefreshPage from "./pages/test-data-refresh";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 
 // System Management Pages
 import UsersPage from "./pages/system/users";
@@ -23,6 +29,7 @@ import SupplyDetailsPage from "./pages/supplies/details";
 import DebugSyncPage from "./pages/supplies/debug-sync";
 import TestCategorySummaryPage from "./pages/supplies/test-category-summary";
 import DataComparisonPage from "./pages/supplies/data-comparison";
+import ApplicationManagementPage from "./pages/supplies/application-management";
 
 function App() {
   return (
@@ -30,6 +37,8 @@ function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       
       {/* Protected Routes with DefaultLayout */}
       <Route element={<DefaultLayout />}>
@@ -41,6 +50,8 @@ function App() {
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/settings" element={<AccountSettingsPage />} />
+        <Route path="/help" element={<div className="p-6"><h1 className="text-2xl font-bold">帮助页面</h1><p className="mt-4">帮助内容正在开发中...</p></div>} />
 
         {/* System Management Routes */}
         <Route path="/system/users" element={<UsersPage />} />
@@ -55,8 +66,12 @@ function App() {
         <Route path="/supplies/debug-sync" element={<DebugSyncPage />} />
         <Route path="/supplies/test-category-summary" element={<TestCategorySummaryPage />} />
         <Route path="/supplies/data-comparison" element={<DataComparisonPage />} />
+        <Route path="/supplies/application-management" element={<ApplicationManagementPage />} />
 
         <Route path="/test-menu" element={<TestMenu />} />
+        <Route path="/test-auth" element={<TestAuthPage />} />
+        <Route path="/test-monthly-fields" element={<TestMonthlyFieldsPage />} />
+        <Route path="/test-data-refresh" element={<TestDataRefreshPage />} />
       </Route>
     </Routes>
   );

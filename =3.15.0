@@ -1,0 +1,5 @@
+Looking in indexes: https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+Requirement already satisfied: djangorestframework in /opt/miniconda3/envs/py313/lib/python3.13/site-packages (3.16.0)
+Requirement already satisfied: django>=4.2 in /opt/miniconda3/envs/py313/lib/python3.13/site-packages (from djangorestframework) (5.2.3)
+Requirement already satisfied: asgiref>=3.8.1 in /opt/miniconda3/envs/py313/lib/python3.13/site-packages (from django>=4.2->djangorestframework) (3.8.1)
+Requirement already satisfied: sqlparse>=0.3.1 in /opt/miniconda3/envs/py313/lib/python3.13/site-packages (from django>=4.2->djangorestframework) (0.5.3)

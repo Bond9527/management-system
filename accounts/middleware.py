@@ -7,58 +7,60 @@ from rest_framework import status
 from .models import OperationLog, UserProfile
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from django.contrib.auth.models import User
+from django.core.serializers.json import DjangoJSONEncoder
 
 class PermissionMiddleware(MiddlewareMixin):
     """权限校验中间件"""
     
     def process_request(self, request):
         # 不需要权限校验的路径
-        exclude_paths = [
-            '/admin/',
+        exempt_paths = [
             '/api/auth/login/',
             '/api/auth/register/',
             '/api/auth/refresh/',
             '/api/auth/verify/',
+            '/api/auth/logout/',
+            '/api/user/info/',  # 获取用户信息不需要权限
+            '/api/menus/',  # 获取菜单不需要权限
+            '/api/departments/',  # 获取部门不需要权限
+            '/api/job-titles/',  # 获取职称不需要权限
+            '/api/roles/',  # 获取角色不需要权限
+            '/api/permissions/',  # 获取权限不需要权限
+            '/api/upload-avatar/',  # 上传头像不需要权限
+            '/api/delete-avatar/',  # 删除头像不需要权限
+            '/admin/',  # Django管理后台
+            '/static/',  # 静态文件
+            '/media/',  # 媒体文件
         ]
         
-        # 检查是否在排除路径中
-        for path in exclude_paths:
-            if request.path.startswith(path):
+        # 检查是否为豁免路径
+        for exempt_path in exempt_paths:
+            if request.path.startswith(exempt_path):
                 return None
         
-        # 只对API请求进行权限校验
-        if not request.path.startswith('/api/'):
-            return None
-        
-        # 只在已认证用户时做权限判断，否则让DRF自己返回401
-        if not hasattr(request, 'user') or not request.user.is_authenticated:
-            return None
-        
-        # 检查用户是否激活
-        if not request.user.is_active:
-            return JsonResponse({
-                'error': '用户已被禁用',
-                'code': 'USER_INACTIVE'
-            }, status=status.HTTP_403_FORBIDDEN)
-        
-        # 检查用户角色权限
-        if not self._check_permissions(request, request.user):
-            return JsonResponse({
-                'error': '权限不足',
-                'code': 'PERMISSION_DENIED'
-            }, status=status.HTTP_403_FORBIDDEN)
+        # 如果是API请求且用户已认证，检查权限
+        if request.path.startswith('/api/') and request.user.is_authenticated:
+            # 超级用户拥有所有权限
+            if request.user.is_superuser:
+                return None
+            
+            # 检查用户权限
+            if not self._check_permissions(request, request.user):
+                return JsonResponse({
+                    'error': '您没有权限访问此资源',
+                    'code': 'PERMISSION_DENIED'
+                }, status=403)
         
         return None
     
     def _check_permissions(self, request, user):
         """检查用户权限"""
-        # 超级用户拥有所有权限
-        if user.is_superuser:
-            return True
-        
         try:
             profile = user.profile
-            if not profile or not profile.role:
+            
+            # 如果用户没有角色，默认拒绝访问
+            if not profile.role:
                 return False
             
             # 获取用户角色权限
@@ -193,6 +195,18 @@ class OperationLogMiddleware(MiddlewareMixin):
         # 记录日志
         if hasattr(request, 'user') and request.user.is_authenticated:
             try:
+                # 使用DjangoJSONEncoder来处理datetime对象
+                request_data_json = json.dumps(request_data, cls=DjangoJSONEncoder)
+                response_data_json = json.dumps(response_data, cls=DjangoJSONEncoder)
+                
+                # 将JSON字符串转换回字典（这样存储在数据库中时会被正确序列化）
+                try:
+                    request_data_processed = json.loads(request_data_json)
+                    response_data_processed = json.loads(response_data_json)
+                except:
+                    request_data_processed = {}
+                    response_data_processed = {}
+                
                 OperationLog.objects.create(
                     user=request.user,
                     operation_type=operation_type,
@@ -201,8 +215,8 @@ class OperationLogMiddleware(MiddlewareMixin):
                     description=description,
                     ip_address=request.client_ip,
                     user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    request_data=request_data,
-                    response_data=response_data,
+                    request_data=request_data_processed,
+                    response_data=response_data_processed,
                     status_code=response.status_code,
                     execution_time=execution_time,
                 )

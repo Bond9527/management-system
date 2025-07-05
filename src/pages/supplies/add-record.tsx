@@ -25,6 +25,8 @@ import { useNavigate } from "react-router-dom";
 import { supplyCategories } from "@/config/supplies";
 import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
 import { formatTimestamp } from "@/utils/dateUtils";
+import { useAuth } from "@/context/AuthContext";
+import { addToast } from "@heroui/toast";
 
 interface NewSupplyForm {
   name: string;
@@ -32,7 +34,9 @@ interface NewSupplyForm {
   unit: string;
   currentStock: string;
   safetyStock: string;
-  unitPrice: string; // 固定单价
+  maxStock: string;
+  minStock: string;
+  unitPrice: string;
 }
 
 interface NewSupplyErrors {
@@ -41,6 +45,8 @@ interface NewSupplyErrors {
   unit?: string;
   currentStock?: string;
   safetyStock?: string;
+  maxStock?: string;
+  minStock?: string;
   unitPrice?: string;
 }
 
@@ -55,17 +61,18 @@ interface BatchRecord {
   supplyId: string;
   quantity: string;
   remarks: string;
+  operationType: "in" | "out" | "adjust";
 }
 
 const SuppliesAddRecordPage: FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { supplies, addSupply, updateSupply, addRecord } = useSupplies();
   const [selectedSupply, setSelectedSupply] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
   const [operationType, setOperationType] = useState<"in" | "out" | "adjust">("in");
   const [remark, setRemark] = useState<string>("");
   const [currentTime, setCurrentTime] = useState<string>("");
-  const [currentUser] = useState<string>("张三"); // 实际应用中从用户上下文获取
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stockWarning, setStockWarning] = useState<string>("");
@@ -82,6 +89,8 @@ const SuppliesAddRecordPage: FC = () => {
     unit: "",
     currentStock: "",
     safetyStock: "",
+    maxStock: "",
+    minStock: "",
     unitPrice: "",
   });
   const [newSupplyErrors, setNewSupplyErrors] = useState<NewSupplyErrors>({});
@@ -196,6 +205,12 @@ const SuppliesAddRecordPage: FC = () => {
       return;
     }
 
+    // 如果是批量模式，添加到批量列表而不是直接提交
+    if (isBatchMode) {
+      handleAddToBatch();
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const supply = supplies.find((s: SupplyItem) => s.id.toString() === selectedSupply);
@@ -241,12 +256,171 @@ const SuppliesAddRecordPage: FC = () => {
       setSuccessMessage(`${getOperationTypeText(operationType)}成功：${supply.name} ${numQuantity}${supply.unit}`);
       setShowSuccessModal(true);
 
-      if (!isBatchMode) {
-        resetForm();
-      }
+      resetForm();
     } catch (error) {
       console.error("提交失败:", error);
-      alert(error instanceof Error ? error.message : "提交失败，请重试");
+      addToast({
+        title: "提交失败",
+        description: error instanceof Error ? error.message : "提交失败，请重试",
+        color: "danger",
+        timeout: 5000,
+        shouldShowTimeoutProgress: true,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 添加到批量列表
+  const handleAddToBatch = () => {
+    const supply = supplies.find((s: SupplyItem) => s.id.toString() === selectedSupply);
+    if (!supply) return;
+
+    const newRecord: BatchRecord = {
+      id: Date.now().toString(),
+      supplyId: selectedSupply,
+      quantity: quantity,
+      remarks: remark,
+      operationType: operationType,
+    };
+
+    // 检查是否已存在相同的耗材记录，如果存在则更新数量
+    const existingIndex = batchRecords.findIndex(record => record.supplyId === selectedSupply);
+    
+    if (existingIndex >= 0) {
+      const updatedRecords = [...batchRecords];
+      const existingQty = Number(updatedRecords[existingIndex].quantity);
+      const newQty = operationType === "adjust" ? Number(quantity) : existingQty + Number(quantity);
+      updatedRecords[existingIndex] = {
+        ...updatedRecords[existingIndex],
+        quantity: newQty.toString(),
+        remarks: remark || updatedRecords[existingIndex].remarks,
+      };
+      setBatchRecords(updatedRecords);
+      
+      addToast({
+        title: "已更新批量记录",
+        description: `${supply.name} 的数量已更新为 ${newQty}${supply.unit}`,
+        color: "success",
+        timeout: 3000,
+      });
+    } else {
+      setBatchRecords([...batchRecords, newRecord]);
+      
+      addToast({
+        title: "已添加到批量列表",
+        description: `${supply.name} ${quantity}${supply.unit} 已添加到批量录入列表`,
+        color: "success",
+        timeout: 3000,
+      });
+    }
+
+    // 清空当前表单，准备下一个录入
+    setSelectedSupply("");
+    setQuantity("");
+    setRemark("");
+    setErrors({});
+    setStockWarning("");
+  };
+
+  // 批量提交所有记录
+  const handleBatchSubmit = async () => {
+    if (batchRecords.length === 0) {
+      addToast({
+        title: "提示",
+        description: "批量列表为空，请先添加记录",
+        color: "warning",
+        timeout: 3000,
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    try {
+      for (const record of batchRecords) {
+        try {
+          const supply = supplies.find((s: SupplyItem) => s.id.toString() === record.supplyId);
+          if (!supply) {
+            throw new Error(`未找到耗材 ID: ${record.supplyId}`);
+          }
+
+          const numQuantity = Number(record.quantity);
+          
+          // 出库时检查库存
+          if (operationType === "out" && numQuantity > supply.current_stock) {
+            throw new Error(`${supply.name}: 出库数量 ${numQuantity}${supply.unit} 超过当前库存 ${supply.current_stock}${supply.unit}`);
+          }
+
+          // 计算新的库存数量 - 使用记录中保存的操作类型
+          let newStock = supply.current_stock;
+          switch (record.operationType) {
+            case "in":
+              newStock += numQuantity;
+              break;
+            case "out":
+              newStock -= numQuantity;
+              break;
+            case "adjust":
+              newStock = numQuantity;
+              break;
+          }
+
+          // 更新耗材库存
+          await updateSupply({
+            ...supply,
+            current_stock: newStock,
+          });
+
+          // 添加记录
+          addRecord({
+            type: record.operationType,
+            supply_id: supply.id,
+            quantity: numQuantity,
+            remark: record.remarks,
+          });
+
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push(error instanceof Error ? error.message : "未知错误");
+        }
+      }
+
+      if (successCount > 0) {
+        addToast({
+          title: "批量提交完成",
+          description: `成功处理 ${successCount} 条记录${errorCount > 0 ? `，失败 ${errorCount} 条` : ""}`,
+          color: successCount === batchRecords.length ? "success" : "warning",
+          timeout: 5000,
+        });
+
+        // 清空批量列表
+        setBatchRecords([]);
+        setSuccessMessage(`批量${getOperationTypeText(operationType)}成功：共处理 ${successCount} 条记录`);
+        setShowSuccessModal(true);
+      }
+
+      if (errorCount > 0 && errors.length > 0) {
+        addToast({
+          title: "部分记录处理失败",
+          description: errors.slice(0, 3).join("; ") + (errors.length > 3 ? "..." : ""),
+          color: "danger",
+          timeout: 8000,
+        });
+      }
+
+    } catch (error) {
+      console.error("批量提交失败:", error);
+      addToast({
+        title: "批量提交失败",
+        description: error instanceof Error ? error.message : "批量提交失败，请重试",
+        color: "danger",
+        timeout: 5000,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -329,12 +503,38 @@ const SuppliesAddRecordPage: FC = () => {
       }
     }
 
+    if (!newSupply.maxStock.trim()) {
+      newErrors.maxStock = "请输入最高库存";
+    } else {
+      const maxStock = Number(newSupply.maxStock);
+      if (isNaN(maxStock) || maxStock < 0) {
+        newErrors.maxStock = "请输入有效的最高库存数量";
+      }
+    }
+
+    if (!newSupply.minStock.trim()) {
+      newErrors.minStock = "请输入最低库存";
+    } else {
+      const minStock = Number(newSupply.minStock);
+      if (isNaN(minStock) || minStock < 0) {
+        newErrors.minStock = "请输入有效的最低库存数量";
+      }
+    }
+
+    // 验证安全库存
     if (!newSupply.safetyStock.trim()) {
       newErrors.safetyStock = "请输入安全库存";
     } else {
       const safetyStock = Number(newSupply.safetyStock);
+      const maxStock = Number(newSupply.maxStock);
+      const minStock = Number(newSupply.minStock);
+      
       if (isNaN(safetyStock) || safetyStock < 0) {
         newErrors.safetyStock = "请输入有效的安全库存数量";
+      } else if (safetyStock !== maxStock) {
+        newErrors.safetyStock = "安全库存必须等于最高库存";
+      } else if (safetyStock < minStock) {
+        newErrors.safetyStock = "安全库存不能低于最低库存";
       }
     }
 
@@ -375,12 +575,20 @@ const SuppliesAddRecordPage: FC = () => {
         unit: "",
         currentStock: "",
         safetyStock: "",
+        maxStock: "",
+        minStock: "",
         unitPrice: "",
       });
       setNewSupplyErrors({});
     } catch (error) {
       console.error("创建耗材失败:", error);
-      alert("创建耗材失败，请重试");
+      addToast({
+        title: "创建失败",
+        description: "创建耗材失败，请重试",
+        color: "danger",
+        timeout: 4000,
+        shouldShowTimeoutProgress: true,
+      });
     } finally {
       setIsCreatingSupply(false);
     }
@@ -418,11 +626,57 @@ const SuppliesAddRecordPage: FC = () => {
           <span className="text-sm text-gray-600">批量录入模式</span>
           <Switch
             isSelected={isBatchMode}
-            onValueChange={setIsBatchMode}
+            onValueChange={(checked) => {
+              setIsBatchMode(checked);
+              if (!checked) {
+                setBatchRecords([]); // 关闭批量模式时清空列表
+              }
+            }}
             color="primary"
           />
+          <Tooltip content={
+            <div className="p-2 max-w-xs">
+              <p className="font-semibold mb-2">批量录入模式使用说明：</p>
+              <ul className="text-sm space-y-1">
+                <li>• 开启后可以连续添加多个记录到批量列表</li>
+                <li>• 填写完一个记录后点击"添加到批量列表"</li>
+                <li>• 可以继续添加其他耗材记录</li>
+                <li>• 最后点击"批量提交"一次性处理所有记录</li>
+                <li>• 相同耗材会自动合并数量</li>
+              </ul>
+            </div>
+          }>
+            <Button
+              isIconOnly
+              size="sm"
+              variant="light"
+              className="min-w-6 w-6 h-6"
+            >
+              <InfoIcon className="w-4 h-4 text-gray-400" />
+            </Button>
+          </Tooltip>
         </div>
       </div>
+
+      {/* 批量模式提示 */}
+      {isBatchMode && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardBody className="py-3">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <InfoIcon className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-blue-900 mb-1">批量录入模式已启用</h3>
+                <p className="text-sm text-blue-700">
+                  您可以连续添加多个记录到批量列表，然后一次性提交所有记录。
+                  {batchRecords.length > 0 && ` 当前已添加 ${batchRecords.length} 条记录。`}
+                </p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* 库存变化提示 - Toast样式 */}
       {(() => {
@@ -714,7 +968,7 @@ const SuppliesAddRecordPage: FC = () => {
                     startContent={<UserIcon className="text-primary" />}
                     size="lg"
                   >
-                    {currentUser}
+                    {user?.username || '未知用户'}
                   </Chip>
                 </div>
               </div>
@@ -757,18 +1011,53 @@ const SuppliesAddRecordPage: FC = () => {
               </div>
 
               {/* 提交按钮 */}
-              <div className="pt-4">
+              <div className="pt-4 space-y-3">
                 <Button
                   color={getOperationTypeColor(operationType)}
                   size="lg"
                   onClick={handleSubmit}
                   className="w-full"
-                  isLoading={isSubmitting}
+                  isLoading={isSubmitting && !isBatchMode}
                   spinner={<Spinner color="white" />}
                   isDisabled={!selectedSupply || !quantity || !!stockWarning}
                 >
-                  {isSubmitting ? "提交中..." : `确认${getOperationTypeText(operationType)}`}
+                  {isBatchMode 
+                    ? `添加到批量列表 (${batchRecords.length})` 
+                    : (isSubmitting ? "提交中..." : `确认${getOperationTypeText(operationType)}`)
+                  }
                 </Button>
+                
+                {/* 批量提交按钮 - 仅在批量模式下显示 */}
+                {isBatchMode && batchRecords.length > 0 && (
+                  <Button
+                    color="success"
+                    size="lg"
+                    onClick={handleBatchSubmit}
+                    className="w-full"
+                    isLoading={isSubmitting}
+                    spinner={<Spinner color="white" />}
+                    variant="solid"
+                  >
+                    {isSubmitting 
+                      ? "批量提交中..." 
+                      : `批量${getOperationTypeText(operationType)} (${batchRecords.length}条记录)`
+                    }
+                  </Button>
+                )}
+                
+                {/* 清空批量列表按钮 */}
+                {isBatchMode && batchRecords.length > 0 && (
+                  <Button
+                    color="danger"
+                    size="sm"
+                    onClick={() => setBatchRecords([])}
+                    className="w-full"
+                    variant="flat"
+                    startContent={<TrashIcon />}
+                  >
+                    清空批量列表
+                  </Button>
+                )}
               </div>
             </CardBody>
           </Card>
@@ -784,9 +1073,19 @@ const SuppliesAddRecordPage: FC = () => {
                     return (
                       <div key={record.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                         <div className="flex-1">
-                          <div className="font-medium">{supply?.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{supply?.name}</span>
+                            <Chip
+                              color={getOperationTypeColor(record.operationType)}
+                              variant="flat"
+                              size="sm"
+                            >
+                              {getOperationTypeText(record.operationType)}
+                            </Chip>
+                          </div>
                           <div className="text-sm text-gray-600">
-                            {record.quantity} {supply?.unit} - {record.remarks}
+                            {record.quantity} {supply?.unit}
+                            {record.remarks && ` - ${record.remarks}`}
                           </div>
                         </div>
                         <Button
@@ -861,16 +1160,19 @@ const SuppliesAddRecordPage: FC = () => {
         isOpen={showNewSupplyModal}
         onClose={() => setShowNewSupplyModal(false)}
         size="lg"
+        scrollBehavior="inside"
+        placement="center"
+        className="mx-4"
       >
-        <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">
+        <ModalContent className="max-h-[90vh]">
+          <ModalHeader className="flex flex-col gap-1 pb-2">
             <div className="flex items-center gap-2">
               <Chip color="primary" variant="flat" startContent={<PlusIcon />}>
                 新增耗材
               </Chip>
             </div>
           </ModalHeader>
-          <ModalBody>
+          <ModalBody className="py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -913,77 +1215,130 @@ const SuppliesAddRecordPage: FC = () => {
                     variant="flat"
                     startContent={<PlusIcon />}
                     onClick={() => setShowNewCategoryModal(true)}
+                    className="shrink-0"
                   >
                     新增
                   </Button>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  单位 <span className="text-danger">*</span>
-                </label>
-                <Input
-                  placeholder="请输入单位（如：个、支、瓶等）"
-                  value={newSupply.unit}
-                  onValueChange={(value) => {
-                    setNewSupply(prev => ({ ...prev, unit: value }));
-                    setNewSupplyErrors(prev => ({ ...prev, unit: undefined }));
-                  }}
-                  isInvalid={!!newSupplyErrors.unit}
-                  errorMessage={newSupplyErrors.unit}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    单位 <span className="text-danger">*</span>
+                  </label>
+                  <Input
+                    placeholder="请输入单位（如：个、支、瓶等）"
+                    value={newSupply.unit}
+                    onValueChange={(value) => {
+                      setNewSupply(prev => ({ ...prev, unit: value }));
+                      setNewSupplyErrors(prev => ({ ...prev, unit: undefined }));
+                    }}
+                    isInvalid={!!newSupplyErrors.unit}
+                    errorMessage={newSupplyErrors.unit}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    单价 <span className="text-danger">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="请输入单价"
+                    value={newSupply.unitPrice}
+                    onValueChange={(value) => {
+                      setNewSupply(prev => ({ ...prev, unitPrice: value }));
+                      setNewSupplyErrors(prev => ({ ...prev, unitPrice: undefined }));
+                    }}
+                    isInvalid={!!newSupplyErrors.unitPrice}
+                    errorMessage={newSupplyErrors.unitPrice}
+                    startContent={<span className="text-default-400">¥</span>}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  当前库存 <span className="text-danger">*</span>
-                </label>
-                <Input
-                  type="number"
-                  placeholder="请输入当前库存数量"
-                  value={newSupply.currentStock}
-                  onValueChange={(value) => {
-                    setNewSupply(prev => ({ ...prev, currentStock: value }));
-                    setNewSupplyErrors(prev => ({ ...prev, currentStock: undefined }));
-                  }}
-                  isInvalid={!!newSupplyErrors.currentStock}
-                  errorMessage={newSupplyErrors.currentStock}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    当前库存 <span className="text-danger">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="请输入当前库存数量"
+                    value={newSupply.currentStock}
+                    onValueChange={(value) => {
+                      setNewSupply(prev => ({ ...prev, currentStock: value }));
+                      setNewSupplyErrors(prev => ({ ...prev, currentStock: undefined }));
+                    }}
+                    isInvalid={!!newSupplyErrors.currentStock}
+                    errorMessage={newSupplyErrors.currentStock}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    最高库存 <span className="text-danger">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="请输入最高库存数量"
+                    value={newSupply.maxStock}
+                    onValueChange={(value) => {
+                      setNewSupply(prev => ({ 
+                        ...prev, 
+                        maxStock: value,
+                        // 自动设置安全库存等于最高库存
+                        safetyStock: value 
+                      }));
+                      setNewSupplyErrors(prev => ({ 
+                        ...prev, 
+                        maxStock: undefined,
+                        safetyStock: undefined 
+                      }));
+                    }}
+                    isInvalid={!!newSupplyErrors.maxStock}
+                    errorMessage={newSupplyErrors.maxStock}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  安全库存 <span className="text-danger">*</span>
-                </label>
-                <Input
-                  type="number"
-                  placeholder="请输入安全库存数量"
-                  value={newSupply.safetyStock}
-                  onValueChange={(value) => {
-                    setNewSupply(prev => ({ ...prev, safetyStock: value }));
-                    setNewSupplyErrors(prev => ({ ...prev, safetyStock: undefined }));
-                  }}
-                  isInvalid={!!newSupplyErrors.safetyStock}
-                  errorMessage={newSupplyErrors.safetyStock}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  单价 <span className="text-danger">*</span>
-                </label>
-                <Input
-                  type="number"
-                  placeholder="请输入单价"
-                  value={newSupply.unitPrice}
-                  onValueChange={(value) => {
-                    setNewSupply(prev => ({ ...prev, unitPrice: value }));
-                    setNewSupplyErrors(prev => ({ ...prev, unitPrice: undefined }));
-                  }}
-                  isInvalid={!!newSupplyErrors.unitPrice}
-                  errorMessage={newSupplyErrors.unitPrice}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    最低库存 <span className="text-danger">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="请输入最低库存数量"
+                    value={newSupply.minStock}
+                    onValueChange={(value) => {
+                      setNewSupply(prev => ({ ...prev, minStock: value }));
+                      setNewSupplyErrors(prev => ({ ...prev, minStock: undefined }));
+                    }}
+                    isInvalid={!!newSupplyErrors.minStock}
+                    errorMessage={newSupplyErrors.minStock}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    安全库存 <span className="text-danger">*</span>
+                    <Tooltip content="安全库存将自动等于最高库存">
+                      <span className="ml-1 text-gray-400 cursor-help">
+                        <InfoIcon className="w-4 h-4 inline" />
+                      </span>
+                    </Tooltip>
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder="安全库存将等于最高库存"
+                    value={newSupply.safetyStock}
+                    isReadOnly
+                    isDisabled
+                    description="安全库存自动等于最高库存"
+                    isInvalid={!!newSupplyErrors.safetyStock}
+                    errorMessage={newSupplyErrors.safetyStock}
+                  />
+                </div>
               </div>
             </div>
           </ModalBody>
-          <ModalFooter>
+          <ModalFooter className="pt-2">
             <Button
               color="danger"
               variant="flat"

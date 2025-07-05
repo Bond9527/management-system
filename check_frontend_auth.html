@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>检查前端认证状态</title>
+</head>
+<body>
+    <h1>前端认证状态检查</h1>
+    <div id="result"></div>
+    
+    <script>
+        const resultDiv = document.getElementById('result');
+        
+        // 检查localStorage中的认证信息
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+        const user = localStorage.getItem('user');
+        
+        let html = '<h2>认证状态:</h2>';
+        html += '<p>Access Token: ' + (accessToken ? 'EXISTS (' + accessToken.substring(0, 30) + '...)' : 'NOT FOUND') + '</p>';
+        html += '<p>Refresh Token: ' + (refreshToken ? 'EXISTS' : 'NOT FOUND') + '</p>';
+        html += '<p>User Data: ' + (user ? 'EXISTS' : 'NOT FOUND') + '</p>';
+        
+        if (accessToken) {
+            html += '<h2>测试菜单API:</h2>';
+            
+            // 测试菜单API调用
+            fetch('http://localhost:8000/api/menus/', {
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                html += '<p>API响应状态: ' + response.status + '</p>';
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('HTTP ' + response.status);
+                }
+            })
+            .then(data => {
+                html += '<p>菜单数量: ' + data.length + '</p>';
+                html += '<p>仪表盘菜单: ' + (data.find(m => m.name === '仪表盘') ? '存在' : '不存在') + '</p>';
+                resultDiv.innerHTML = html;
+            })
+            .catch(error => {
+                html += '<p style="color: red">API调用失败: ' + error.message + '</p>';
+                resultDiv.innerHTML = html;
+            });
+        } else {
+            html += '<p style="color: red"><strong>未登录 - 需要先登录才能获取菜单</strong></p>';
+            html += '<p><a href="http://localhost:5174/login">点击此处登录</a></p>';
+        }
+        
+        resultDiv.innerHTML = html;
+    </script>
+</body>
+</html>

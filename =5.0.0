@@ -1,0 +1,4 @@
+Looking in indexes: https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+Requirement already satisfied: Django in /opt/miniconda3/envs/py313/lib/python3.13/site-packages (5.2.3)
+Requirement already satisfied: asgiref>=3.8.1 in /opt/miniconda3/envs/py313/lib/python3.13/site-packages (from Django) (3.8.1)
+Requirement already satisfied: sqlparse>=0.3.1 in /opt/miniconda3/envs/py313/lib/python3.13/site-packages (from Django) (0.5.3)

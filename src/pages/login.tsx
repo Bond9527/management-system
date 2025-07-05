@@ -1,8 +1,9 @@
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Checkbox } from "@heroui/checkbox";
+import { addToast } from "@heroui/toast";
 import { useState, FormEvent, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { login, LoginRequest } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -19,6 +20,7 @@ interface SavedLoginInfo {
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login: authLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
@@ -45,6 +47,27 @@ export default function Login() {
       }
     }
   }, []);
+
+  // 检查URL参数中的消息
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const messageParam = searchParams.get('message');
+    
+    if (messageParam === 'session_expired') {
+      addToast({
+        title: "会话过期",
+        description: "您的登录会话已过期，请重新登录",
+        color: "warning",
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+          </svg>
+        ),
+        timeout: 5000,
+        shouldShowTimeoutProgress: true,
+      });
+    }
+  }, [location]);
 
   const validateForm = () => {
     const newErrors: string[] = [];
@@ -73,7 +96,21 @@ export default function Login() {
       try {
         // 调用登录API
         const response = await login(formData);
-        console.log("Login successful:", response);
+
+        // 显示成功提示
+        addToast({
+          title: "登录成功",
+          description: "正在跳转...",
+          color: "success",
+          icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 12l2 2 4-4"/>
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
+          ),
+          timeout: 2000,
+          shouldShowTimeoutProgress: true,
+        });
 
         // 更新认证上下文
         authLogin(response.user);
@@ -90,11 +127,36 @@ export default function Login() {
           localStorage.removeItem("loginInfo");
         }
 
-        // 登录成功后跳转到首页
-        navigate("/dashboard");
+        // 延迟跳转，让用户看到成功提示
+        setTimeout(() => {
+          // 检查是否有返回路径
+          const returnPath = sessionStorage.getItem('returnPath');
+          if (returnPath) {
+            sessionStorage.removeItem('returnPath'); // 清除保存的路径
+            navigate(returnPath);
+          } else {
+            navigate("/dashboard");
+          }
+        }, 1500);
       } catch (error) {
         console.error("Login failed:", error);
-        setErrors([error instanceof Error ? error.message : "登录失败，请检查用户名和密码"]);
+        const errorMessage = error instanceof Error ? error.message : "登录失败，请检查用户名和密码";
+        
+        // 显示错误提示
+        addToast({
+          title: "登录失败",
+          description: errorMessage,
+          color: "danger",
+          icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          ),
+          timeout: 5000,
+          shouldShowTimeoutProgress: true,
+        });
       } finally {
         setIsLoading(false);
       }
@@ -164,17 +226,6 @@ export default function Login() {
             />
           </div>
 
-          {/* 显示API错误信息 */}
-          {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3">
-              {errors.map((error, index) => (
-                <p key={index} className="text-sm text-red-600">
-                  {error}
-                </p>
-              ))}
-            </div>
-          )}
-
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Checkbox
@@ -189,9 +240,9 @@ export default function Login() {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
                 忘记密码?
-              </a>
+              </Link>
             </div>
           </div>
 

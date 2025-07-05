@@ -51,6 +51,7 @@ import {
   Area,
 } from "recharts";
 import { formatTimestamp, getCurrentDateForFilename } from "@/utils/dateUtils";
+import { addToast } from "@heroui/toast";
 
 const SupplyDetailsPage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -180,12 +181,24 @@ const SupplyDetailsPage: FC = () => {
 
     const quantity = Number(adjustmentQuantity);
     if (isNaN(quantity) || quantity <= 0) {
-      alert("请输入有效的数量");
+      addToast({
+        title: "输入错误",
+        description: "请输入有效的数量",
+        color: "warning",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
       return;
     }
 
     if (adjustmentType === "out" && quantity > supply.current_stock) {
-      alert("出库数量不能超过当前库存");
+      addToast({
+        title: "库存不足",
+        description: "出库数量不能超过当前库存",
+        color: "warning",
+        timeout: 4000,
+        shouldShowTimeoutProgress: true,
+      });
       return;
     }
 
@@ -194,7 +207,13 @@ const SupplyDetailsPage: FC = () => {
     if (adjustmentUnitPrice) {
       const price = Number(adjustmentUnitPrice);
       if (isNaN(price) || price < 0) {
-        alert("请输入有效的单价");
+        addToast({
+          title: "单价错误",
+          description: "请输入有效的单价",
+          color: "warning",
+          timeout: 3000,
+          shouldShowTimeoutProgress: true,
+        });
         return;
       }
       unitPrice = price;
@@ -216,9 +235,23 @@ const SupplyDetailsPage: FC = () => {
       setAdjustmentUnitPrice("");
       setAdjustmentRemark("");
       setAdjustmentType("in");
+      
+      addToast({
+        title: "操作成功",
+        description: "库存调整成功",
+        color: "success",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
     } catch (error) {
       console.error("库存调整失败:", error);
-      alert("库存调整失败，请重试");
+      addToast({
+        title: "调整失败",
+        description: "库存调整失败，请重试",
+        color: "danger",
+        timeout: 4000,
+        shouldShowTimeoutProgress: true,
+      });
     } finally {
       setIsAdjusting(false);
     }
@@ -614,9 +647,12 @@ const SupplyDetailsPage: FC = () => {
         isOpen={showAdjustModal}
         onClose={() => setShowAdjustModal(false)}
         size="lg"
+        scrollBehavior="inside"
+        placement="center"
+        className="mx-4"
       >
-        <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">
+        <ModalContent className="max-h-[90vh]">
+          <ModalHeader className="flex flex-col gap-1 pb-2">
             <div className="flex items-center gap-2">
               <Chip
                 color={
@@ -628,15 +664,15 @@ const SupplyDetailsPage: FC = () => {
                 {adjustmentType === "in" ? "入库" : 
                  adjustmentType === "out" ? "出库" : "库存调整"}
               </Chip>
-              <span>{supply.name}</span>
+              <span className="truncate">{supply.name}</span>
             </div>
           </ModalHeader>
-          <ModalBody className="space-y-4">
+          <ModalBody className="py-4 max-h-[60vh] overflow-y-auto space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 当前库存
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
                   variant="flat"
@@ -675,7 +711,7 @@ const SupplyDetailsPage: FC = () => {
                 单价调整（可选）
               </label>
               <div className="space-y-2">
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 bg-gray-50 p-2 rounded">
                   当前单价：¥{parseFloat(supply.unit_price).toFixed(2)}
                 </div>
                 <Input
@@ -699,10 +735,12 @@ const SupplyDetailsPage: FC = () => {
                 value={adjustmentRemark}
                 onValueChange={setAdjustmentRemark}
                 minRows={3}
+                maxRows={5}
+                className="resize-none"
               />
             </div>
           </ModalBody>
-          <ModalFooter>
+          <ModalFooter className="pt-2">
             <Button
               color="default"
               variant="flat"

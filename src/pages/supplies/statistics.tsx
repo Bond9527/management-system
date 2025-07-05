@@ -85,14 +85,33 @@ const getUnitByCategory = (category: string): string => {
 };
 
 export default function SuppliesStatisticsPage() {
-  const { supplies, records } = useSupplies();
+  const { supplies, records, isLoading, error } = useSupplies();
   const [dateRange, setDateRange] = useState<{ start: DateValue; end: DateValue } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedOperationType, setSelectedOperationType] = useState<string>("all");
   const [isResetting, setIsResetting] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   // 获取所有类别
   const categories = Array.from(new Set(supplies.map(item => item.category)));
+
+  // 调试信息
+  const debugInfo = {
+    suppliesCount: supplies.length,
+    recordsCount: records.length,
+    isLoading,
+    error,
+    hasRecentRecords: records.filter(r => {
+      const recordDate = new Date(r.timestamp);
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      return recordDate >= weekAgo;
+    }).length > 0,
+    recordTypes: {
+      in: records.filter(r => r.type === 'in').length,
+      out: records.filter(r => r.type === 'out').length,
+      adjust: records.filter(r => r.type === 'adjust').length,
+    }
+  };
 
   // 生成真实的趋势数据
   const generateTrendData = () => {
@@ -112,7 +131,7 @@ export default function SuppliesStatisticsPage() {
       const outCount = dayRecords.filter(r => r.type === 'out').reduce((sum, r) => sum + r.quantity, 0);
 
       return {
-        date,
+        date: new Date(date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
         in: inCount,
         out: outCount
       };
@@ -274,6 +293,44 @@ export default function SuppliesStatisticsPage() {
         </Card>
       </div>
 
+      {/* 数据状态检查 */}
+      {(debugInfo.recordsCount === 0 || !debugInfo.hasRecentRecords) && (
+        <Card className="shadow-lg border-l-4 border-l-warning">
+          <CardBody>
+            <div className="flex items-start gap-3">
+              <WarningIcon className="text-warning flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-warning mb-2">图表数据提示</h3>
+                {debugInfo.recordsCount === 0 ? (
+                  <p className="text-sm text-gray-600">
+                    系统中暂无库存变动记录，图表将显示为空。请先进行一些入库、出库或调整操作。
+                  </p>
+                ) : !debugInfo.hasRecentRecords ? (
+                  <p className="text-sm text-gray-600">
+                    最近7天没有库存变动记录，趋势图表可能显示为空。当前共有 {debugInfo.recordsCount} 条历史记录。
+                  </p>
+                ) : null}
+                <div className="mt-3 flex gap-2">
+                  <Button 
+                    size="sm" 
+                    color="primary" 
+                    variant="flat"
+                    onPress={() => setShowDebugInfo(!showDebugInfo)}
+                  >
+                    {showDebugInfo ? '隐藏' : '显示'}调试信息
+                  </Button>
+                </div>
+                {showDebugInfo && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs">
+                    <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
       {/* 筛选区 */}
       <Card className="shadow-lg">
         <CardBody>
@@ -346,59 +403,73 @@ export default function SuppliesStatisticsPage() {
               <p className="text-sm text-gray-500 mt-1">近7天出入库数量变化</p>
             </div>
             <div className="flex gap-2">
-              <Chip color="primary" variant="flat">入库</Chip>
+              <Chip color="success" variant="flat">入库</Chip>
               <Chip color="danger" variant="flat">出库</Chip>
             </div>
           </div>
           <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={filteredData.trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.grid.stroke} />
-                <XAxis 
-                  dataKey="date" 
-                  stroke={chartStyles.axis.stroke}
-                  tick={chartStyles.axis.tick}
-                  tickLine={{ stroke: chartStyles.axis.stroke }}
-                  axisLine={{ stroke: chartStyles.axis.stroke }}
-                />
-                <YAxis 
-                  stroke={chartStyles.axis.stroke}
-                  tick={chartStyles.axis.tick}
-                  tickLine={{ stroke: chartStyles.axis.stroke }}
-                  axisLine={{ stroke: chartStyles.axis.stroke }}
-                  tickFormatter={(value) => `${value} 件`}
-                />
-                <Tooltip 
-                  contentStyle={chartStyles.tooltip}
-                  formatter={(value: number) => [`${value} 件`, "数量"]}
-                />
-                <Legend 
-                  verticalAlign="top" 
-                  height={36}
-                  wrapperStyle={{
-                    paddingBottom: "20px",
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="in" 
-                  name="入库" 
-                  stroke={COLORS.primary} 
-                  strokeWidth={2}
-                  dot={{ r: 4, strokeWidth: 2 }}
-                  activeDot={{ r: 6, strokeWidth: 2 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="out" 
-                  name="出库" 
-                  stroke={COLORS.danger} 
-                  strokeWidth={2}
-                  dot={{ r: 4, strokeWidth: 2 }}
-                  activeDot={{ r: 6, strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {filteredData.trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={filteredData.trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.grid.stroke} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={chartStyles.axis.tick}
+                    tickLine={{ stroke: chartStyles.axis.stroke }}
+                    axisLine={{ stroke: chartStyles.axis.stroke }}
+                  />
+                  <YAxis 
+                    tick={chartStyles.axis.tick}
+                    tickLine={{ stroke: chartStyles.axis.stroke }}
+                    axisLine={{ stroke: chartStyles.axis.stroke }}
+                    tickFormatter={(value) => `${value} 件`}
+                  />
+                  <Tooltip 
+                    contentStyle={chartStyles.tooltip}
+                    formatter={(value: number, name: string) => [`${value} 件`, name === 'in' ? '入库' : '出库']}
+                    labelFormatter={(label) => `日期: ${label}`}
+                  />
+                  <Legend 
+                    verticalAlign="top" 
+                    height={36}
+                    wrapperStyle={{
+                      paddingBottom: "20px",
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="in" 
+                    name="入库" 
+                    stroke={COLORS.success} 
+                    strokeWidth={3}
+                    dot={{ fill: COLORS.success, strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: COLORS.success, strokeWidth: 2 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="out" 
+                    name="出库" 
+                    stroke={COLORS.danger} 
+                    strokeWidth={3}
+                    dot={{ fill: COLORS.danger, strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: COLORS.danger, strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center text-gray-500">
+                  <div className="text-4xl mb-4">📊</div>
+                  <div className="text-lg font-medium mb-2">暂无数据</div>
+                  <div className="text-sm">
+                    {debugInfo.recordsCount === 0 ? 
+                      '请先添加一些库存变动记录' : 
+                      '选择的时间范围内暂无数据'
+                    }
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </CardBody>
       </Card>
@@ -413,20 +484,21 @@ export default function SuppliesStatisticsPage() {
             </div>
             <Chip color="primary" variant="flat">数量统计</Chip>
           </div>
-          <div className="h-[400px]">
+          <div className="h-[450px]">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 20, right: 120, bottom: 20, left: 20 }}>
                 <Pie
                   data={filteredData.categoryData}
-                  cx="50%"
+                  cx="40%"
                   cy="50%"
                   labelLine={false}
-                  outerRadius={120}
-                  innerRadius={80}
+                  label={false}
+                  outerRadius={100}
+                  innerRadius={60}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   paddingAngle={2}
+                  minAngle={3}
                 >
                   {filteredData.categoryData.map((entry, index) => (
                     <Cell 
@@ -448,6 +520,14 @@ export default function SuppliesStatisticsPage() {
                   iconType="circle"
                   wrapperStyle={{
                     paddingLeft: "20px",
+                    fontSize: "12px",
+                    lineHeight: "20px"
+                  }}
+                  formatter={(value, entry) => {
+                    const item = filteredData.categoryData.find(d => d.name === value);
+                    const total = filteredData.categoryData.reduce((sum, d) => sum + d.value, 0);
+                    const percent = item && total > 0 ? ((item.value / total) * 100).toFixed(0) : '0';
+                    return `${value} ${percent}%`;
                   }}
                 />
               </PieChart>

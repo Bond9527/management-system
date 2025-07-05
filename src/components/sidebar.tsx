@@ -1,10 +1,10 @@
 import { FC, useState } from "react";
-import { Link } from "@heroui/link";
-import { siteConfig } from "@/config/site";
 import clsx from "clsx";
 import { Button } from "@heroui/button";
+import { Spinner } from "@heroui/react";
 import { SVGProps } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@heroui/use-theme";
 import { useMenu } from "@/context/MenuContext";
 
 // 导入所有图标组件
@@ -15,6 +15,7 @@ import {
   AddRecordIcon,
   RecordsManagementIcon,
   StatisticsManagementIcon,
+  DashboardIcon,
 } from "@/components/management-icons";
 
 interface SidebarProps {
@@ -43,6 +44,8 @@ const iconMap: Record<string, React.ComponentType<IconProps>> = {
   'AddRecordIcon': AddRecordIcon,
   'RecordsManagementIcon': RecordsManagementIcon,
   'StatisticsManagementIcon': StatisticsManagementIcon,
+  'DashboardIcon': DashboardIcon,
+  'dashboard': DashboardIcon,
 };
 
 // 将API菜单数据转换为组件菜单格式
@@ -89,52 +92,12 @@ const convertApiMenuToComponentMenu = (apiMenus: any[]): MenuItem[] => {
   return rootMenus;
 };
 
-export const systemMenuItems: MenuItem[] = [
-  {
-    label: "系统管理",
-    children: [
-      {
-        label: "用户管理",
-        href: "/system/users",
-        icon: UserManagementIcon,
-      },
-      {
-        label: "基础信息设置",
-        href: "/system/basic-settings",
-        icon: PermissionManagementIcon,
-      },
-    ],
-  },
-  {
-    label: "耗材管理",
-    children: [
-      {
-        label: "库存总览",
-        href: "/supplies/inventory-overview",
-        icon: InventoryManagementIcon,
-      },
-      {
-        label: "新增记录",
-        href: "/supplies/add-record",
-        icon: AddRecordIcon,
-      },
-      {
-        label: "变动台账",
-        href: "/supplies/records",
-        icon: RecordsManagementIcon,
-      },
-      {
-        label: "数据统计",
-        href: "/supplies/statistics",
-        icon: StatisticsManagementIcon,
-      },
-    ],
-  },
-];
+// 系统菜单项已迁移到数据库，通过API动态获取
 
 export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const { sidebarMenus, loading, error } = useMenu();
 
   // 转换API菜单数据为组件菜单格式
@@ -161,15 +124,15 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
               onClick={() => toggleMenu(item.label)}
               className={clsx(
                 "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200",
-                "hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 hover:text-blue-600",
+                "hover:bg-default-100 hover:text-primary",
+                "data-[active=true]:bg-default-100 data-[active=true]:text-primary data-[active=true]:font-medium",
                 "group relative",
-                "bg-transparent",
-                "data-[active=true]:bg-gradient-to-r data-[active=true]:from-blue-50 data-[active=true]:to-blue-100 data-[active=true]:text-blue-600 data-[active=true]:font-medium"
+                "bg-transparent"
               )}
               variant="light"
             >
               <div className="flex items-center">
-                <span className="absolute left-0 w-1 h-0 bg-gradient-to-b from-blue-400 to-blue-600 rounded-r-full transition-all duration-200 group-hover:h-full" />
+                <span className="absolute left-0 w-1 h-0 bg-primary rounded-r-full transition-all duration-200 group-hover:h-full" />
                 <span className="ml-2">{item.label}</span>
               </div>
               <svg
@@ -195,16 +158,16 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
             onClick={() => item.href && navigate(item.href)}
             className={clsx(
               "w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200",
-              "hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 hover:text-blue-600",
-              "data-[active=true]:bg-gradient-to-r data-[active=true]:from-blue-50 data-[active=true]:to-blue-100 data-[active=true]:text-blue-600 data-[active=true]:font-medium",
+              "hover:bg-default-100 hover:text-primary",
+              "data-[active=true]:bg-default-100 data-[active=true]:text-primary data-[active=true]:font-medium",
               "group relative",
               "bg-transparent",
               "justify-start"
             )}
             variant="light"
           >
-            <span className="absolute left-0 w-1 h-0 bg-gradient-to-b from-blue-400 to-blue-600 rounded-r-full transition-all duration-200 group-hover:h-full group-data-[active=true]:h-full" />
-            {Icon && <Icon className="w-5 h-5 text-gray-500 mr-2" />}
+            <span className="absolute left-0 w-1 h-0 bg-primary rounded-r-full transition-all duration-200 group-hover:h-full group-data-[active=true]:h-full" />
+            {Icon && <Icon className="w-5 h-5 mr-2 text-default-500" />}
             <span className="ml-2">{item.label}</span>
           </Button>
         )}
@@ -213,50 +176,34 @@ export const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
   };
 
   const sidebarContent = (
-    <div className="flex flex-col w-64 bg-gradient-to-b from-gray-50 to-gray-100 h-[calc(100vh-4rem)]">
-      {/* Navigation Items (now at the very top) */}
+    <div className="flex flex-col w-64 h-[calc(100vh-4rem)] bg-content1">
+      {/* 动态菜单 */}
       <nav className="flex-1 overflow-auto px-3 py-4 space-y-1">
-        {siteConfig.navItems.map((item) => (
-          <Button
-            key={item.href}
-            onClick={() => navigate(item.href)}
-            className={clsx(
-              "w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200",
-              "hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 hover:text-blue-600",
-              "data-[active=true]:bg-gradient-to-r data-[active=true]:from-blue-50 data-[active=true]:to-blue-100 data-[active=true]:text-blue-600 data-[active=true]:font-medium",
-              "group relative",
-              "bg-transparent",
-              "justify-start"
-            )}
-            variant="light"
-          >
-            <span className="absolute left-0 w-1 h-0 bg-gradient-to-b from-blue-400 to-blue-600 rounded-r-full transition-all duration-200 group-hover:h-full group-data-[active=true]:h-full" />
-            <span className="ml-2">{item.label}</span>
-          </Button>
-        ))}
-
-        {/* System Management Menu */}
-        <div className="mt-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              <span className="ml-2 text-sm text-gray-500">加载菜单中...</span>
-            </div>
-          ) : error ? (
-            <div className="text-center py-4 text-red-500 text-sm">
-              {error}
-            </div>
-          ) : (
-            dynamicMenuItems.map(item => renderMenuItem(item))
-          )}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <Spinner 
+              size="sm" 
+              color="primary" 
+              label="加载菜单中..."
+              classNames={{
+                label: "text-sm ml-2 text-default-500"
+              }}
+            />
+          </div>
+        ) : error ? (
+          <div className="text-center py-4 text-danger text-sm">
+            {error}
+          </div>
+        ) : (
+          dynamicMenuItems.map(item => renderMenuItem(item))
+        )}
       </nav>
     </div>
   );
 
   // Desktop Sidebar
   const desktopSidebar = (
-    <aside className="hidden lg:block w-64 border-r border-gray-200 shadow-md transition-all duration-300">
+    <aside className="hidden lg:block w-64 shadow-md transition-all duration-300 border-r border-divider">
       {sidebarContent}
     </aside>
   );

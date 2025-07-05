@@ -2,6 +2,7 @@ import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Checkbox } from "@heroui/checkbox";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
+import { addToast } from "@heroui/toast";
 import { useState, FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { register, RegisterRequest } from "@/services/api";
@@ -77,14 +78,62 @@ export default function Register() {
         const response = await register(registerData);
         console.log("Registration successful:", response);
         
-        // 注册成功后跳转到登录页
-        navigate("/login");
+        // 显示成功提示
+        addToast({
+          title: "注册成功",
+          description: "账号创建成功，正在跳转到登录页面...",
+          color: "success",
+          icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 12l2 2 4-4"/>
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
+          ),
+          timeout: 3000,
+          shouldShowTimeoutProgress: true,
+        });
+        
+        // 延迟跳转，让用户看到成功提示
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
       } catch (error) {
         console.error("Registration failed:", error);
-        setErrors([error instanceof Error ? error.message : "注册失败，请重试"]);
+        const errorMessage = error instanceof Error ? error.message : "注册失败，请重试";
+        
+        // 显示错误提示
+        addToast({
+          title: "注册失败",
+          description: errorMessage,
+          color: "danger",
+          icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          ),
+          timeout: 5000,
+          shouldShowTimeoutProgress: true,
+        });
       } finally {
         setIsLoading(false);
       }
+    } else {
+      // 显示表单验证错误
+      const errorList = errors.join("、");
+      addToast({
+        title: "表单验证失败",
+        description: `请检查以下问题：${errorList}`,
+        color: "warning",
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+          </svg>
+        ),
+        timeout: 4000,
+        shouldShowTimeoutProgress: true,
+      });
     }
   };
 
@@ -216,17 +265,6 @@ export default function Register() {
               }
             />
           </div>
-
-          {/* 显示API错误信息 */}
-          {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3">
-              {errors.map((error, index) => (
-                <p key={index} className="text-sm text-red-600">
-                  {error}
-                </p>
-              ))}
-            </div>
-          )}
 
           <div className="flex items-start gap-2">
             <Checkbox

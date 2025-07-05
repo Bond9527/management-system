@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
-    Department, Position, JobTitle, UserRole, UserProfile, 
+    Department, JobTitle, UserRole, UserProfile,
     Permission, Menu, OperationLog
 )
 
@@ -15,20 +15,27 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ['date_joined', 'last_login']
     
     def get_profile(self, obj):
-        try:
-            profile = obj.profile
+        profile = getattr(obj, 'profile', None)
+        if profile:
             return {
                 'id': profile.id,
                 'role': profile.role.name if profile.role else None,
+                'role_id': profile.role.id if profile.role else None,
                 'role_display': profile.role.get_name_display() if profile.role else None,
                 'department': profile.department.name if profile.department else None,
-                'position': profile.position.name if profile.position else None,
+                'department_id': profile.department.id if profile.department else None,
                 'job_title': profile.job_title.name if profile.job_title else None,
+                'job_title_id': profile.job_title.id if profile.job_title else None,
                 'phone': profile.phone,
-                'is_active': profile.is_active,
+                'employee_id': profile.employee_id,
+                'avatar_url': profile.avatar_url,
+                'status': profile.status,
+                'status_display': profile.status_display,
+                'is_active': profile.is_user_active,  # 兼容性字段
+                'created_at': profile.created_at,
+                'updated_at': profile.updated_at,
             }
-        except UserProfile.DoesNotExist:
-            return None
+        return None
     
     def get_last_login_display(self, obj):
         if obj.last_login:
@@ -38,28 +45,118 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
     confirm_password = serializers.CharField(write_only=True)
+    department = serializers.IntegerField(required=False, allow_null=True)
+    job_title = serializers.IntegerField(required=False, allow_null=True)
+    role = serializers.IntegerField(required=False, allow_null=True)
+    phone = serializers.CharField(required=False, allow_blank=True)
+    employee_id = serializers.CharField(required=True)
+    avatar = serializers.ImageField(required=False, allow_null=True)
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'confirm_password', 'is_active', 'is_staff', 'is_superuser']
+        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'confirm_password', 'is_active', 'is_staff', 'is_superuser', 'department', 'job_title', 'role', 'phone', 'employee_id', 'avatar']
     
     def validate(self, attrs):
         if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError("密码和确认密码不匹配")
         return attrs
     
+    def validate_employee_id(self, value):
+        """验证工号的唯一性"""
+        if value:  # 只有当工号不为空时才验证
+            # 检查是否有其他用户使用了相同的工号
+            existing_profile = UserProfile.objects.filter(employee_id=value).first()
+            if existing_profile:
+                raise serializers.ValidationError(f"工号 '{value}' 已被用户 '{existing_profile.user.username}' 使用")
+        return value
+    
     def create(self, validated_data):
+        # 提取profile相关字段
+        department_id = validated_data.pop('department', None)
+        job_title_id = validated_data.pop('job_title', None)
+        role_id = validated_data.pop('role', None)
+        phone = validated_data.pop('phone', '')
+        employee_id = validated_data.pop('employee_id', '')
+        avatar = validated_data.pop('avatar', None)
+        
         validated_data.pop('confirm_password')
         password = validated_data.pop('password')
         user = User.objects.create(**validated_data)
         user.set_password(password)
         user.save()
+        
+        # 创建或更新用户profile
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        if department_id:
+            profile.department_id = department_id
+        if job_title_id:
+            profile.job_title_id = job_title_id
+        if role_id:
+            profile.role_id = role_id
+        if phone:
+            profile.phone = phone
+        if employee_id:
+            profile.employee_id = employee_id
+        if avatar:
+            profile.avatar = avatar
+        profile.save()
+        
         return user
 
 class UserUpdateSerializer(serializers.ModelSerializer):
+    department = serializers.IntegerField(required=False, allow_null=True)
+    job_title = serializers.IntegerField(required=False, allow_null=True)
+    role = serializers.IntegerField(required=False, allow_null=True)
+    phone = serializers.CharField(required=False, allow_blank=True)
+    employee_id = serializers.CharField(required=False, allow_blank=True)
+    avatar = serializers.ImageField(required=False, allow_null=True)
+    
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser']
+        fields = ['username', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'department', 'job_title', 'role', 'phone', 'employee_id', 'avatar']
+    
+    def validate_employee_id(self, value):
+        """验证工号的唯一性"""
+        if value:  # 只有当工号不为空时才验证
+            # 获取当前正在更新的用户实例
+            instance = self.instance
+            # 检查是否有其他用户使用了相同的工号
+            existing_profile = UserProfile.objects.filter(employee_id=value).exclude(user=instance).first()
+            if existing_profile:
+                raise serializers.ValidationError(f"工号 '{value}' 已被用户 '{existing_profile.user.username}' 使用")
+        return value
+        
+    def update(self, instance, validated_data):
+        # 提取profile相关字段
+        department_id = validated_data.pop('department', None)
+        job_title_id = validated_data.pop('job_title', None)
+        role_id = validated_data.pop('role', None)
+        phone = validated_data.pop('phone', None)
+        employee_id = validated_data.pop('employee_id', None)
+        avatar = validated_data.pop('avatar', None)
+        
+        # 更新用户基本信息
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # 创建或更新用户profile
+        profile, created = UserProfile.objects.get_or_create(user=instance)
+        if department_id is not None:
+            profile.department_id = department_id if department_id else None
+        if job_title_id is not None:
+            profile.job_title_id = job_title_id if job_title_id else None
+        if role_id is not None:
+            profile.role_id = role_id if role_id else None
+        if phone is not None:
+            profile.phone = phone
+        if employee_id is not None:
+            profile.employee_id = employee_id
+        if avatar is not None:
+            profile.avatar = avatar
+        profile.save()
+        
+        return instance
 
 class UserPasswordSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, min_length=6)
@@ -92,13 +189,6 @@ class DepartmentTreeSerializer(serializers.ModelSerializer):
         children = obj.children.filter(is_active=True)
         return DepartmentTreeSerializer(children, many=True).data
 
-class PositionSerializer(serializers.ModelSerializer):
-    department_name = serializers.CharField(source='department.name', read_only=True)
-    
-    class Meta:
-        model = Position
-        fields = '__all__'
-
 class JobTitleSerializer(serializers.ModelSerializer):
     level_display = serializers.CharField(source='get_level_display', read_only=True)
     
@@ -117,7 +207,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     role_name = serializers.CharField(source='role.name', read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
-    position_name = serializers.CharField(source='position.name', read_only=True)
     job_title_name = serializers.CharField(source='job_title.name', read_only=True)
     
     class Meta:

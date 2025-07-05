@@ -5,9 +5,23 @@ export interface SupplyItem {
   name: string;
   category: string;
   unit: string;
+  unit_price: string; // Django返回的是字符串格式的decimal
+  
+  // 新增固定基础数据字段
+  purchaser: string;
+  min_order_quantity: number;
+  lead_time_days: number;
+  standard_usage_count: number;
+  usage_per_machine: number;
+  usage_station: string;
+  
+  // 库存相关字段 - 这些是变动数据
   current_stock: number;
   safety_stock: number;
-  unit_price: string; // Django返回的是字符串格式的decimal
+  max_stock: number;
+  min_stock: number;
+  
+  // 时间戳
   created_at: string;
   updated_at: string;
 }
@@ -33,9 +47,21 @@ export interface CreateSupplyRequest {
   name: string;
   category: string;
   unit: string;
+  unit_price: string;
+  
+  // 可选的基础数据字段
+  purchaser?: string;
+  min_order_quantity?: number;
+  lead_time_days?: number;
+  standard_usage_count?: number;
+  usage_per_machine?: number;
+  usage_station?: string;
+  
+  // 库存相关字段
   current_stock: number;
   safety_stock: number;
-  unit_price: string;
+  max_stock?: number;
+  min_stock?: number;
 }
 
 export interface UpdateSupplyRequest extends CreateSupplyRequest {
@@ -74,7 +100,10 @@ export const suppliesApi = {
     if (params?.search) queryParams.append('search', params.search);
     
     const url = `/supplies/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    return apiRequest<SupplyItem[]>(url);
+    const response = await apiRequest<SupplyItem[]>(url);
+    
+    // 直接返回耗材数组（因为已经关闭了分页）
+    return response;
   },
 
   // 获取单个耗材详情
@@ -131,13 +160,16 @@ export const recordsApi = {
     if (params?.supply_id) queryParams.append('supply_id', params.supply_id.toString());
     if (params?.type) queryParams.append('type', params.type);
     
-    const url = `/records/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    return apiRequest<InventoryRecord[]>(url);
+    const url = `/inventory-records/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const response = await apiRequest<InventoryRecord[]>(url);
+    
+    // 直接返回记录数组（因为已经关闭了分页）
+    return response;
   },
 
   // 获取单个记录
   getRecord: async (id: number): Promise<InventoryRecord> => {
-    return apiRequest<InventoryRecord>(`/records/${id}/`);
+    return apiRequest<InventoryRecord>(`/inventory-records/${id}/`);
   },
 };
 

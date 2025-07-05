@@ -1,4 +1,4 @@
-import { Button } from "@heroui/react";
+import { Button, Spinner } from "@heroui/react";
 import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
@@ -19,11 +19,13 @@ import {
   DropdownItem
 } from "@heroui/react";
 import { link as linkStyles } from "@heroui/theme";
+import { useTheme } from "@heroui/use-theme";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 import { SVGProps } from "react";
-import { FC, useState } from "react";
+import { FC, useState, useMemo } from "react";
 import { useMenu } from "@/context/MenuContext";
+import { useAuth } from "@/context/AuthContext";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -36,6 +38,55 @@ import {
 } from "@/components/icons";
 import { Logo } from "@/components/icons";
 import Avatar from "./Avatar";
+import { Avatar as HeroUIAvatar } from "@heroui/react";
+
+// 根据用户状态、职位级别和角色分配头像颜色
+const getAvatarColor = (user: any) => {
+  // 优先考虑用户状态
+  if (!user?.is_active) return "danger";
+  
+  // 考虑系统权限
+  if (user?.is_superuser) return "warning";
+  
+  // 根据职位级别设置颜色
+  if (user?.job_title) {
+    const jobTitle = user.job_title;
+    
+    // 正高级职位 - 紫色
+    if (jobTitle.includes('资深经理') || jobTitle.includes('正高级')) {
+      return "secondary";
+    }
+    
+    // 副高级职位 - 蓝色
+    if (jobTitle.includes('高级工程师') || jobTitle.includes('课长') || 
+        jobTitle.includes('副经理') || jobTitle.includes('经理') || 
+        jobTitle.includes('副高级')) {
+      return "primary";
+    }
+    
+    // 中级职位 - 绿色
+    if (jobTitle.includes('工程师') || jobTitle.includes('组长') || 
+        jobTitle.includes('副组长') || jobTitle.includes('副课长') || 
+        jobTitle.includes('中级')) {
+      return "success";
+    }
+    
+    // 初级职位 - 默认色
+    if (jobTitle.includes('助理') || jobTitle.includes('技术员') || 
+        jobTitle.includes('初级')) {
+      return "default";
+    }
+  }
+  
+  // 根据角色设置颜色
+  if (user?.is_staff) return "secondary";
+  
+  // 根据管理员角色设置颜色
+  if (user?.profile?.role === "管理员") return "primary";
+  
+  // 默认颜色
+  return "success";
+};
 
 // 导入所有图标组件
 import {
@@ -45,6 +96,7 @@ import {
   AddRecordIcon,
   RecordsManagementIcon,
   StatisticsManagementIcon,
+  DashboardIcon,
 } from "@/components/management-icons";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
@@ -167,11 +219,17 @@ const iconMap: Record<string, React.ComponentType<IconProps>> = {
   'AddRecordIcon': AddRecordIcon,
   'RecordsManagementIcon': RecordsManagementIcon,
   'StatisticsManagementIcon': StatisticsManagementIcon,
+  'DashboardIcon': DashboardIcon,
+  'dashboard': DashboardIcon,
 };
 
-// 将API菜单数据转换为下拉菜单格式
-const convertApiMenuToDropdownMenu = (apiMenus: any[]): { [key: string]: MenuItem[] } => {
+// 将API菜单数据转换为navbar格式
+const convertApiMenuToNavbarFormat = (apiMenus: any[]): { 
+  directMenus: MenuItem[], 
+  dropdownMenus: { [key: string]: MenuItem[] } 
+} => {
   const menuMap = new Map();
+  const directMenus: MenuItem[] = [];
   const dropdownMenus: { [key: string]: MenuItem[] } = {};
 
   // 首先创建所有菜单项
@@ -199,20 +257,27 @@ const convertApiMenuToDropdownMenu = (apiMenus: any[]): { [key: string]: MenuIte
         }
         dropdownMenus[parentName].push(menuItem);
       }
-    } else if (menu.menu_type === 'menu') {
-      // 根菜单作为下拉菜单标题
-      if (!dropdownMenus[menu.name]) {
-        dropdownMenus[menu.name] = [];
+    } else {
+      // 根菜单处理
+      if (menu.menu_type === 'menu') {
+        // 有子菜单的根菜单作为下拉菜单标题
+        if (!dropdownMenus[menu.name]) {
+          dropdownMenus[menu.name] = [];
+        }
+      } else {
+        // 无子菜单的根菜单作为直接菜单项
+        directMenus.push(menuItem);
       }
     }
   });
 
-  // 按order排序每个下拉菜单中的项目
+  // 排序
+  directMenus.sort((a, b) => (a.order || 0) - (b.order || 0));
   Object.keys(dropdownMenus).forEach(key => {
     dropdownMenus[key].sort((a, b) => (a.order || 0) - (b.order || 0));
   });
 
-  return dropdownMenus;
+  return { directMenus, dropdownMenus };
 };
 
 interface NavbarProps {
@@ -223,10 +288,16 @@ interface NavbarProps {
 
 export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProps) => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const { navbarMenus, loading, error } = useMenu();
+  const { user } = useAuth();
 
-  // 转换API菜单数据为下拉菜单格式
-  const dynamicDropdownMenus = convertApiMenuToDropdownMenu(navbarMenus);
+  // 转换API菜单数据为navbar格式
+  const { directMenus, dynamicDropdownMenus } = useMemo(() => {
+    if (!navbarMenus || navbarMenus.length === 0) return { directMenus: [], dynamicDropdownMenus: {} };
+    const result = convertApiMenuToNavbarFormat(navbarMenus);
+    return { directMenus: result.directMenus, dynamicDropdownMenus: result.dropdownMenus };
+  }, [navbarMenus]);
 
   const handleProfile = () => {
     navigate("/profile");
@@ -258,7 +329,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
     <Input
       aria-label="Search"
       classNames={{
-        inputWrapper: "bg-gray-100",
+        inputWrapper: "bg-default-100",
         input: "text-sm",
       }}
       endContent={
@@ -269,7 +340,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
       labelPlacement="outside"
       placeholder="Search..."
       startContent={
-        <SearchIcon className="text-base text-gray-400 pointer-events-none flex-shrink-0" />
+        <SearchIcon className="text-base pointer-events-none flex-shrink-0 text-default-400" />
       }
       type="search"
     />
@@ -279,12 +350,12 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
     <HeroUINavbar 
       maxWidth="full" 
       position="sticky"
-      className="bg-white border-b border-gray-200 shadow-sm text-gray-900 transition-all duration-300 z-50"
+      className="shadow-sm transition-all duration-300 z-50 border-b border-divider bg-background text-foreground"
     >
       <NavbarContent justify="start">
         <Button
           isIconOnly
-          className="p-2 hover:bg-gray-100 rounded-lg mr-2"
+          className="p-2 rounded-lg mr-2 hover:bg-default-100"
           variant="light"
           onClick={onSidebarToggle}
           aria-label={sidebarOpen ? "关闭侧边栏" : "打开侧边栏"}
@@ -310,8 +381,9 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
           </Link>
         </NavbarBrand>
         <div className="hidden lg:flex gap-4 justify-start ml-2">
-          {siteConfig.navItems.map((item) => (
-            <NavbarItem key={item.href}>
+          {/* 直接菜单项 */}
+          {directMenus.map((item) => (
+            <NavbarItem key={item.key}>
               <Button
                 onClick={() => navigate(item.href)}
                 className={clsx(
@@ -368,13 +440,19 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
           {loading ? (
             <NavbarItem>
               <div className="flex items-center px-4">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="ml-2 text-sm text-gray-500">加载中...</span>
+                <Spinner 
+                  size="sm" 
+                  color="primary" 
+                  label="加载中..."
+                  classNames={{
+                    label: "text-sm ml-2 text-default-500"
+                  }}
+                />
               </div>
             </NavbarItem>
           ) : error ? (
             <NavbarItem>
-              <div className="text-red-500 text-sm px-4">{error}</div>
+              <div className="text-danger text-sm px-4">{error}</div>
             </NavbarItem>
           ) : null}
         </div>
@@ -386,13 +464,13 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
       >
         <NavbarItem className="hidden sm:flex gap-2">
           <Link isExternal href={siteConfig.links.twitter} title="Twitter">
-            <TwitterIcon className="text-gray-500" />
+            <TwitterIcon className="text-default-500" />
           </Link>
           <Link isExternal href={siteConfig.links.discord} title="Discord">
-            <DiscordIcon className="text-gray-500" />
+            <DiscordIcon className="text-default-500" />
           </Link>
           <Link isExternal href={siteConfig.links.github} title="GitHub">
-            <GithubIcon className="text-gray-500" />
+            <GithubIcon className="text-default-500" />
           </Link>
           <ThemeSwitch />
         </NavbarItem>
@@ -401,7 +479,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
           <Button
             isExternal
             as={Link}
-            className="text-sm font-normal text-gray-600 bg-gray-100"
+            className="text-sm font-normal text-default-600 bg-default-100 hover:bg-default-200"
             href={siteConfig.links.sponsor}
             startContent={<HeartFilledIcon className="text-red-500" />}
             variant="flat"
@@ -412,16 +490,15 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
         <NavbarItem>
           <Dropdown placement="bottom-end">
             <DropdownTrigger>
-              <Button
-                isIconOnly
-                className="p-0 bg-transparent hover:bg-gray-100 cursor-pointer"
-                radius="full"
-                variant="light"
-              >
-                <Avatar 
-                  src="https://i.pravatar.cc/150?u=a042581f4e29026024d"
+                              <HeroUIAvatar 
+                  src={user?.avatar || undefined}
+                  name={user?.username}
+                  color={getAvatarColor(user)}
+                  isBordered={true}
+                  radius="lg"
+                  size="md"
+                  className="cursor-pointer hover:scale-110 transition-transform"
                 />
-              </Button>
             </DropdownTrigger>
             <DropdownMenu aria-label="用户菜单">
               <DropdownSection title="用户信息">
@@ -465,7 +542,7 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
 
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
         <Link isExternal href={siteConfig.links.github}>
-          <GithubIcon className="text-gray-500" />
+          <GithubIcon className="text-default-500" />
         </Link>
         <ThemeSwitch />
         <NavbarMenuToggle onClick={onMenuClick} />
@@ -474,16 +551,19 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
       <NavbarMenu>
         {searchInput}
         <div className="mx-4 mt-2 flex flex-col gap-2">
-          <NavbarMenuItem>
-            <Link
-              color="foreground"
-              href="/dashboard"
-              size="lg"
-              className="hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 transition-all duration-300"
-            >
-              仪表盘
-            </Link>
-          </NavbarMenuItem>
+          {/* 直接菜单项 - 移动端 */}
+          {directMenus.map((item) => (
+            <NavbarMenuItem key={item.key}>
+              <Link
+                color="foreground"
+                href={item.href}
+                size="lg"
+                className="hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 transition-all duration-300"
+              >
+                {item.label}
+              </Link>
+            </NavbarMenuItem>
+          ))}
           
           {/* 动态下拉菜单 - 移动端 */}
           {Object.entries(dynamicDropdownMenus).map(([menuName, menuItems]) => (
@@ -519,29 +599,6 @@ export const Navbar = ({ onMenuClick, sidebarOpen, onSidebarToggle }: NavbarProp
                   }}
                 </DropdownMenu>
               </Dropdown>
-            </NavbarMenuItem>
-          ))}
-          
-          {siteConfig.navMenuItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <Link
-                color={
-                  index === 2
-                    ? "primary"
-                    : index === siteConfig.navMenuItems.length - 1
-                      ? "danger"
-                      : "foreground"
-                }
-                href={item.href}
-                size="lg"
-                className={clsx(
-                  "hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500",
-                  "transition-all duration-300",
-                  index === siteConfig.navMenuItems.length - 1 && "hover:from-red-500 hover:to-pink-500"
-                )}
-              >
-                {item.label}
-              </Link>
             </NavbarMenuItem>
           ))}
         </div>

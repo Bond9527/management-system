@@ -1,20 +1,17 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from accounts.models import (
-    Department, Position, JobTitle, UserRole, Permission, Menu
+    Department, JobTitle, UserRole, Permission, Menu
 )
 
 class Command(BaseCommand):
-    help = '初始化基础数据：部门、职位、职称、角色、权限、菜单'
+    help = '初始化基础数据：部门、职称、角色、权限、菜单'
 
     def handle(self, *args, **options):
         self.stdout.write('开始初始化基础数据...')
         
         # 创建部门
         self.create_departments()
-        
-        # 创建职位
-        self.create_positions()
         
         # 创建职称
         self.create_job_titles()
@@ -76,139 +73,52 @@ class Command(BaseCommand):
         
         self.stdout.write(f'创建了 {Department.objects.count()} 个部门')
 
-    def create_positions(self):
-        self.stdout.write('创建职位...')
-        
-        it_dept = Department.objects.get(name='信息技术部')
-        hr_dept = Department.objects.get(name='人力资源部')
-        finance_dept = Department.objects.get(name='财务部')
-        
-        # IT部门职位
-        Position.objects.get_or_create(
-            name='技术总监',
-            defaults={
-                'description': '负责技术团队管理',
-                'department': it_dept
-            }
-        )
-        
-        Position.objects.get_or_create(
-            name='高级开发工程师',
-            defaults={
-                'description': '负责核心功能开发',
-                'department': it_dept
-            }
-        )
-        
-        Position.objects.get_or_create(
-            name='开发工程师',
-            defaults={
-                'description': '负责功能开发',
-                'department': it_dept
-            }
-        )
-        
-        Position.objects.get_or_create(
-            name='测试工程师',
-            defaults={
-                'description': '负责系统测试',
-                'department': it_dept
-            }
-        )
-        
-        # HR部门职位
-        Position.objects.get_or_create(
-            name='HR经理',
-            defaults={
-                'description': '负责人力资源管理',
-                'department': hr_dept
-            }
-        )
-        
-        Position.objects.get_or_create(
-            name='HR专员',
-            defaults={
-                'description': '负责招聘和员工关系',
-                'department': hr_dept
-            }
-        )
-        
-        # 财务部门职位
-        Position.objects.get_or_create(
-            name='财务经理',
-            defaults={
-                'description': '负责财务管理',
-                'department': finance_dept
-            }
-        )
-        
-        Position.objects.get_or_create(
-            name='会计',
-            defaults={
-                'description': '负责会计核算',
-                'department': finance_dept
-            }
-        )
-        
-        self.stdout.write(f'创建了 {Position.objects.count()} 个职位')
-
     def create_job_titles(self):
         self.stdout.write('创建职称...')
         
-        # 初级职称
-        JobTitle.objects.get_or_create(
-            name='助理工程师',
-            level='初级',
-            defaults={'description': '初级技术职称'}
-        )
+        # 清除现有职称数据（可选，如果需要完全重置）
+        JobTitle.objects.all().delete()
         
-        JobTitle.objects.get_or_create(
-            name='助理会计师',
-            level='初级',
-            defaults={'description': '初级财务职称'}
-        )
+        # 用户提供的16个职称
+        job_titles_data = [
+            {'name': '检测工程师', 'level': '中级', 'description': '负责检测相关工作的工程师'},
+            {'name': '检测高级工程师', 'level': '副高级', 'description': '高级检测工程师'},
+            {'name': '检查助理工程师', 'level': '初级', 'description': '辅助检查工作的助理工程师'},
+            {'name': '课长', 'level': '副高级', 'description': '课级管理职位'},
+            {'name': '副课长', 'level': '中级', 'description': '副课级管理职位'},
+            {'name': '检测技术员', 'level': '初级', 'description': '从事检测技术工作的技术员'},
+            {'name': '组长', 'level': '中级', 'description': '组级管理职位'},
+            {'name': '副组长', 'level': '中级', 'description': '副组级管理职位'},
+            {'name': '副经理', 'level': '副高级', 'description': '副经理级管理职位'},
+            {'name': '经理', 'level': '副高级', 'description': '经理级管理职位'},
+            {'name': '资深经理', 'level': '正高级', 'description': '资深经理级管理职位'},
+            {'name': '测试工程师', 'level': '中级', 'description': '负责测试工作的工程师'},
+            {'name': 'PE技术员', 'level': '初级', 'description': 'Process Engineer技术员'},
+            {'name': '电子工程师', 'level': '中级', 'description': '电子技术工程师'},
+            {'name': 'PE助理事务员', 'level': '初级', 'description': 'Process Engineer助理事务员'},
+            {'name': 'PE高级工程师', 'level': '副高级', 'description': 'Process Engineer高级工程师'},
+        ]
         
-        # 中级职称
-        JobTitle.objects.get_or_create(
-            name='工程师',
-            level='中级',
-            defaults={'description': '中级技术职称'}
-        )
-        
-        JobTitle.objects.get_or_create(
-            name='会计师',
-            level='中级',
-            defaults={'description': '中级财务职称'}
-        )
-        
-        # 副高级职称
-        JobTitle.objects.get_or_create(
-            name='高级工程师',
-            level='副高级',
-            defaults={'description': '副高级技术职称'}
-        )
-        
-        JobTitle.objects.get_or_create(
-            name='高级会计师',
-            level='副高级',
-            defaults={'description': '副高级财务职称'}
-        )
-        
-        # 正高级职称
-        JobTitle.objects.get_or_create(
-            name='技术专家',
-            level='正高级',
-            defaults={'description': '正高级技术职称'}
-        )
+        for job_title_data in job_titles_data:
+            JobTitle.objects.get_or_create(
+                name=job_title_data['name'],
+                defaults={
+                    'level': job_title_data['level'],
+                    'description': job_title_data['description']
+                }
+            )
         
         self.stdout.write(f'创建了 {JobTitle.objects.count()} 个职称')
 
     def create_roles(self):
         self.stdout.write('创建角色...')
         
-        # 角色已经在之前的命令中创建，这里只检查
-        roles_count = UserRole.objects.count()
-        self.stdout.write(f'现有 {roles_count} 个角色')
+        UserRole.objects.get_or_create(name='admin', defaults={'description': '系统管理员'})
+        UserRole.objects.get_or_create(name='user', defaults={'description': '普通用户'})
+        UserRole.objects.get_or_create(name='manager', defaults={'description': '管理员'})
+        UserRole.objects.get_or_create(name='operator', defaults={'description': '操作员'})
+        
+        self.stdout.write(f'现有 {UserRole.objects.count()} 个角色')
 
     def create_permissions(self):
         self.stdout.write('创建权限...')
@@ -395,11 +305,11 @@ class Command(BaseCommand):
         )
         
         Menu.objects.get_or_create(
-            name='耗材列表',
-            path='/supplies/list',
+            name='新增记录',
+            path='/supplies/add-record',
             defaults={
-                'component': 'SupplyList',
-                'icon': 'list',
+                'component': 'AddRecord',
+                'icon': 'plus',
                 'menu_type': 'page',
                 'order': 2,
                 'parent': supplies_menu
@@ -407,11 +317,11 @@ class Command(BaseCommand):
         )
         
         Menu.objects.get_or_create(
-            name='入库管理',
-            path='/supplies/inbound',
+            name='变动台账',
+            path='/supplies/records',
             defaults={
-                'component': 'InboundManagement',
-                'icon': 'arrow-down',
+                'component': 'Records',
+                'icon': 'table',
                 'menu_type': 'page',
                 'order': 3,
                 'parent': supplies_menu
@@ -419,11 +329,11 @@ class Command(BaseCommand):
         )
         
         Menu.objects.get_or_create(
-            name='出库管理',
-            path='/supplies/outbound',
+            name='数据统计',
+            path='/supplies/statistics',
             defaults={
-                'component': 'OutboundManagement',
-                'icon': 'arrow-up',
+                'component': 'Statistics',
+                'icon': 'chart-bar',
                 'menu_type': 'page',
                 'order': 4,
                 'parent': supplies_menu

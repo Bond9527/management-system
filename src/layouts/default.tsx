@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "@heroui/link";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
+import { Spinner } from "@heroui/react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Breadcrumbs, BreadcrumbItem } from "@heroui/breadcrumbs";
 import { useAuth } from "@/context/AuthContext";
@@ -25,8 +26,6 @@ export default function DefaultLayout() {
     "add-record": "新增记录",
     inventory: "库存管理",
     purchase: "采购管理",
-    outbound: "出库管理",
-    inbound: "入库管理",
     records: "台账记录",
     statistics: "数据统计",
     docs: "文档",
@@ -57,8 +56,10 @@ export default function DefaultLayout() {
 
   // 认证保护
   useEffect(() => {
+    console.log('DefaultLayout认证状态检查:', { isLoading, isAuthenticated });
     if (!isLoading && !isAuthenticated) {
-      navigate('/login');
+      console.log('用户未认证，重定向到登录页面');
+      navigate('/login', { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -85,8 +86,14 @@ export default function DefaultLayout() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">加载中...</p>
+          <Spinner 
+            size="lg" 
+            color="primary" 
+            label="加载中..."
+            classNames={{
+              label: "text-gray-600 mt-4"
+            }}
+          />
         </div>
       </div>
     );

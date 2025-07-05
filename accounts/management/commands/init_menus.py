@@ -115,6 +115,20 @@ class Command(BaseCommand):
                 display_position='both',
             )
             
+            # 🆕 添加动态申请表管理菜单
+            application_management = Menu.objects.create(
+                name='动态申请表管理',
+                path='/supplies/application-management',
+                component='ApplicationManagement',
+                icon='InventoryManagementIcon',
+                menu_type='page',
+                order=5,
+                is_visible=True,
+                is_active=True,
+                parent=supplies_menu,
+                display_position='both',
+            )
+            
             # 获取权限和角色
             try:
                 permissions = Permission.objects.all()

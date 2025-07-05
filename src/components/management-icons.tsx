@@ -294,4 +294,22 @@ export const StatisticsManagementIcon = (props: IconProps) => (
       fill="currentColor"
     />
   </svg>
+);
+
+export const DashboardIcon = (props: IconProps) => (
+  <svg
+    aria-hidden="true"
+    fill="none"
+    focusable="false"
+    height="1em"
+    role="presentation"
+    viewBox="0 0 24 24"
+    width="1em"
+    {...props}
+  >
+    <path
+      d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z"
+      fill="currentColor"
+    />
+  </svg>
 ); 

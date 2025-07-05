@@ -1,3 +1,261 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* HeroUI Toast 样式修复 */
+[data-toast-region] {
+  position: fixed !important;
+  z-index: 9999 !important;
+  pointer-events: none !important;
+}
+
+[data-toast-region][data-placement="top-right"] {
+  top: 16px !important;
+  right: 16px !important;
+  left: auto !important;
+  bottom: auto !important;
+}
+
+[data-toast-region][data-placement="top-left"] {
+  top: 16px !important;
+  left: 16px !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+[data-toast-region][data-placement="bottom-right"] {
+  bottom: 16px !important;
+  right: 16px !important;
+  left: auto !important;
+  top: auto !important;
+}
+
+[data-toast-region][data-placement="bottom-left"] {
+  bottom: 16px !important;
+  left: 16px !important;
+  right: auto !important;
+  top: auto !important;
+}
+
+[data-toast-region][data-placement="top-center"] {
+  top: 16px !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+[data-toast-region][data-placement="bottom-center"] {
+  bottom: 16px !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+/* Toast 容器样式 */
+[data-toast] {
+  pointer-events: auto !important;
+  margin-bottom: 8px !important;
+}
+
+/* 确保 Toast 不会被其他元素覆盖 */
+.heroui-toast-container {
+  position: fixed !important;
+  z-index: 9999 !important;
+}
+
+/* 表格优化样式 */
+.ant-table-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* 表格滚动条优化 */
+.ant-table-body {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+.ant-table-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ant-table-body::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.ant-table-body::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.ant-table-body::-webkit-scrollbar-corner {
+  background: #f3f4f6;
+}
+
+/* 表格斑马纹样式 */
+.ant-table-striped .ant-table-tbody > tr:nth-child(even) > td {
+  background-color: #f9fafb;
+}
+
+.ant-table-striped .ant-table-tbody > tr:hover > td {
+  background-color: #e5f3ff !important;
+}
+
+/* 表格拖动选择优化 */
+.ant-table-body {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.ant-table-cell {
+  cursor: default;
+}
+
+/* 表格头部固定时的阴影效果 */
+.ant-table-thead > tr > th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* 表格分组头部样式 */
+.ant-table-thead > tr > th[colspan] {
+  background-color: #f1f5f9;
+  font-weight: 700;
+  text-align: center;
+  border-bottom: 1px solid #d1d5db;
+}
+
+/* 提升表格的响应性 */
+@media (max-width: 768px) {
+  .ant-table-wrapper {
+    margin: 0 -16px;
+    border-radius: 0;
+  }
+  
+  .ant-table-body::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+/* 表格内容文本选择样式 */
+.ant-table-cell::selection {
+  background-color: #bfdbfe;
+  color: #1e40af;
+}
+
+/* 表格容器平滑滚动 */
+.ant-table-body {
+  scroll-behavior: smooth;
+}
+
+/* 数据高亮样式 */
+.ant-table-cell .text-blue-600,
+.ant-table-cell .text-green-600,
+.ant-table-cell .text-red-600,
+.ant-table-cell .text-purple-600,
+.ant-table-cell .text-orange-600 {
+  font-weight: 600;
+}
+
+/* 表格操作列优化 */
+.ant-table-cell .flex {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.ant-table-cell .flex.gap-1 > * {
+  margin: 0 !important;
+}
+
+.ant-table-cell .flex.gap-2 > * {
+  margin: 0 !important;
+}
+
+/* 操作按钮样式优化 */
+.ant-table-cell button {
+  height: 28px !important;
+  line-height: 1.2 !important;
+  font-size: 12px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-table-cell button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Popconfirm 在表格中的样式 */
+.ant-popconfirm {
+  z-index: 1060 !important;
+}
+
+.ant-popconfirm-content {
+  max-width: 200px;
+}
+
+/* 固定列阴影效果 */
+.ant-table-cell-fix-right {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(4px);
+}
+
+.ant-table-cell-fix-right::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1), transparent);
+}
+
+/* 表格内按钮文字颜色优化 */
+.ant-table-cell button[data-hover="true"] {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: #3b82f6 !important;
+}
+
+.ant-table-cell button[data-color="danger"][data-hover="true"] {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+}
+
+/* Toast 样式覆盖 */
+[data-hero-toast-container] {
+  position: fixed !important;
+  top: 1rem !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: auto !important;
+  pointer-events: none !important;
+}
+
+[data-hero-toast] {
+  margin: 0.5rem 0 !important;
+  min-width: 300px !important;
+  max-width: 500px !important;
+  background-color: white !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  border-radius: 0.5rem !important;
+  pointer-events: auto !important;
+}

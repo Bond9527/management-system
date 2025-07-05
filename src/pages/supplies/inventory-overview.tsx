@@ -88,7 +88,7 @@ const COLORS = [
 
 const SuppliesInventoryOverviewPage: FC = () => {
   const navigate = useNavigate();
-  const { supplies, records, updateSupply } = useSupplies();
+  const { supplies, records, updateSupply, adjustStock } = useSupplies();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [minQuantity, setMinQuantity] = useState<string>("");
@@ -191,7 +191,17 @@ const SuppliesInventoryOverviewPage: FC = () => {
     for (const updatedSupply of fixedSupplies) {
       const originalSupply = supplies.find(s => s.id === updatedSupply.id);
       if (originalSupply && originalSupply.current_stock !== updatedSupply.current_stock) {
-        await updateSupply(updatedSupply);
+        // 只调整库存，不通过updateSupply API
+        try {
+          await adjustStock({
+            supply_id: updatedSupply.id,
+            type: 'adjust',
+            quantity: updatedSupply.current_stock - originalSupply.current_stock,
+            remark: '数据一致性修复'
+          });
+        } catch (error) {
+          console.error(`Failed to fix supply ${updatedSupply.id}:`, error);
+        }
       }
     }
     
@@ -426,24 +436,43 @@ const SuppliesInventoryOverviewPage: FC = () => {
                 库存分布
               </Chip>
             </div>
-            <div className="h-[350px]">
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart margin={{ top: 20, right: 80, bottom: 80, left: 80 }}>
                   <Pie
                     data={pieChartData}
                     cx="50%"
-                    cy="50%"
+                    cy="45%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    label={false}
+                    outerRadius={70}
                     fill="#8884d8"
                     dataKey="value"
+                    minAngle={5}
                   >
                     {pieChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip />
+                  <RechartsTooltip 
+                    formatter={(value, name) => [
+                      `${value} 项`,
+                      name
+                    ]}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={60}
+                    wrapperStyle={{
+                      paddingTop: '20px',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value, entry) => {
+                      const item = pieChartData.find(d => d.name === value);
+                      const percent = item ? ((item.value / pieChartData.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(0) : '0';
+                      return `${value} ${percent}%`;
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>

@@ -17,6 +17,7 @@ import {
 } from "@heroui/react";
 import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
 import { getCurrentTimestamp } from "@/utils/dateUtils";
+import { addToast } from "@heroui/toast";
 
 const DebugSyncPage: FC = () => {
   const { supplies, addSupply } = useSupplies();
@@ -29,7 +30,13 @@ const DebugSyncPage: FC = () => {
 
   const handleAddTestSupply = async () => {
     if (!newSupplyName || !newSupplyCategory || !newSupplyUnit || !newSupplyStock || !newSupplySafety) {
-      alert("请填写所有字段");
+      addToast({
+        title: "输入不完整",
+        description: "请填写所有字段",
+        color: "warning",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
       return;
     }
 
@@ -47,6 +54,14 @@ const DebugSyncPage: FC = () => {
 
     await addSupply(newSupply);
     setLastAddedSupply(newSupply);
+    
+    addToast({
+      title: "添加成功",
+      description: `成功添加测试耗材: ${newSupplyName}`,
+      color: "success",
+      timeout: 3000,
+      shouldShowTimeoutProgress: true,
+    });
     
     // 清空表单
     setNewSupplyName("");

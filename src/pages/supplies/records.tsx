@@ -311,24 +311,43 @@ const SuppliesRecordsPage: FC = () => {
                   数量统计
                 </Chip>
               </div>
-              <div className="h-[350px]">
+              <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <PieChart margin={{ top: 20, right: 80, bottom: 80, left: 80 }}>
                     <Pie
                       data={operationTypeData}
                       cx="50%"
-                      cy="50%"
+                      cy="45%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
+                      label={false}
+                      outerRadius={70}
                       fill="#8884d8"
                       dataKey="value"
+                      minAngle={5}
                     >
                       {operationTypeData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <RechartsTooltip />
+                    <RechartsTooltip 
+                      formatter={(value, name) => [
+                        `${value} 次`,
+                        name
+                      ]}
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={60}
+                      wrapperStyle={{
+                        paddingTop: '20px',
+                        fontSize: '12px'
+                      }}
+                      formatter={(value, entry) => {
+                        const item = operationTypeData.find(d => d.name === value);
+                        const percent = item ? ((item.value / operationTypeData.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(0) : '0';
+                        return `${value} ${percent}%`;
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

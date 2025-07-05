@@ -74,21 +74,25 @@ export function validateDataConsistency(supplies: SupplyItem[], records: Invento
  * 生成库存变动摘要
  */
 export function generateInventorySummary(supplies: SupplyItem[], records: InventoryRecord[]): InventorySummary {
+  // 安全检查：确保参数是数组
+  const safeSupplies = Array.isArray(supplies) ? supplies : [];
+  const safeRecords = Array.isArray(records) ? records : [];
+  
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const summary: InventorySummary = {
-    totalSupplies: supplies.length,
-    totalRecords: records.length,
-    lowStockItems: supplies.filter(s => s.current_stock <= s.safety_stock).length,
-    recentActivity: records.filter(r => new Date(r.timestamp) >= weekAgo).length,
-    totalStock: supplies.reduce((sum, item) => sum + item.current_stock, 0),
-    categories: Array.from(new Set(supplies.map(item => item.category))).length,
+    totalSupplies: safeSupplies.length,
+    totalRecords: safeRecords.length,
+    lowStockItems: safeSupplies.filter(s => s.current_stock <= s.safety_stock).length,
+    recentActivity: safeRecords.filter(r => new Date(r.timestamp) >= weekAgo).length,
+    totalStock: safeSupplies.reduce((sum, item) => sum + item.current_stock, 0),
+    categories: Array.from(new Set(safeSupplies.map(item => item.category))).length,
     byCategory: {}
   };
 
   // 按分类统计
-  supplies.forEach(supply => {
+  safeSupplies.forEach(supply => {
     if (!summary.byCategory[supply.category]) {
       summary.byCategory[supply.category] = {
         count: 0,

@@ -1,79 +1,86 @@
+import { useState } from "react";
 import { Tabs, Tab } from "@heroui/react";
-import { DepartmentManagementIcon, RoleManagementIcon, PositionManagementIcon, PermissionManagementIcon, MenuManagementIcon } from "@/components/management-icons";
 import DepartmentTab from "./basic-settings/DepartmentTab";
 import JobTitleTab from "./basic-settings/JobTitleTab";
-import PositionTab from "./basic-settings/PositionTab";
-import PermissionTab from "./basic-settings/PermissionTab";
 import MenuTab from "./basic-settings/MenuTab";
+import PermissionTab from "./basic-settings/PermissionTab";
+import { 
+  DepartmentManagementIcon, 
+  PositionManagementIcon, 
+  MenuManagementIcon, 
+  PermissionManagementIcon 
+} from "./management-icons";
 
 export default function BasicSettingsTabs() {
+  const [selectedTab, setSelectedTab] = useState("departments");
+
   return (
-    <Tabs aria-label="基础信息设置" color="primary" variant="solid" radius="lg" className="bg-gray-100 rounded-lg">
-      <Tab
-        key="departments"
-        title={
-          <div className="flex items-center space-x-2">
-            <DepartmentManagementIcon className="w-5 h-5" />
-            <span>部门管理</span>
-          </div>
-        }
+    <div className="w-full">
+      <Tabs 
+        selectedKey={selectedTab} 
+        onSelectionChange={(key) => setSelectedTab(key as string)}
+        aria-label="基础设置"
+        color="primary"
+        variant="solid"
+        radius="lg"
+        className="bg-gray-100 rounded-lg"
       >
-        <div className="mt-4">
-          <DepartmentTab />
-        </div>
-      </Tab>
-      <Tab
-        key="positions"
-        title={
-          <div className="flex items-center space-x-2">
-            <PositionManagementIcon className="w-5 h-5" />
-            <span>职位管理</span>
+        <Tab 
+          key="departments" 
+          title={
+            <div className="flex items-center space-x-2">
+              <DepartmentManagementIcon className="w-4 h-4" />
+              <span>部门管理</span>
+            </div>
+          }
+        >
+          <div className="mt-4">
+            <DepartmentTab />
           </div>
-        }
-      >
-        <div className="mt-4">
-          <PositionTab />
-        </div>
-      </Tab>
-      <Tab
-        key="titles"
-        title={
-          <div className="flex items-center space-x-2">
-            <RoleManagementIcon className="w-5 h-5" />
-            <span>职称管理</span>
+        </Tab>
+        
+        <Tab 
+          key="jobTitles" 
+          title={
+            <div className="flex items-center space-x-2">
+              <PositionManagementIcon className="w-4 h-4" />
+              <span>职称管理</span>
+            </div>
+          }
+        >
+          <div className="mt-4">
+            <JobTitleTab />
           </div>
-        }
-      >
-        <div className="mt-4">
-          <JobTitleTab />
-        </div>
-      </Tab>
-      <Tab
-        key="permissions"
-        title={
-          <div className="flex items-center space-x-2">
-            <PermissionManagementIcon className="w-5 h-5" />
-            <span>权限管理</span>
+        </Tab>
+        
+        <Tab 
+          key="menus" 
+          title={
+            <div className="flex items-center space-x-2">
+              <MenuManagementIcon className="w-4 h-4" />
+              <span>菜单管理</span>
+            </div>
+          }
+        >
+          <div className="mt-4">
+            <MenuTab />
           </div>
-        }
-      >
-        <div className="mt-4">
-          <PermissionTab />
-        </div>
-      </Tab>
-      <Tab
-        key="menus"
-        title={
-          <div className="flex items-center space-x-2">
-            <MenuManagementIcon className="w-5 h-5" />
-            <span>菜单管理</span>
+        </Tab>
+        
+        <Tab 
+          key="permissions" 
+          title={
+            <div className="flex items-center space-x-2">
+              <PermissionManagementIcon className="w-4 h-4" />
+              <span>权限管理</span>
+            </div>
+          }
+        >
+          <div className="mt-4">
+            <PermissionTab />
           </div>
-        }
-      >
-        <div className="mt-4">
-          <MenuTab />
-        </div>
-      </Tab>
-    </Tabs>
+        </Tab>
+      </Tabs>
+    </div>
   );
 } 

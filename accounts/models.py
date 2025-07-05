@@ -39,27 +39,6 @@ class Department(models.Model):
             children.extend(child.get_all_children())
         return children
 
-class Position(models.Model):
-    """职位模型"""
-    name = models.CharField(max_length=100, unique=True, verbose_name="职位名称")
-    description = models.TextField(blank=True, verbose_name="职位描述")
-    department = models.ForeignKey(
-        Department, 
-        on_delete=models.CASCADE, 
-        verbose_name="所属部门"
-    )
-    is_active = models.BooleanField(default=True, verbose_name="是否激活")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-
-    class Meta:
-        verbose_name = "职位"
-        verbose_name_plural = "职位"
-        ordering = ['name']
-
-    def __str__(self):
-        return f"{self.name} - {self.department.name}"
-
 class JobTitle(models.Model):
     """职称模型"""
     LEVEL_CHOICES = [
@@ -68,6 +47,14 @@ class JobTitle(models.Model):
         ('副高级', '副高级'),
         ('正高级', '正高级'),
     ]
+    
+    # 定义职称级别的排序优先级（数字越小级别越高）
+    LEVEL_ORDER = {
+        '正高级': 1,
+        '副高级': 2,
+        '中级': 3,
+        '初级': 4,
+    }
     
     name = models.CharField(max_length=100, unique=True, verbose_name="职称名称")
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, verbose_name="职称等级")
@@ -79,7 +66,7 @@ class JobTitle(models.Model):
     class Meta:
         verbose_name = "职称"
         verbose_name_plural = "职称"
-        ordering = ['level', 'name']
+        ordering = ['level', 'name']  # 保持原来的默认排序
 
     def __str__(self):
         return f"{self.name} ({self.level})"
@@ -109,13 +96,24 @@ class UserRole(models.Model):
 
 class UserProfile(models.Model):
     """用户扩展信息模型"""
+    # 用户状态选择
+    STATUS_CHOICES = [
+        ('active', '激活'),
+        ('inactive', '未激活'), 
+        ('disabled', '被禁用'),
+    ]
+    
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', verbose_name="用户")
     role = models.ForeignKey(UserRole, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="用户角色")
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="部门")
-    position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="职位")
     job_title = models.ForeignKey(JobTitle, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="职称")
     phone = models.CharField(max_length=20, blank=True, verbose_name="电话")
-    is_active = models.BooleanField(default=True, verbose_name="是否激活")
+    employee_id = models.CharField(max_length=50, blank=True, unique=True, null=True, verbose_name="工号")
+    avatar = models.ImageField(upload_to='avatars/%Y/%m/%d/', null=True, blank=True, verbose_name="头像")
+    # 新的状态字段
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='inactive', verbose_name="用户状态")
+    # 保留原有字段用于兼容性，但标记为过时
+    is_active = models.BooleanField(default=True, verbose_name="是否激活(已废弃)")
     last_login_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="最后登录IP")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
@@ -126,6 +124,23 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.role.name if self.role else '无角色'}"
+
+    @property
+    def avatar_url(self):
+        """获取头像URL"""
+        if self.avatar and hasattr(self.avatar, 'url'):
+            return self.avatar.url
+        return None
+    
+    @property
+    def status_display(self):
+        """获取状态显示文本"""
+        return dict(self.STATUS_CHOICES).get(self.status, self.status)
+    
+    @property
+    def is_user_active(self):
+        """判断用户是否为激活状态（用于兼容性）"""
+        return self.status == 'active'
 
 class OperationLog(models.Model):
     """操作日志模型"""
@@ -278,3 +293,28 @@ class Menu(models.Model):
             breadcrumb.insert(0, parent)
             parent = parent.parent
         return breadcrumb
+
+class PasswordResetToken(models.Model):
+    """密码重置令牌模型"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    token = models.CharField(max_length=100, unique=True, verbose_name='重置令牌')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    used = models.BooleanField(default=False, verbose_name='是否已使用')
+    expires_at = models.DateTimeField(verbose_name='过期时间')
+    
+    class Meta:
+        verbose_name = '密码重置令牌'
+        verbose_name_plural = '密码重置令牌'
+        
+    def __str__(self):
+        return f'{self.user.username} - {self.token[:8]}...'
+    
+    def is_valid(self):
+        """检查令牌是否有效"""
+        from django.utils import timezone
+        return not self.used and timezone.now() < self.expires_at
+    
+    def mark_as_used(self):
+        """标记令牌为已使用"""
+        self.used = True
+        self.save()

@@ -55,6 +55,7 @@ export default function JobTitleTab() {
   const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
@@ -77,11 +78,25 @@ export default function JobTitleTab() {
       const response = await api.get('/job-titles/', {
         params: {
           search: search,
-          page: page,
-          page_size: rowsPerPage,
         }
       });
-      setJobTitles(response.results || response);
+      
+      // 现在API直接返回数组，不再是分页响应
+      const jobTitleData = Array.isArray(response) ? response : 
+                          response?.results || [];
+      
+      // 在前端进行过滤和分页
+      const filteredJobTitles = jobTitleData.filter((title: any) => 
+        !search || title.name.toLowerCase().includes(search.toLowerCase())
+      );
+      
+      // 前端分页
+      const startIndex = (page - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      const paginatedJobTitles = filteredJobTitles.slice(startIndex, endIndex);
+      
+      setJobTitles(paginatedJobTitles);
+      setTotalPages(Math.ceil(filteredJobTitles.length / rowsPerPage));
     } catch (error) {
       console.error('获取职称列表失败:', error);
     } finally {
@@ -242,8 +257,13 @@ export default function JobTitleTab() {
                   startContent={<SearchIcon className="text-base text-gray-400 pointer-events-none flex-shrink-0" />}
                 />
               </div>
-              <Button color="primary" startContent={<PlusIcon className="text-lg" />} onClick={openAddModal}>
-                新增职称
+              <Button 
+                color="primary" 
+                startContent={<PlusIcon className="text-lg" />} 
+                onClick={openAddModal}
+                aria-label="添加新职位"
+              >
+                添加职位
               </Button>
               {selectedRows.length > 0 && (
                 <Dropdown>
@@ -329,7 +349,7 @@ export default function JobTitleTab() {
                       </DropdownTrigger>
                       <DropdownMenu>
                         <DropdownItem key="edit" onClick={() => openEditModal(jobTitle)}>
-                          <EditIcon className="text-lg" />
+                          <EditIcon className="w-3 h-3" />
                           编辑
                         </DropdownItem>
                         <DropdownItem 
@@ -338,7 +358,7 @@ export default function JobTitleTab() {
                           color="danger"
                           onClick={() => handleDelete(jobTitle.id)}
                         >
-                          <TrashIcon className="text-lg" />
+                          <TrashIcon className="w-3 h-3" />
                           删除
                         </DropdownItem>
                       </DropdownMenu>
@@ -355,7 +375,7 @@ export default function JobTitleTab() {
               showControls
               initialPage={page}
               page={page}
-              total={Math.ceil(jobTitles.length / rowsPerPage)}
+              total={totalPages}
               onChange={setPage}
               classNames={{
                 cursor: "bg-primary-500 text-white",
@@ -368,13 +388,13 @@ export default function JobTitleTab() {
         </div>
 
         {/* 新增/编辑职称弹窗 */}
-        <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="2xl">
-          <ModalContent>
+        <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="2xl" scrollBehavior="inside" placement="center" className="mx-4">
+          <ModalContent className="max-h-[90vh]">
             <ModalHeader>
               {modalMode === 'add' ? '新增职称' : '编辑职称'}
             </ModalHeader>
-            <ModalBody>
-              <div className="grid grid-cols-2 gap-4">
+            <ModalBody className="max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="职称名称"
                   placeholder="请输入职称名称"
@@ -393,12 +413,15 @@ export default function JobTitleTab() {
                     level: Array.from(keys)[0] as string 
                   }))}
                   errorMessage={formErrors.level}
+                  aria-label="选择职称级别"
                 >
                   {JOB_LEVELS.map(level => (
-                    <SelectItem key={level.key}>{level.label}</SelectItem>
+                    <SelectItem key={level.key} textValue={level.label} aria-label={`职称级别: ${level.label}`}>
+                      {level.label}
+                    </SelectItem>
                   ))}
                 </Select>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Input
                     label="职称描述"
                     placeholder="请输入职称描述"
@@ -409,7 +432,7 @@ export default function JobTitleTab() {
                     description="最多500个字符"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Switch
                     isSelected={formData.is_active}
                     onValueChange={checked => setFormData(prev => ({ ...prev, is_active: checked }))}

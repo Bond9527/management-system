@@ -72,6 +72,7 @@ export default function MenuTab() {
   const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
@@ -100,11 +101,25 @@ export default function MenuTab() {
       const response = await api.get('/menus/', {
         params: {
           search: search,
-          page: page,
-          page_size: rowsPerPage,
         }
       });
-      setMenus(response.results || response);
+      
+      // 现在API直接返回数组，不再是分页响应
+      const menuData = Array.isArray(response) ? response : 
+                      response?.results || [];
+      
+      // 在前端进行过滤和分页
+      const filteredMenus = menuData.filter((menu: any) => 
+        !search || menu.name.toLowerCase().includes(search.toLowerCase())
+      );
+      
+      // 前端分页
+      const startIndex = (page - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      const paginatedMenus = filteredMenus.slice(startIndex, endIndex);
+      
+      setMenus(paginatedMenus);
+      setTotalPages(Math.ceil(filteredMenus.length / rowsPerPage));
     } catch (error) {
       console.error('获取菜单列表失败:', error);
     } finally {
@@ -271,8 +286,13 @@ export default function MenuTab() {
                   startContent={<SearchIcon className="text-base text-gray-400 pointer-events-none flex-shrink-0" />}
                 />
               </div>
-              <Button color="primary" startContent={<PlusIcon className="text-lg" />} onClick={openAddModal}>
-                新增菜单
+              <Button 
+                color="primary" 
+                startContent={<PlusIcon className="text-lg" />} 
+                onClick={openAddModal}
+                aria-label="添加新菜单"
+              >
+                添加菜单
               </Button>
               {selectedRows.length > 0 && (
                 <Dropdown>
@@ -387,7 +407,7 @@ export default function MenuTab() {
                       </DropdownTrigger>
                       <DropdownMenu>
                         <DropdownItem key="edit" onClick={() => openEditModal(menu)}>
-                          <EditIcon className="text-lg" />
+                          <EditIcon className="w-3 h-3" />
                           编辑
                         </DropdownItem>
                         <DropdownItem 
@@ -396,7 +416,7 @@ export default function MenuTab() {
                           color="danger"
                           onClick={() => handleDelete(menu.id)}
                         >
-                          <TrashIcon className="text-lg" />
+                          <TrashIcon className="w-3 h-3" />
                           删除
                         </DropdownItem>
                       </DropdownMenu>
@@ -413,7 +433,7 @@ export default function MenuTab() {
               showControls
               initialPage={page}
               page={page}
-              total={Math.ceil(menus.length / rowsPerPage)}
+              total={totalPages}
               onChange={setPage}
               classNames={{
                 cursor: "bg-primary-500 text-white",
@@ -426,13 +446,13 @@ export default function MenuTab() {
         </div>
 
         {/* 新增/编辑菜单弹窗 */}
-        <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="2xl">
-          <ModalContent>
+        <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="2xl" scrollBehavior="inside" placement="center" className="mx-4">
+          <ModalContent className="max-h-[90vh]">
             <ModalHeader>
               {modalMode === 'add' ? '新增菜单' : '编辑菜单'}
             </ModalHeader>
-            <ModalBody>
-              <div className="grid grid-cols-2 gap-4">
+            <ModalBody className="max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="菜单名称"
                   placeholder="请输入菜单名称"
@@ -473,41 +493,51 @@ export default function MenuTab() {
                   selectedKeys={[formData.menu_type]}
                   onSelectionChange={keys => setFormData(prev => ({ 
                     ...prev, 
-                    menu_type: Array.from(keys)[0] as 'menu' | 'page' | 'button' 
+                    menu_type: Array.from(keys)[0] as 'menu' | 'page' | 'button'
                   }))}
+                  errorMessage={formErrors.menu_type}
+                  aria-label="选择菜单类型"
                 >
                   {MENU_TYPES.map(type => (
-                    <SelectItem key={type.key}>{type.label}</SelectItem>
+                    <SelectItem key={type.key} textValue={type.label} aria-label={`菜单类型: ${type.label}`}>
+                      {type.label}
+                    </SelectItem>
                   ))}
-                </Select>
-                <Select
-                  label="父菜单"
-                  selectedKeys={formData.parent ? [formData.parent.toString()] : []}
-                  onSelectionChange={keys => setFormData(prev => ({ 
-                    ...prev, 
-                    parent: Array.from(keys)[0] ? parseInt(Array.from(keys)[0] as string) : null 
-                  }))}
-                >
-                  <SelectItem key="">无父菜单</SelectItem>
-                  <Fragment>
-                    {getParentOptions().map(menu => (
-                      <SelectItem key={menu.id.toString()}>
-                        {menu.name}
-                      </SelectItem>
-                    ))}
-                  </Fragment>
                 </Select>
                 <Select
                   label="显示位置"
                   selectedKeys={[formData.display_position]}
                   onSelectionChange={keys => setFormData(prev => ({ 
                     ...prev, 
-                    display_position: Array.from(keys)[0] as 'sidebar' | 'navbar' | 'both' 
+                    display_position: Array.from(keys)[0] as 'sidebar' | 'navbar' | 'both'
                   }))}
+                  errorMessage={formErrors.display_position}
+                  aria-label="选择显示位置"
                 >
                   {DISPLAY_POSITIONS.map(position => (
-                    <SelectItem key={position.key}>{position.label}</SelectItem>
+                    <SelectItem key={position.key} textValue={position.label} aria-label={`显示位置: ${position.label}`}>
+                      {position.label}
+                    </SelectItem>
                   ))}
+                </Select>
+                <Select
+                  label="上级菜单"
+                  selectedKeys={formData.parent ? [formData.parent.toString()] : []}
+                  onSelectionChange={keys => setFormData(prev => ({ 
+                    ...prev, 
+                    parent: Array.from(keys)[0] ? parseInt(Array.from(keys)[0] as string) : null 
+                  }))}
+                  errorMessage={formErrors.parent}
+                  aria-label="选择上级菜单"
+                >
+                  <SelectItem key="" textValue="无上级菜单" aria-label="无上级菜单">无上级菜单</SelectItem>
+                  <Fragment>
+                    {getParentOptions().map(menu => (
+                      <SelectItem key={menu.id.toString()} textValue={menu.name} aria-label={`上级菜单: ${menu.name}`}>
+                        {menu.name}
+                      </SelectItem>
+                    ))}
+                  </Fragment>
                 </Select>
                 <Input
                   label="排序"
@@ -517,7 +547,7 @@ export default function MenuTab() {
                   errorMessage={formErrors.order}
                   description="数字越小排序越靠前"
                 />
-                <div className="flex gap-4 items-end">
+                <div className="flex flex-wrap gap-4 items-center">
                   <Switch
                     isSelected={formData.is_visible}
                     onValueChange={checked => setFormData(prev => ({ ...prev, is_visible: checked }))}

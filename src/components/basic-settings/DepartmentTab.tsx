@@ -26,9 +26,12 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  Spinner,
 } from "@heroui/react";
 import { SearchIcon, PlusIcon, EditIcon, TrashIcon } from "@/components/icons";
 import { api } from '@/services/api';
+import { useAuth } from "@/context/AuthContext";
+import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 
 interface Department {
   id: number;
@@ -43,6 +46,7 @@ interface Department {
 }
 
 export default function DepartmentTab() {
+  const { isAuthenticated, user } = useAuth();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
@@ -50,10 +54,12 @@ export default function DepartmentTab() {
   const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // 表单数据
   const [formData, setFormData] = useState({
@@ -67,18 +73,43 @@ export default function DepartmentTab() {
 
   // 获取部门列表
   const fetchDepartments = async () => {
+    if (!isAuthenticated) {
+      setError('请先登录以访问此功能');
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     try {
       const response = await api.get('/departments/', {
         params: {
           search: search,
-          page: page,
-          page_size: rowsPerPage,
         }
       });
-      setDepartments(response.data.results || response.data);
-    } catch (error) {
+      
+      // 现在API直接返回数组，不再是分页响应
+      const departmentData = Array.isArray(response) ? response : 
+                            response?.results || [];
+      
+      // 在前端进行过滤和分页
+      const filteredDepartments = departmentData.filter((dept: any) => 
+        !search || dept.name.toLowerCase().includes(search.toLowerCase())
+      );
+      
+      // 前端分页
+      const startIndex = (page - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      const paginatedDepartments = filteredDepartments.slice(startIndex, endIndex);
+      
+      setDepartments(paginatedDepartments);
+      setTotalPages(Math.ceil(filteredDepartments.length / rowsPerPage));
+    } catch (error: any) {
       console.error('获取部门列表失败:', error);
+      if (error.message.includes('Authentication')) {
+        setError('认证失败，请重新登录');
+      } else {
+        setError(`获取部门列表失败: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -90,8 +121,12 @@ export default function DepartmentTab() {
   };
 
   useEffect(() => {
-    fetchDepartments();
-  }, [search, page]);
+    if (isAuthenticated) {
+      fetchDepartments();
+    } else {
+      setError('请先登录以访问此功能');
+    }
+  }, [search, page, isAuthenticated]);
 
   // 打开新增弹窗
   const openAddModal = () => {
@@ -170,13 +205,17 @@ export default function DepartmentTab() {
     if (deleteId !== null) {
       try {
         await api.delete(`/departments/${deleteId}/`);
-        setShowDeleteModal(false);
-        setDeleteId(null);
         fetchDepartments();
       } catch (error) {
         console.error('删除部门失败:', error);
       }
     }
+  };
+
+  // 关闭删除模态框
+  const handleDeleteModalClose = () => {
+    setShowDeleteModal(false);
+    setDeleteId(null);
   };
 
   // 批量选择
@@ -210,12 +249,65 @@ export default function DepartmentTab() {
     }
   };
 
+  // 如果用户未认证，显示提示信息
+  if (!isAuthenticated) {
+    return (
+      <Card>
+        <CardBody>
+          <div className="text-center py-8">
+            <h2 className="text-xl font-semibold mb-2">需要登录</h2>
+            <p className="text-gray-600">请先登录以访问部门管理功能</p>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  // 如果有错误，显示错误信息
+  if (error) {
+    return (
+      <Card>
+        <CardBody>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">部门管理</h2>
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <p className="text-red-600">{error}</p>
+              <Button 
+                color="primary" 
+                className="mt-2" 
+                onClick={() => {
+                  setError(null);
+                  fetchDepartments();
+                }}
+              >
+                重试
+              </Button>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardBody>
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">部门管理</h2>
           <p className="text-gray-600">在这里管理公司部门结构和层级关系</p>
+          
+          {loading && (
+            <div className="flex justify-center items-center py-4">
+              <Spinner 
+                size="sm" 
+                color="primary" 
+                label="加载中..."
+                classNames={{
+                  label: "text-sm text-gray-600 ml-2"
+                }}
+              />
+            </div>
+          )}
           
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -227,8 +319,13 @@ export default function DepartmentTab() {
                   startContent={<SearchIcon className="text-base text-gray-400 pointer-events-none flex-shrink-0" />}
                 />
               </div>
-              <Button color="primary" startContent={<PlusIcon className="text-lg" />} onClick={openAddModal}>
-                新增部门
+              <Button 
+                color="primary" 
+                startContent={<PlusIcon className="text-lg" />} 
+                onClick={openAddModal}
+                aria-label="添加新部门"
+              >
+                添加部门
               </Button>
               {selectedRows.length > 0 && (
                 <Dropdown>
@@ -319,7 +416,7 @@ export default function DepartmentTab() {
                       </DropdownTrigger>
                       <DropdownMenu>
                         <DropdownItem key="edit" onClick={() => openEditModal(department)}>
-                          <EditIcon className="text-lg" />
+                          <EditIcon className="w-3 h-3" />
                           编辑
                         </DropdownItem>
                         <DropdownItem 
@@ -328,7 +425,7 @@ export default function DepartmentTab() {
                           color="danger"
                           onClick={() => handleDelete(department.id)}
                         >
-                          <TrashIcon className="text-lg" />
+                          <TrashIcon className="w-3 h-3" />
                           删除
                         </DropdownItem>
                       </DropdownMenu>
@@ -345,7 +442,7 @@ export default function DepartmentTab() {
               showControls
               initialPage={page}
               page={page}
-              total={Math.ceil(departments.length / rowsPerPage)}
+              total={totalPages}
               onChange={setPage}
               classNames={{
                 cursor: "bg-primary-500 text-white",
@@ -358,13 +455,13 @@ export default function DepartmentTab() {
         </div>
 
         {/* 新增/编辑部门弹窗 */}
-        <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="2xl">
-          <ModalContent>
+        <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="2xl" scrollBehavior="inside" placement="center" className="mx-4">
+          <ModalContent className="max-h-[90vh]">
             <ModalHeader>
               {modalMode === 'add' ? '新增部门' : '编辑部门'}
             </ModalHeader>
-            <ModalBody>
-              <div className="grid grid-cols-2 gap-4">
+            <ModalBody className="max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="部门名称"
                   placeholder="请输入部门名称"
@@ -382,15 +479,17 @@ export default function DepartmentTab() {
                     ...prev, 
                     parent: Array.from(keys)[0] ? parseInt(Array.from(keys)[0] as string) : null 
                   }))}
+                  errorMessage={formErrors.parent}
+                  aria-label="选择上级部门"
                 >
-                  <SelectItem key="">无上级部门</SelectItem>
+                  <SelectItem key="" textValue="无上级部门" aria-label="无上级部门">无上级部门</SelectItem>
                   <Fragment>
                     {getParentOptions().map(dept => (
-                      <SelectItem key={dept.id.toString()}>{dept.name}</SelectItem>
+                      <SelectItem key={dept.id.toString()} textValue={dept.name} aria-label={`上级部门: ${dept.name}`}>{dept.name}</SelectItem>
                     ))}
                   </Fragment>
                 </Select>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Input
                     label="部门描述"
                     placeholder="请输入部门描述"
@@ -401,7 +500,7 @@ export default function DepartmentTab() {
                     description="最多500个字符"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <Switch
                     isSelected={formData.is_active}
                     onValueChange={checked => setFormData(prev => ({ ...prev, is_active: checked }))}
@@ -423,22 +522,13 @@ export default function DepartmentTab() {
         </Modal>
 
         {/* 删除确认弹窗 */}
-        <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
-          <ModalContent>
-            <ModalHeader>确认删除</ModalHeader>
-            <ModalBody>
-              确定要删除这个部门吗？此操作不可恢复。
-            </ModalBody>
-            <ModalFooter>
-              <Button color="default" variant="flat" onClick={() => setShowDeleteModal(false)}>
-                取消
-              </Button>
-              <Button color="danger" onClick={confirmDelete}>
-                确认删除
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+        <DeleteConfirmModal
+          isOpen={showDeleteModal}
+          onClose={handleDeleteModalClose}
+          onConfirm={confirmDelete}
+          itemName={deleteId ? `部门："${departments.find(d => d.id === deleteId)?.name}"` : ""}
+          message="删除后该部门下的用户需要重新分配，相关数据将被永久删除。"
+        />
       </CardBody>
     </Card>
   );

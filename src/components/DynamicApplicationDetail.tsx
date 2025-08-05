@@ -202,6 +202,7 @@ const DynamicApplicationDetail: React.FC<DynamicApplicationDetailProps> = ({
     min_stock: number[];
     min_total_stock: number[];
     max_stock: number[];
+    max_total_stock: number[];
     monthly_demand: number[];
     monthly_net_demand: number[];
     actual_order: number[];
@@ -214,6 +215,7 @@ const DynamicApplicationDetail: React.FC<DynamicApplicationDetailProps> = ({
     min_stock: [],
     min_total_stock: [],
     max_stock: [],
+    max_total_stock: [],
     monthly_demand: [],
     monthly_net_demand: [],
     actual_order: [],
@@ -3442,6 +3444,18 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
             max_stock: Number(
               item.multi_station_data!.max_stock[stationIndex] || 0,
             ),
+            min_total_stock: Number(
+              (item.multi_station_data?.min_total_stock && 
+               item.multi_station_data.min_total_stock[stationIndex] !== undefined) 
+                ? item.multi_station_data.min_total_stock[stationIndex] 
+                : 0,
+            ),
+            max_total_stock: Number(
+              (item.multi_station_data?.max_total_stock && 
+               item.multi_station_data.max_total_stock[stationIndex] !== undefined) 
+                ? item.multi_station_data.max_total_stock[stationIndex] 
+                : 0,
+            ),
             monthly_demand: Number(
               item.multi_station_data!.monthly_demand[stationIndex] || 0,
             ),
@@ -3468,6 +3482,8 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
 
         dataRows.push({
           ...item,
+          min_total_stock: Number(item.min_stock || 0), // 单站别：最低庫存總數 = 最低库存数量
+          max_total_stock: Number(item.max_total_stock || item.max_stock || 0),
           key: uniqueKey,
           id: uniqueKey,
           stationIndex: 0,
@@ -3957,6 +3973,7 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
           min_stock: multiData.min_stock || [],
           min_total_stock: multiData.min_total_stock || multiData.min_stock || [],
           max_stock: multiData.max_stock || [],
+          max_total_stock: multiData.max_total_stock || multiData.max_stock || [],
           monthly_demand: multiData.monthly_demand || [],
           monthly_net_demand: multiData.monthly_net_demand || [],
           actual_order: multiData.actual_order || [],
@@ -4005,6 +4022,7 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
       min_stock: [currentData.min_stock || 0],
       min_total_stock: [currentData.min_stock || 0], // 初始值设为最低库存
       max_stock: [currentData.max_stock || 0],
+      max_total_stock: [currentData.max_stock || 0], // 初始值设为最高库存
       monthly_demand: [currentData.monthly_demand || 0],
       monthly_net_demand: [currentData.monthly_net_demand || 0],
       actual_order: [currentData.actual_order || 0],
@@ -4022,6 +4040,7 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
       min_stock: [...prev.min_stock, 0],
       min_total_stock: [...(prev.min_total_stock || []), 0],
       max_stock: [...prev.max_stock, 0],
+      max_total_stock: [...(prev.max_total_stock || []), 0],
       monthly_demand: [...prev.monthly_demand, 0],
       monthly_net_demand: [...prev.monthly_net_demand, 0],
       actual_order: [...prev.actual_order, 0],
@@ -4061,6 +4080,7 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
       min_stock: prev.min_stock.filter((_, i) => i !== index),
       min_total_stock: prev.min_total_stock.filter((_, i) => i !== index),
       max_stock: prev.max_stock.filter((_, i) => i !== index),
+      max_total_stock: prev.max_total_stock.filter((_, i) => i !== index),
       monthly_demand: prev.monthly_demand.filter((_, i) => i !== index),
       monthly_net_demand: prev.monthly_net_demand.filter((_, i) => i !== index),
       actual_order: prev.actual_order.filter((_, i) => i !== index),
@@ -4135,6 +4155,7 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
           min_stock: demandMultiStationData.min_stock,
           min_total_stock: demandMultiStationData.min_total_stock,
           max_stock: demandMultiStationData.max_stock,
+          max_total_stock: demandMultiStationData.max_total_stock,
           monthly_demand: demandMultiStationData.monthly_demand,
           monthly_net_demand: demandMultiStationData.monthly_net_demand,
           actual_order: demandMultiStationData.actual_order,
@@ -4210,6 +4231,7 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
             min_stock: [],
             min_total_stock: [],
             max_stock: [],
+            max_total_stock: [],
             monthly_demand: [],
             monthly_net_demand: [],
             actual_order: [],
@@ -5535,6 +5557,7 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
                         <TableColumn>最低库存</TableColumn>
                         <TableColumn>最低庫存總數</TableColumn>
                         <TableColumn>最高库存</TableColumn>
+                        <TableColumn>最高庫存總數</TableColumn>
                         <TableColumn>当月需求/站</TableColumn>
                         <TableColumn>实际订购</TableColumn>
                         <TableColumn>备注(MOQ)</TableColumn>
@@ -5663,6 +5686,24 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
                                     updateDemandStationData(
                                       index,
                                       "max_stock",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  size="sm"
+                                  type="number"
+                                  value={
+                                    demandMultiStationData.max_total_stock[
+                                      index
+                                    ]?.toString() || "0"
+                                  }
+                                  onChange={(e) =>
+                                    updateDemandStationData(
+                                      index,
+                                      "max_total_stock",
                                       e.target.value,
                                     )
                                   }

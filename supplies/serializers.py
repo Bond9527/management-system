@@ -191,6 +191,23 @@ class DynamicCalculationItemSerializer(serializers.ModelSerializer):
         model = DynamicCalculationItem
         fields = '__all__'
 
+    def to_representation(self, instance):
+        """添加错误处理，确保序列化时不会因为缺失字段而失败"""
+        try:
+            return super().to_representation(instance)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger('django')
+            logger.error(f"序列化DynamicCalculationItem时出错: {e}")
+            # 返回基本字段，避免完全失败
+            return {
+                'id': instance.id,
+                'form': instance.form_id,
+                'no': instance.no,
+                'material_name': instance.material_name,
+                'error': f'序列化错误: {str(e)}'
+            }
+
     def update(self, instance, validated_data):
         import logging
         logger = logging.getLogger('django')

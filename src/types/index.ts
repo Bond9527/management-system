@@ -66,6 +66,7 @@ export interface DynamicCalculationItem {
   monthly_capacity: number;
   min_stock: number;
   max_stock: number;
+  max_total_stock: number;
   monthly_demand: number;
   monthly_net_demand: number;
   actual_order: number;
@@ -87,6 +88,7 @@ export interface DynamicCalculationItem {
     min_stock: number[];
     min_total_stock: number[];
     max_stock: number[];
+    max_total_stock: number[];
     monthly_demand: number[];
     monthly_net_demand: number[];
     actual_order: number[];

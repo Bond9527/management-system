@@ -1180,6 +1180,7 @@ def get_b453_calculation_headers(request):
         {'title': '最低庫存數量', 'dataIndex': 'min_stock', 'key': 'min_stock', 'width': 140},
         {'title': '最低庫存總數', 'dataIndex': 'min_total_stock', 'key': 'min_total_stock', 'width': 140},
         {'title': '最高庫存數量', 'dataIndex': 'max_stock', 'key': 'max_stock', 'width': 140},
+        {'title': '最高庫存總數', 'dataIndex': 'max_total_stock', 'key': 'max_total_stock', 'width': 140},
         {'title': '當月需求/站', 'dataIndex': 'monthly_demand', 'key': 'monthly_demand', 'width': 120},
         {'title': '當月總需求', 'dataIndex': 'monthly_net_demand', 'key': 'monthly_net_demand', 'width': 150},
         {'title': '實際訂購數量', 'dataIndex': 'actual_order', 'key': 'actual_order', 'width': 150},

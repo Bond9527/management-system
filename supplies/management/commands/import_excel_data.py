@@ -1,178 +1,164 @@
 import pandas as pd
 from django.core.management.base import BaseCommand
-from supplies.models import Supply
+from supplies.models import DynamicCalculationItem, ApplicationForm
+from django.db import transaction
 from decimal import Decimal
+import math
 import re
 
 class Command(BaseCommand):
-    help = '从Excel文件导入耗材基础数据'
+    help = '将Excel所有sheet内容导入DynamicCalculationItem，挂到B453 SMT ATE 2025年7月份耗材管控表（ID=14）'
+
+    def clean_material_name(self, name):
+        """清洗物料名称，去除空格、标点、特殊字符，统一格式"""
+        # 去除所有空格、标点、特殊字符，只保留字母数字和连字符
+        cleaned = re.sub(r'[^\w\-]', '', str(name).strip())
+        # 统一转小写
+        return cleaned.lower()
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--file',
-            type=str,
-            default='B482 202507耗材評估表V2.xlsx',
-            help='Excel文件路径'
-        )
+        parser.add_argument('--file', type=str, required=True, help='Excel文件路径')
 
     def handle(self, *args, **options):
         file_path = options['file']
-        
+        application_form_id = 14  # 固定ID
         try:
-            self.stdout.write('开始导入Excel数据...')
-            
-            # 读取主数据工作表
-            df1 = pd.read_excel(file_path, sheet_name='2025年7月份耗材管控表 ')
-            
-            # 读取使用频次工作表
-            df2 = pd.read_excel(file_path, sheet_name='2024年7月耗材需求计算 ')
-            
-            # 创建使用频次映射
-            usage_map = self.create_usage_map(df2)
-            
-            # 导入主数据
-            created_count = self.import_main_data(df1, usage_map)
-            
-            self.stdout.write(
-                self.style.SUCCESS(f'成功导入 {created_count} 个耗材记录')
-            )
-            
-        except Exception as e:
-            self.stdout.write(
-                self.style.ERROR(f'导入失败: {str(e)}')
-            )
+            application_form = ApplicationForm.objects.get(id=application_form_id)
+        except ApplicationForm.DoesNotExist:
+            self.stdout.write(self.style.ERROR(f'未找到ID={application_form_id}的申请表'))
+            return
 
-    def create_usage_map(self, df2):
-        """创建耗材使用频次映射"""
-        usage_map = {}
-        
-        for i in range(1, len(df2)):
-            row = df2.iloc[i]
-            if pd.notna(row.iloc[2]):  # 耗材名称列
-                material_name = str(row.iloc[2])
-                usage_station = str(row.iloc[3]) if pd.notna(row.iloc[3]) else ""
-                usage_per_machine = int(row.iloc[4]) if pd.notna(row.iloc[4]) and str(row.iloc[4]).isdigit() else 0
-                usage_count = int(row.iloc[5]) if pd.notna(row.iloc[5]) and str(row.iloc[5]).isdigit() else 0
-                
-                # 提取耗材关键标识符
-                key = self.extract_material_key(material_name)
-                if key:
-                    usage_map[key] = {
-                        'usage_station': usage_station,
-                        'usage_per_machine': usage_per_machine,
-                        'standard_usage_count': usage_count
-                    }
-        
-        return usage_map
+        self.stdout.write(self.style.WARNING('清空旧数据...'))
+        DynamicCalculationItem.objects.filter(form=application_form).delete()
 
-    def extract_material_key(self, material_name):
-        """从耗材名称中提取关键标识符"""
-        # 提取类似 '3.PRO.000556', '118-6000-B-60-BB-i' 等标识符
-        patterns = [
-            r'(\d+\.PRO\.\d+)',  # 3.PRO.000556
-            r'(\d+-\d+-[A-Z]-\d+-[A-Z]+-[a-z])',  # 118-6000-B-60-BB-i
-            r'(P\d+-[A-Z]\d+)',  # P100-J1
-            r'(\d+AA-\d+FK\.\d+)',  # 410AA-00057FK.01
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, material_name)
-            if match:
-                return match.group(1)
-        
+        self.stdout.write(self.style.SUCCESS(f'开始导入 {file_path} 到申请表: {application_form.name}'))
+        xls = pd.ExcelFile(file_path)
+        total_created = 0
+        global_no = 1  # 全局序号
+        seen_materials = set()  # 记录已导入的物料名称
+        with transaction.atomic():
+            for sheet_name in xls.sheet_names:
+                # 先尝试多级表头
+                try:
+                    df = pd.read_excel(xls, sheet_name=sheet_name, header=[0,1])
+                    # 拼接多级表头为单行
+                    df.columns = [''.join([str(x) for x in col if str(x) != 'nan']).replace(' ', '') for col in df.columns.values]
+                except Exception:
+                    df = pd.read_excel(xls, sheet_name=sheet_name)
+                    df.columns = [str(col).replace(' ', '') for col in df.columns]
+                self.stdout.write(f'处理Sheet: {sheet_name}，共{len(df)}行')
+                self.stdout.write(f'实际列名: {df.columns.tolist()}')
+                # 自动宽松查找物料名列
+                material_col = None
+                for col in df.columns:
+                    if any(key in str(col) for key in ['料描述','物料描述','品名','名称','名稱']):
+                        material_col = col
+                        break
+                if not material_col:
+                    self.stdout.write(self.style.ERROR('未找到“料描述/物料描述/品名/名称”列，跳过该sheet'))
+                    continue
+                for idx, row in df.iterrows():
+                    material_name = row.get(material_col)
+                    if (
+                        not material_name
+                        or str(material_name).strip() == ''
+                        or str(material_name).strip().lower() == 'nan'
+                        or (isinstance(material_name, float) and math.isnan(material_name))
+                        or '核准' in str(material_name)
+                    ):
+                        continue
+                    
+                    # 去重检查
+                    material_name_clean = self.clean_material_name(material_name)
+                    if material_name_clean in seen_materials:
+                        self.stdout.write(f'跳过重复物料: {material_name} (清洗后: {material_name_clean})')
+                        continue  # 跳过重复物料
+                    seen_materials.add(material_name_clean)
+                    self.stdout.write(f'导入物料: {material_name} (清洗后: {material_name_clean})')
+                    
+                    # 基础字段
+                    unit = self._find_value(row, ['单位','單位','unit']) or 'pcs'
+                    purchaser = self._find_value(row, ['采购员','採購員','purchaser']) or ''
+                    unit_price_raw = self._find_value(row, ['单价','單價','單價(RMB)','unit_price','price'])
+                    unit_price = unit_price_raw or 0
+                    if unit_price_raw:
+                        self.stdout.write(f'找到单价: {material_name} -> {unit_price_raw}')
+                    else:
+                        self.stdout.write(f'未找到单价: {material_name}')
+                    min_stock = self._find_value(row, ['最低','min_stock','min']) or 0
+                    max_stock = self._find_value(row, ['最高','max_stock','max']) or 0
+                    moq = self._find_value(row, ['MOQ','moq']) or 0
+                    total_amount = self._find_value(row, ['总金额','总金额(RMB)','total_amount','amount']) or 0
+                    remark = self._find_value(row, ['备注','備註','remark']) or ''
+
+                    # NaN安全转换
+                    min_stock = safe_int(min_stock)
+                    max_stock = safe_int(max_stock)
+                    moq = safe_int(moq)
+                    unit_price = 0 if pd.isna(unit_price) else Decimal(str(unit_price))
+                    total_amount = 0 if pd.isna(total_amount) else Decimal(str(total_amount))
+
+                    # 自动识别月度需求/库存、快照、周需求等
+                    monthly_data = {}
+                    stock_snapshots = {}
+                    chase_data = {}
+                    for col in df.columns:
+                        col_str = str(col)
+                        val = row.get(col)
+                        if pd.isna(val):
+                            continue
+                        # 月度需求/库存
+                        if '需求' in col_str or ('月' in col_str and '需求' in col_str) or '明细' in col_str:
+                            monthly_data[col_str] = val
+                        elif '库存' in col_str or '存量' in col_str or '备料' in col_str:
+                            stock_snapshots[col_str] = val
+                        # 周需求/追料
+                        elif ('W0' in col_str or 'W1' in col_str or 'W2' in col_str or 'W3' in col_str or 'W4' in col_str or '周' in col_str) and ('需求' in col_str or '数量' in col_str or '数' in col_str):
+                            chase_data[col_str] = val
+                        # 追料特殊日期
+                        elif ('6/19' in col_str or '6/25' in col_str or '8/19' in col_str or '8/25' in col_str) and ('数量' in col_str or '数' in col_str):
+                            chase_data[col_str] = val
+
+                    # 自动分配序号
+                    no = global_no
+
+                    item = DynamicCalculationItem(
+                        form=application_form,
+                        no=global_no,
+                        material_name=str(material_name).strip(),
+                        purchaser=purchaser,
+                        unit_price=unit_price,
+                        min_stock=min_stock,
+                        max_stock=max_stock,
+                        moq=moq,
+                        total_amount=total_amount,
+                        monthly_data=monthly_data,
+                        stock_snapshots=stock_snapshots,
+                        chase_data=chase_data,
+                        is_visible=True
+                    )
+                    item.save()
+                    total_created += 1
+                    global_no += 1
+        self.stdout.write(self.style.SUCCESS(f'全部导入完成，共创建 {total_created} 条记录'))
+
+    def _find_value(self, row, keys):
+        for key in keys:
+            for col in row.index:
+                if key in str(col):
+                    return row.get(col)
         return None
 
-    def import_main_data(self, df1, usage_map):
-        """导入主数据"""
-        created_count = 0
-        
-        # 从第4行开始处理数据（跳过标题行）
-        for i in range(3, len(df1)):
-            row = df1.iloc[i]
-            
-            # 检查是否有序号（判断是否为数据行）
-            if pd.notna(row.iloc[0]):
-                try:
-                    # 提取基础数据
-                    serial_no = row.iloc[0]
-                    name = str(row.iloc[1]) if pd.notna(row.iloc[1]) else ""
-                    unit = str(row.iloc[2]) if pd.notna(row.iloc[2]) else "pcs"
-                    purchaser = str(row.iloc[3]) if pd.notna(row.iloc[3]) else ""
-                    unit_price = Decimal(str(row.iloc[4])) if pd.notna(row.iloc[4]) else Decimal('0')
-                    
-                    # 提取库存相关数据
-                    max_stock = int(row.iloc[5]) if pd.notna(row.iloc[5]) and str(row.iloc[5]).isdigit() else 0
-                    min_stock = int(row.iloc[6]) if pd.notna(row.iloc[6]) and str(row.iloc[6]).isdigit() else 0
-                    
-                    # 提取MOQ信息
-                    moq = self.extract_moq(row)
-                    
-                    # 分类判断
-                    category = self.determine_category(name)
-                    
-                    # 查找使用频次信息
-                    material_key = self.extract_material_key(name)
-                    usage_info = usage_map.get(material_key, {})
-                    
-                    # 创建或更新耗材记录
-                    supply, created = Supply.objects.get_or_create(
-                        name=name,
-                        defaults={
-                            'category': category,
-                            'unit': unit,
-                            'unit_price': unit_price,
-                            'purchaser': purchaser,
-                            'min_order_quantity': moq,
-                            'max_stock': max_stock,
-                            'min_stock': min_stock,
-                            'safety_stock': min_stock,  # 暂时用最低库存作为安全库存
-                            'usage_station': usage_info.get('usage_station', ''),
-                            'usage_per_machine': usage_info.get('usage_per_machine', 0),
-                            'standard_usage_count': usage_info.get('standard_usage_count', 0),
-                        }
-                    )
-                    
-                    if created:
-                        created_count += 1
-                        self.stdout.write(f'创建耗材: {name}')
-                    
-                except Exception as e:
-                    self.stdout.write(
-                        self.style.WARNING(f'跳过第{i+1}行，处理出错: {str(e)}')
-                    )
-                    continue
-        
-        return created_count
-
-    def extract_moq(self, row):
-        """提取MOQ信息"""
-        # 在备注列或其他列中查找MOQ信息
-        for col_idx in range(len(row)):
-            if pd.notna(row.iloc[col_idx]):
-                cell_value = str(row.iloc[col_idx])
-                # 查找MOQ:200PCS格式
-                moq_match = re.search(r'MOQ:(\d+)', cell_value)
-                if moq_match:
-                    return int(moq_match.group(1))
-        return 1
-
-    def determine_category(self, name):
-        """根据名称判断分类"""
-        name_lower = name.lower()
-        
-        if '测试针' in name or '探针' in name or 'tip' in name_lower:
-            return '探针'
-        elif '線材' in name or '线材' in name or '線' in name:
-            return '线材'
-        elif '開關' in name or '开关' in name or 'switch' in name_lower:
-            return '开关'
-        elif '傳感器' in name or '传感器' in name or 'sensor' in name_lower:
-            return '传感器'
-        elif '彈簧' in name or '弹簧' in name or 'spring' in name_lower:
-            return '弹簧'
-        elif '設備耗材' in name:
-            return '设备耗材'
-        elif '設備配件' in name:
-            return '设备配件'
-        else:
-            return '其他' 
+def safe_int(val):
+    try:
+        if pd.isna(val):
+            return 0
+        val_str = str(val).strip()
+        if val_str == '' or val_str == '/':
+            return 0
+        # 允许小数点的数字
+        if val_str.replace('.', '', 1).isdigit():
+            return int(float(val_str))
+        return 0
+    except Exception:
+        return 0 

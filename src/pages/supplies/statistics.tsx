@@ -1,18 +1,14 @@
-import { FC, useState, Fragment, useEffect } from "react";
+import { useState, Fragment } from "react";
 import {
   Card,
   CardBody,
-  Input,
   Button,
   Select,
   SelectItem,
   Chip,
   DateRangePicker,
   DateValue,
-  Badge,
-  Spinner,
 } from "@heroui/react";
-import { SearchIcon, RefreshIcon, FilterIcon, WarningIcon } from "@/components/icons";
 import {
   LineChart,
   Line,
@@ -30,7 +26,9 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { useSupplies, SupplyItem, InventoryRecord } from "@/hooks/useSupplies";
+
+import { SearchIcon, RefreshIcon, WarningIcon } from "@/components/icons";
+import { useSupplies } from "@/hooks/useSupplies";
 import { generateInventorySummary } from "@/utils/dataConsistencyTest";
 import { formatDate } from "@/utils/dateUtils";
 
@@ -70,30 +68,35 @@ const chartStyles = {
 // 根据类别返回对应的单位
 const getUnitByCategory = (category: string): string => {
   const unitMap: Record<string, string> = {
-    "探针": "支",
-    "清洁剂": "瓶",
-    "继电器": "个",
-    "连接器": "个",
-    "轴承": "个",
-    "手动工具": "套",
-    "安全防护用品": "套",
-    "包装材料": "包",
-    "办公用品": "个",
-    "其他": "个"
+    探针: "支",
+    清洁剂: "瓶",
+    继电器: "个",
+    连接器: "个",
+    轴承: "个",
+    手动工具: "套",
+    安全防护用品: "套",
+    包装材料: "包",
+    办公用品: "个",
+    其他: "个",
   };
+
   return unitMap[category] || "个";
 };
 
 export default function SuppliesStatisticsPage() {
   const { supplies, records, isLoading, error } = useSupplies();
-  const [dateRange, setDateRange] = useState<{ start: DateValue; end: DateValue } | null>(null);
+  const [dateRange, setDateRange] = useState<{
+    start: DateValue;
+    end: DateValue;
+  } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedOperationType, setSelectedOperationType] = useState<string>("all");
+  const [selectedOperationType, setSelectedOperationType] =
+    useState<string>("all");
   const [isResetting, setIsResetting] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   // 获取所有类别
-  const categories = Array.from(new Set(supplies.map(item => item.category)));
+  const categories = Array.from(new Set(supplies.map((item) => item.category)));
 
   // 调试信息
   const debugInfo = {
@@ -101,51 +104,69 @@ export default function SuppliesStatisticsPage() {
     recordsCount: records.length,
     isLoading,
     error,
-    hasRecentRecords: records.filter(r => {
-      const recordDate = new Date(r.timestamp);
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return recordDate >= weekAgo;
-    }).length > 0,
+    hasRecentRecords:
+      records.filter((r) => {
+        const recordDate = new Date(r.timestamp);
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+        return recordDate >= weekAgo;
+      }).length > 0,
     recordTypes: {
-      in: records.filter(r => r.type === 'in').length,
-      out: records.filter(r => r.type === 'out').length,
-      adjust: records.filter(r => r.type === 'adjust').length,
-    }
+      in: records.filter((r) => r.type === "in").length,
+      out: records.filter((r) => r.type === "out").length,
+      adjust: records.filter((r) => r.type === "adjust").length,
+    },
   };
 
   // 生成真实的趋势数据
   const generateTrendData = () => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
+
       date.setDate(date.getDate() - i);
-      return date.toISOString().split('T')[0];
+
+      return date.toISOString().split("T")[0];
     }).reverse();
 
-    return last7Days.map(date => {
-      const dayRecords = records.filter(record => {
+    return last7Days.map((date) => {
+      const dayRecords = records.filter((record) => {
         const recordDate = formatDate(record.timestamp);
+
         return recordDate === date;
       });
 
-      const inCount = dayRecords.filter(r => r.type === 'in').reduce((sum, r) => sum + r.quantity, 0);
-      const outCount = dayRecords.filter(r => r.type === 'out').reduce((sum, r) => sum + r.quantity, 0);
+      const inCount = dayRecords
+        .filter((r) => r.type === "in")
+        .reduce((sum, r) => sum + r.quantity, 0);
+      const outCount = dayRecords
+        .filter((r) => r.type === "out")
+        .reduce((sum, r) => sum + r.quantity, 0);
 
       return {
-        date: new Date(date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
+        date: new Date(date).toLocaleDateString("zh-CN", {
+          month: "short",
+          day: "numeric",
+        }),
         in: inCount,
-        out: outCount
+        out: outCount,
       };
     });
   };
 
   // 生成真实的分类数据
   const generateCategoryData = () => {
-    return categories.map(category => {
-      const categorySupplies = supplies.filter(item => item.category === category);
-      const totalStock = categorySupplies.reduce((sum, item) => sum + item.current_stock, 0);
+    return categories.map((category) => {
+      const categorySupplies = supplies.filter(
+        (item) => item.category === category,
+      );
+      const totalStock = categorySupplies.reduce(
+        (sum, item) => sum + item.current_stock,
+        0,
+      );
+
       return {
         name: category,
-        value: totalStock
+        value: totalStock,
       };
     });
   };
@@ -153,11 +174,11 @@ export default function SuppliesStatisticsPage() {
   // 生成真实的排名数据
   const generateRankingData = () => {
     return supplies
-      .map(item => ({
+      .map((item) => ({
         name: item.name,
         value: item.current_stock,
         unit: item.unit,
-        category: item.category
+        category: item.category,
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 10); // 取前10名
@@ -166,27 +187,30 @@ export default function SuppliesStatisticsPage() {
   // 生成真实的低库存数据
   const generateLowStockData = () => {
     return supplies
-      .filter(item => item.current_stock <= item.safety_stock)
-      .map(item => ({
+      .filter((item) => item.current_stock <= item.safety_stock)
+      .map((item) => ({
         name: item.name,
         current: item.current_stock,
         threshold: item.safety_stock,
         unit: item.unit,
-        category: item.category
+        category: item.category,
       }))
       .sort((a, b) => a.current - b.current);
   };
 
   // 生成操作员数据
   const generateOperatorData = () => {
-    const operatorStats: Record<string, { name: string; value: number; department: string }> = {};
-    
-    records.forEach(record => {
+    const operatorStats: Record<
+      string,
+      { name: string; value: number; department: string }
+    > = {};
+
+    records.forEach((record) => {
       if (!operatorStats[record.operator]) {
         operatorStats[record.operator] = {
           name: record.operator,
           value: 0,
-          department: record.department
+          department: record.department,
         };
       }
       operatorStats[record.operator].value += record.quantity;
@@ -200,7 +224,7 @@ export default function SuppliesStatisticsPage() {
   // 重置所有筛选条件和统计数据
   const handleReset = () => {
     setIsResetting(true);
-    
+
     // 重置筛选条件
     setDateRange(null);
     setSelectedCategory("all");
@@ -221,20 +245,22 @@ export default function SuppliesStatisticsPage() {
         rankingData: [],
         operatorData: [],
         lowStockData: [],
-        monthlyComparisonData: []
+        monthlyComparisonData: [],
       };
     }
 
     // 根据选择的类别过滤数据
     const filterByCategory = (data: any[]) => {
       if (selectedCategory === "all") return data;
-      return data.filter(item => item.category === selectedCategory);
+
+      return data.filter((item) => item.category === selectedCategory);
     };
 
     // 根据选择的操作类型过滤数据
     const filterByOperationType = (data: any[]) => {
       if (selectedOperationType === "all") return data;
-      return data.filter(item => item.type === selectedOperationType);
+
+      return data.filter((item) => item.type === selectedOperationType);
     };
 
     // 根据日期范围过滤数据
@@ -242,21 +268,26 @@ export default function SuppliesStatisticsPage() {
       if (!dateRange) return data;
       const startDate = new Date(dateRange.start.toString());
       const endDate = new Date(dateRange.end.toString());
-      return data.filter(item => {
+
+      return data.filter((item) => {
         const itemDate = new Date(item.date);
+
         return itemDate >= startDate && itemDate <= endDate;
       });
     };
 
     return {
       trendData: filterByDateRange(generateTrendData()),
-      categoryData: selectedCategory === "all" 
-        ? generateCategoryData() 
-        : generateCategoryData().filter(item => item.name === selectedCategory),
+      categoryData:
+        selectedCategory === "all"
+          ? generateCategoryData()
+          : generateCategoryData().filter(
+              (item) => item.name === selectedCategory,
+            ),
       rankingData: filterByCategory(generateRankingData()),
       operatorData: generateOperatorData(),
       lowStockData: filterByCategory(generateLowStockData()),
-      monthlyComparisonData: filterByDateRange(generateTrendData()) // 使用趋势数据作为月度对比
+      monthlyComparisonData: filterByDateRange(generateTrendData()), // 使用趋势数据作为月度对比
     };
   };
 
@@ -269,25 +300,33 @@ export default function SuppliesStatisticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="shadow-lg">
           <CardBody className="text-center">
-            <div className="text-2xl font-bold text-primary">{summary.totalSupplies}</div>
+            <div className="text-2xl font-bold text-primary">
+              {summary.totalSupplies}
+            </div>
             <div className="text-sm text-gray-600">总耗材数</div>
           </CardBody>
         </Card>
         <Card className="shadow-lg">
           <CardBody className="text-center">
-            <div className="text-2xl font-bold text-success">{summary.totalRecords}</div>
+            <div className="text-2xl font-bold text-success">
+              {summary.totalRecords}
+            </div>
             <div className="text-sm text-gray-600">变动记录数</div>
           </CardBody>
         </Card>
         <Card className="shadow-lg">
           <CardBody className="text-center">
-            <div className="text-2xl font-bold text-danger">{summary.lowStockItems}</div>
+            <div className="text-2xl font-bold text-danger">
+              {summary.lowStockItems}
+            </div>
             <div className="text-sm text-gray-600">库存不足</div>
           </CardBody>
         </Card>
         <Card className="shadow-lg">
           <CardBody className="text-center">
-            <div className="text-2xl font-bold text-warning">{summary.recentActivity}</div>
+            <div className="text-2xl font-bold text-warning">
+              {summary.recentActivity}
+            </div>
             <div className="text-sm text-gray-600">本周变动</div>
           </CardBody>
         </Card>
@@ -300,24 +339,27 @@ export default function SuppliesStatisticsPage() {
             <div className="flex items-start gap-3">
               <WarningIcon className="text-warning flex-shrink-0 mt-1" />
               <div>
-                <h3 className="font-semibold text-warning mb-2">图表数据提示</h3>
+                <h3 className="font-semibold text-warning mb-2">
+                  图表数据提示
+                </h3>
                 {debugInfo.recordsCount === 0 ? (
                   <p className="text-sm text-gray-600">
                     系统中暂无库存变动记录，图表将显示为空。请先进行一些入库、出库或调整操作。
                   </p>
                 ) : !debugInfo.hasRecentRecords ? (
                   <p className="text-sm text-gray-600">
-                    最近7天没有库存变动记录，趋势图表可能显示为空。当前共有 {debugInfo.recordsCount} 条历史记录。
+                    最近7天没有库存变动记录，趋势图表可能显示为空。当前共有{" "}
+                    {debugInfo.recordsCount} 条历史记录。
                   </p>
                 ) : null}
                 <div className="mt-3 flex gap-2">
-                  <Button 
-                    size="sm" 
-                    color="primary" 
+                  <Button
+                    color="primary"
+                    size="sm"
                     variant="flat"
                     onPress={() => setShowDebugInfo(!showDebugInfo)}
                   >
-                    {showDebugInfo ? '隐藏' : '显示'}调试信息
+                    {showDebugInfo ? "隐藏" : "显示"}调试信息
                   </Button>
                 </div>
                 {showDebugInfo && (
@@ -336,21 +378,29 @@ export default function SuppliesStatisticsPage() {
         <CardBody>
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">时间范围</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                时间范围
+              </label>
               <DateRangePicker
+                className="w-full"
                 value={dateRange}
                 onChange={setDateRange}
-                className="w-full"
               />
             </div>
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">耗材分类</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                耗材分类
+              </label>
               <Select
-                selectedKeys={new Set([selectedCategory])}
-                onSelectionChange={(keys) => setSelectedCategory(Array.from(keys)[0] as string)}
                 className="w-full"
+                selectedKeys={new Set([selectedCategory])}
+                onSelectionChange={(keys) =>
+                  setSelectedCategory(Array.from(keys)[0] as string)
+                }
               >
-                <SelectItem key="all" textValue="全部">全部</SelectItem>
+                <SelectItem key="all" textValue="全部">
+                  全部
+                </SelectItem>
                 <Fragment>
                   {categories.map((category) => (
                     <SelectItem key={category} textValue={category}>
@@ -361,31 +411,41 @@ export default function SuppliesStatisticsPage() {
               </Select>
             </div>
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">操作类型</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                操作类型
+              </label>
               <Select
-                selectedKeys={new Set([selectedOperationType])}
-                onSelectionChange={(keys) => setSelectedOperationType(Array.from(keys)[0] as string)}
                 className="w-full"
+                selectedKeys={new Set([selectedOperationType])}
+                onSelectionChange={(keys) =>
+                  setSelectedOperationType(Array.from(keys)[0] as string)
+                }
               >
-                <SelectItem key="all" textValue="全部">全部</SelectItem>
-                <SelectItem key="in" textValue="入库">入库</SelectItem>
-                <SelectItem key="out" textValue="出库">出库</SelectItem>
+                <SelectItem key="all" textValue="全部">
+                  全部
+                </SelectItem>
+                <SelectItem key="in" textValue="入库">
+                  入库
+                </SelectItem>
+                <SelectItem key="out" textValue="出库">
+                  出库
+                </SelectItem>
               </Select>
             </div>
             <div className="flex gap-2">
               <Button
                 color="primary"
-                variant="flat"
                 startContent={<SearchIcon />}
+                variant="flat"
               >
                 查询
               </Button>
               <Button
                 color="default"
-                variant="flat"
-                startContent={<RefreshIcon />}
-                onClick={handleReset}
                 isLoading={isResetting}
+                startContent={<RefreshIcon />}
+                variant="flat"
+                onClick={handleReset}
               >
                 重置
               </Button>
@@ -399,60 +459,72 @@ export default function SuppliesStatisticsPage() {
         <CardBody>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">出入库趋势</h3>
+              <h3 className="text-lg font-semibold text-gray-700">
+                出入库趋势
+              </h3>
               <p className="text-sm text-gray-500 mt-1">近7天出入库数量变化</p>
             </div>
             <div className="flex gap-2">
-              <Chip color="success" variant="flat">入库</Chip>
-              <Chip color="danger" variant="flat">出库</Chip>
+              <Chip color="success" variant="flat">
+                入库
+              </Chip>
+              <Chip color="danger" variant="flat">
+                出库
+              </Chip>
             </div>
           </div>
           <div className="h-[400px]">
             {filteredData.trendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer height="100%" width="100%">
                 <LineChart data={filteredData.trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.grid.stroke} />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={chartStyles.axis.tick}
-                    tickLine={{ stroke: chartStyles.axis.stroke }}
-                    axisLine={{ stroke: chartStyles.axis.stroke }}
+                  <CartesianGrid
+                    stroke={chartStyles.grid.stroke}
+                    strokeDasharray="3 3"
                   />
-                  <YAxis 
+                  <XAxis
+                    axisLine={{ stroke: chartStyles.axis.stroke }}
+                    dataKey="date"
                     tick={chartStyles.axis.tick}
                     tickLine={{ stroke: chartStyles.axis.stroke }}
+                  />
+                  <YAxis
                     axisLine={{ stroke: chartStyles.axis.stroke }}
+                    tick={chartStyles.axis.tick}
                     tickFormatter={(value) => `${value} 件`}
+                    tickLine={{ stroke: chartStyles.axis.stroke }}
                   />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={chartStyles.tooltip}
-                    formatter={(value: number, name: string) => [`${value} 件`, name === 'in' ? '入库' : '出库']}
+                    formatter={(value: number, name: string) => [
+                      `${value} 件`,
+                      name === "in" ? "入库" : "出库",
+                    ]}
                     labelFormatter={(label) => `日期: ${label}`}
                   />
-                  <Legend 
-                    verticalAlign="top" 
+                  <Legend
                     height={36}
+                    verticalAlign="top"
                     wrapperStyle={{
                       paddingBottom: "20px",
                     }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="in" 
-                    name="入库" 
-                    stroke={COLORS.success} 
-                    strokeWidth={3}
-                    dot={{ fill: COLORS.success, strokeWidth: 2, r: 4 }}
+                  <Line
                     activeDot={{ r: 6, stroke: COLORS.success, strokeWidth: 2 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="out" 
-                    name="出库" 
-                    stroke={COLORS.danger} 
+                    dataKey="in"
+                    dot={{ fill: COLORS.success, strokeWidth: 2, r: 4 }}
+                    name="入库"
+                    stroke={COLORS.success}
                     strokeWidth={3}
-                    dot={{ fill: COLORS.danger, strokeWidth: 2, r: 4 }}
+                    type="monotone"
+                  />
+                  <Line
                     activeDot={{ r: 6, stroke: COLORS.danger, strokeWidth: 2 }}
+                    dataKey="out"
+                    dot={{ fill: COLORS.danger, strokeWidth: 2, r: 4 }}
+                    name="出库"
+                    stroke={COLORS.danger}
+                    strokeWidth={3}
+                    type="monotone"
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -462,10 +534,9 @@ export default function SuppliesStatisticsPage() {
                   <div className="text-4xl mb-4">📊</div>
                   <div className="text-lg font-medium mb-2">暂无数据</div>
                   <div className="text-sm">
-                    {debugInfo.recordsCount === 0 ? 
-                      '请先添加一些库存变动记录' : 
-                      '选择的时间范围内暂无数据'
-                    }
+                    {debugInfo.recordsCount === 0
+                      ? "请先添加一些库存变动记录"
+                      : "选择的时间范围内暂无数据"}
                   </div>
                 </div>
               </div>
@@ -479,55 +550,72 @@ export default function SuppliesStatisticsPage() {
         <CardBody>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">耗材分类使用占比</h3>
+              <h3 className="text-lg font-semibold text-gray-700">
+                耗材分类使用占比
+              </h3>
               <p className="text-sm text-gray-500 mt-1">各类耗材使用数量分布</p>
             </div>
-            <Chip color="primary" variant="flat">数量统计</Chip>
+            <Chip color="primary" variant="flat">
+              数量统计
+            </Chip>
           </div>
           <div className="h-[450px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer height="100%" width="100%">
               <PieChart margin={{ top: 20, right: 120, bottom: 20, left: 20 }}>
                 <Pie
-                  data={filteredData.categoryData}
                   cx="40%"
                   cy="50%"
-                  labelLine={false}
-                  label={false}
-                  outerRadius={100}
-                  innerRadius={60}
-                  fill="#8884d8"
+                  data={filteredData.categoryData}
                   dataKey="value"
-                  paddingAngle={2}
+                  fill="#8884d8"
+                  innerRadius={60}
+                  label={false}
+                  labelLine={false}
                   minAngle={3}
+                  outerRadius={100}
+                  paddingAngle={2}
                 >
                   {filteredData.categoryData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={Object.values(COLORS)[index % Object.keys(COLORS).length]} 
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        Object.values(COLORS)[
+                          index % Object.keys(COLORS).length
+                        ]
+                      }
                       stroke="#fff"
                       strokeWidth={2}
                     />
                   ))}
                 </Pie>
-                <Tooltip 
+                <Tooltip
                   contentStyle={chartStyles.tooltip}
                   formatter={(value: number) => [`${value} 件`, "使用数量"]}
                 />
                 <Legend
-                  layout="vertical"
                   align="right"
-                  verticalAlign="middle"
+                  formatter={(value, entry) => {
+                    const item = filteredData.categoryData.find(
+                      (d) => d.name === value,
+                    );
+                    const total = filteredData.categoryData.reduce(
+                      (sum, d) => sum + d.value,
+                      0,
+                    );
+                    const percent =
+                      item && total > 0
+                        ? ((item.value / total) * 100).toFixed(0)
+                        : "0";
+
+                    return `${value} ${percent}%`;
+                  }}
                   iconType="circle"
+                  layout="vertical"
+                  verticalAlign="middle"
                   wrapperStyle={{
                     paddingLeft: "20px",
                     fontSize: "12px",
-                    lineHeight: "20px"
-                  }}
-                  formatter={(value, entry) => {
-                    const item = filteredData.categoryData.find(d => d.name === value);
-                    const total = filteredData.categoryData.reduce((sum, d) => sum + d.value, 0);
-                    const percent = item && total > 0 ? ((item.value / total) * 100).toFixed(0) : '0';
-                    return `${value} ${percent}%`;
+                    lineHeight: "20px",
                   }}
                 />
               </PieChart>
@@ -541,14 +629,20 @@ export default function SuppliesStatisticsPage() {
         <CardBody>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">热门耗材排行榜</h3>
-              <p className="text-sm text-gray-500 mt-1">使用频率最高的耗材排名</p>
+              <h3 className="text-lg font-semibold text-gray-700">
+                热门耗材排行榜
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                使用频率最高的耗材排名
+              </p>
             </div>
-            <Chip color="primary" variant="flat">数量统计</Chip>
+            <Chip color="primary" variant="flat">
+              数量统计
+            </Chip>
           </div>
           <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
+            <ResponsiveContainer height="100%" width="100%">
+              <BarChart
                 data={filteredData.rankingData}
                 margin={{
                   top: 20,
@@ -557,41 +651,47 @@ export default function SuppliesStatisticsPage() {
                   bottom: 100,
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.grid.stroke} />
-                <XAxis 
-                  dataKey="name" 
+                <CartesianGrid
+                  stroke={chartStyles.grid.stroke}
+                  strokeDasharray="3 3"
+                />
+                <XAxis
+                  axisLine={{ stroke: chartStyles.axis.stroke }}
+                  dataKey="name"
                   height={100}
                   interval={0}
                   tick={chartStyles.axis.tick}
-                  tickLine={{ stroke: chartStyles.axis.stroke }}
-                  axisLine={{ stroke: chartStyles.axis.stroke }}
                   tickFormatter={(value) => {
                     return value.length > 8 ? `${value.slice(0, 8)}...` : value;
                   }}
-                />
-                <YAxis 
-                  tick={chartStyles.axis.tick}
                   tickLine={{ stroke: chartStyles.axis.stroke }}
+                />
+                <YAxis
                   axisLine={{ stroke: chartStyles.axis.stroke }}
+                  tick={chartStyles.axis.tick}
                   tickFormatter={(value) => `${value} 件`}
+                  tickLine={{ stroke: chartStyles.axis.stroke }}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={chartStyles.tooltip}
-                  formatter={(value: number, name: string, props: any) => [`${value} ${props.payload.unit}`, name]}
+                  formatter={(value: number, name: string, props: any) => [
+                    `${value} ${props.payload.unit}`,
+                    name,
+                  ]}
                 />
-                <Legend 
-                  verticalAlign="top" 
+                <Legend
                   height={36}
+                  verticalAlign="top"
                   wrapperStyle={{
                     paddingBottom: "20px",
                   }}
                 />
-                <Bar 
-                  dataKey="value" 
-                  name="使用数量" 
+                <Bar
+                  dataKey="value"
                   fill={COLORS.primary}
-                  radius={[4, 4, 0, 0]}
                   maxBarSize={50}
+                  name="使用数量"
+                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -604,14 +704,20 @@ export default function SuppliesStatisticsPage() {
         <CardBody>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">操作人使用排行</h3>
-              <p className="text-sm text-gray-500 mt-1">操作频率最高的用户排名</p>
+              <h3 className="text-lg font-semibold text-gray-700">
+                操作人使用排行
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                操作频率最高的用户排名
+              </p>
             </div>
-            <Chip color="success" variant="flat">操作统计</Chip>
+            <Chip color="success" variant="flat">
+              操作统计
+            </Chip>
           </div>
           <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
+            <ResponsiveContainer height="100%" width="100%">
+              <BarChart
                 data={filteredData.operatorData}
                 margin={{
                   top: 20,
@@ -620,38 +726,44 @@ export default function SuppliesStatisticsPage() {
                   bottom: 100,
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.grid.stroke} />
-                <XAxis 
-                  dataKey="name" 
+                <CartesianGrid
+                  stroke={chartStyles.grid.stroke}
+                  strokeDasharray="3 3"
+                />
+                <XAxis
+                  axisLine={{ stroke: chartStyles.axis.stroke }}
+                  dataKey="name"
                   height={100}
                   interval={0}
                   tick={chartStyles.axis.tick}
                   tickLine={{ stroke: chartStyles.axis.stroke }}
-                  axisLine={{ stroke: chartStyles.axis.stroke }}
                 />
-                <YAxis 
+                <YAxis
+                  axisLine={{ stroke: chartStyles.axis.stroke }}
                   tick={chartStyles.axis.tick}
-                  tickLine={{ stroke: chartStyles.axis.stroke }}
-                  axisLine={{ stroke: chartStyles.axis.stroke }}
                   tickFormatter={(value) => `${value} 次`}
+                  tickLine={{ stroke: chartStyles.axis.stroke }}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={chartStyles.tooltip}
-                  formatter={(value: number, name: string, props: any) => [`${value} 次`, `${name} (${props.payload.department})`]}
+                  formatter={(value: number, name: string, props: any) => [
+                    `${value} 次`,
+                    `${name} (${props.payload.department})`,
+                  ]}
                 />
-                <Legend 
-                  verticalAlign="top" 
+                <Legend
                   height={36}
+                  verticalAlign="top"
                   wrapperStyle={{
                     paddingBottom: "20px",
                   }}
                 />
-                <Bar 
-                  dataKey="value" 
-                  name="操作次数" 
+                <Bar
+                  dataKey="value"
                   fill={COLORS.success}
-                  radius={[4, 4, 0, 0]}
                   maxBarSize={50}
+                  name="操作次数"
+                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -664,17 +776,21 @@ export default function SuppliesStatisticsPage() {
         <CardBody>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">库存告警分析</h3>
-              <p className="text-sm text-gray-500 mt-1">库存低于安全库存的耗材</p>
+              <h3 className="text-lg font-semibold text-gray-700">
+                库存告警分析
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                库存低于安全库存的耗材
+              </p>
             </div>
-            <Chip color="danger" variant="flat" startContent={<WarningIcon />}>
+            <Chip color="danger" startContent={<WarningIcon />} variant="flat">
               库存不足
             </Chip>
           </div>
           <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={filteredData.lowStockData} 
+            <ResponsiveContainer height="100%" width="100%">
+              <BarChart
+                data={filteredData.lowStockData}
                 layout="vertical"
                 margin={{
                   top: 20,
@@ -683,46 +799,52 @@ export default function SuppliesStatisticsPage() {
                   bottom: 20,
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.grid.stroke} />
-                <XAxis 
-                  type="number" 
-                  tick={chartStyles.axis.tick}
-                  tickLine={{ stroke: chartStyles.axis.stroke }}
+                <CartesianGrid
+                  stroke={chartStyles.grid.stroke}
+                  strokeDasharray="3 3"
+                />
+                <XAxis
                   axisLine={{ stroke: chartStyles.axis.stroke }}
+                  tick={chartStyles.axis.tick}
                   tickFormatter={(value) => `${value} 件`}
+                  tickLine={{ stroke: chartStyles.axis.stroke }}
+                  type="number"
                 />
-                <YAxis 
-                  type="category" 
-                  dataKey="name" 
-                  width={100}
+                <YAxis
+                  axisLine={{ stroke: chartStyles.axis.stroke }}
+                  dataKey="name"
                   tick={chartStyles.axis.tick}
                   tickLine={{ stroke: chartStyles.axis.stroke }}
-                  axisLine={{ stroke: chartStyles.axis.stroke }}
+                  type="category"
+                  width={100}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={chartStyles.tooltip}
-                  formatter={(value: number, name: string, props: any) => [`${value} ${props.payload.unit}`, name]}
+                  formatter={(value: number, name: string, props: any) => [
+                    `${value} ${props.payload.unit}`,
+                    name,
+                  ]}
                 />
-                <Legend 
-                  verticalAlign="top" 
+                <Legend
                   height={36}
+                  verticalAlign="top"
                   wrapperStyle={{
                     paddingBottom: "20px",
                   }}
                 />
-                <Bar 
-                  dataKey="current" 
-                  name="当前库存" 
+                <Bar
+                  dataKey="current"
                   fill={COLORS.danger}
-                  radius={[0, 4, 4, 0]}
                   maxBarSize={30}
+                  name="当前库存"
+                  radius={[0, 4, 4, 0]}
                 />
-                <Bar 
-                  dataKey="threshold" 
-                  name="安全库存" 
+                <Bar
+                  dataKey="threshold"
                   fill={COLORS.warning}
-                  radius={[0, 4, 4, 0]}
                   maxBarSize={30}
+                  name="安全库存"
+                  radius={[0, 4, 4, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -735,56 +857,65 @@ export default function SuppliesStatisticsPage() {
         <CardBody>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-700">月度统计对比</h3>
+              <h3 className="text-lg font-semibold text-gray-700">
+                月度统计对比
+              </h3>
               <p className="text-sm text-gray-500 mt-1">本月与上月使用量对比</p>
             </div>
             <div className="flex gap-2">
-              <Chip color="primary" variant="flat">本月</Chip>
-              <Chip color="default" variant="flat">上月</Chip>
+              <Chip color="primary" variant="flat">
+                本月
+              </Chip>
+              <Chip color="default" variant="flat">
+                上月
+              </Chip>
             </div>
           </div>
           <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer height="100%" width="100%">
               <AreaChart data={filteredData.monthlyComparisonData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartStyles.grid.stroke} />
-                <XAxis 
-                  dataKey="date" 
-                  tick={chartStyles.axis.tick}
-                  tickLine={{ stroke: chartStyles.axis.stroke }}
-                  axisLine={{ stroke: chartStyles.axis.stroke }}
+                <CartesianGrid
+                  stroke={chartStyles.grid.stroke}
+                  strokeDasharray="3 3"
                 />
-                <YAxis 
+                <XAxis
+                  axisLine={{ stroke: chartStyles.axis.stroke }}
+                  dataKey="date"
                   tick={chartStyles.axis.tick}
                   tickLine={{ stroke: chartStyles.axis.stroke }}
+                />
+                <YAxis
                   axisLine={{ stroke: chartStyles.axis.stroke }}
+                  tick={chartStyles.axis.tick}
                   tickFormatter={(value) => `${value} 件`}
+                  tickLine={{ stroke: chartStyles.axis.stroke }}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={chartStyles.tooltip}
                   formatter={(value: number) => [`${value} 件`, "数量"]}
                 />
-                <Legend 
-                  verticalAlign="top" 
+                <Legend
                   height={36}
+                  verticalAlign="top"
                   wrapperStyle={{
                     paddingBottom: "20px",
                   }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="current" 
-                  name="本月" 
-                  fill={COLORS.primary} 
+                <Area
+                  dataKey="current"
+                  fill={COLORS.primary}
+                  fillOpacity={0.2}
+                  name="本月"
                   stroke={COLORS.primary}
-                  fillOpacity={0.2}
+                  type="monotone"
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="last" 
-                  name="上月" 
-                  fill={COLORS.gray} 
-                  stroke={COLORS.gray}
+                <Area
+                  dataKey="last"
+                  fill={COLORS.gray}
                   fillOpacity={0.2}
+                  name="上月"
+                  stroke={COLORS.gray}
+                  type="monotone"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -793,4 +924,4 @@ export default function SuppliesStatisticsPage() {
       </Card>
     </div>
   );
-} 
+}

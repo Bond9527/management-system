@@ -185,10 +185,20 @@ class DynamicCalculationItemSerializer(serializers.ModelSerializer):
     form_name = serializers.CharField(source='form.name', read_only=True)
     form_code = serializers.CharField(source='form.code', read_only=True)
     purchaser = serializers.CharField(allow_blank=True, required=False)
+    unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     
     class Meta:
         model = DynamicCalculationItem
         fields = '__all__'
+
+    def update(self, instance, validated_data):
+        import logging
+        logger = logging.getLogger('django')
+        chase_data = validated_data.get('chase_data', None)
+        logger.warning(f"[调试] PATCH 更新 chase_data: {chase_data}")
+        result = super().update(instance, validated_data)
+        logger.warning(f"[调试] 保存后 instance.chase_data: {instance.chase_data}")
+        return result
 
 
 class DynamicForecastDataSerializer(serializers.ModelSerializer):

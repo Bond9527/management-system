@@ -14,23 +14,15 @@ import {
   Select,
   SelectItem,
   Chip,
-  Tooltip,
   Badge,
-  Spinner,
-  Divider,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
   Link,
-  Checkbox,
   DateRangePicker,
   DateValue,
-  RangeValue,
 } from "@heroui/react";
-import { SearchIcon, DownloadIcon, FilterIcon, ChartIcon, ClockIcon, RefreshIcon } from "@/components/icons";
-import { supplyCategories } from "@/config/supplies";
-import { useSupplies, SupplyItem, InventoryRecord } from "@/hooks/useSupplies";
 import {
   BarChart,
   Bar,
@@ -45,6 +37,16 @@ import {
   Cell,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+
+import {
+  SearchIcon,
+  DownloadIcon,
+  ChartIcon,
+  ClockIcon,
+  RefreshIcon,
+} from "@/components/icons";
+import { supplyCategories } from "@/config/supplies";
+import { useSupplies } from "@/hooks/useSupplies";
 import { formatTimestamp, getCurrentDateForFilename } from "@/utils/dateUtils";
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -56,7 +58,10 @@ const SuppliesRecordsPage: FC = () => {
   const [selectedType, setSelectedType] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
-  const [dateRange, setDateRange] = useState<{ start: DateValue; end: DateValue } | null>(null);
+  const [dateRange, setDateRange] = useState<{
+    start: DateValue;
+    end: DateValue;
+  } | null>(null);
   const [showStatistics, setShowStatistics] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,39 +79,73 @@ const SuppliesRecordsPage: FC = () => {
   };
 
   const filteredRecords = records.filter((record) => {
-    const matchesSearch = (record.supply_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (record.supply_name || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
     const matchesType = !selectedType || record.type === selectedType;
-    const matchesCategory = !selectedCategory || record.supply_category === selectedCategory;
-    const matchesDepartment = !selectedDepartment || record.department === selectedDepartment;
+    const matchesCategory =
+      !selectedCategory || record.supply_category === selectedCategory;
+    const matchesDepartment =
+      !selectedDepartment || record.department === selectedDepartment;
     const recordDate = new Date(record.timestamp);
-    const startDate = dateRange?.start ? new Date(dateRange.start.toString()) : null;
+    const startDate = dateRange?.start
+      ? new Date(dateRange.start.toString())
+      : null;
     const endDate = dateRange?.end ? new Date(dateRange.end.toString()) : null;
-    const matchesDateRange = (!startDate || recordDate >= startDate) &&
-                          (!endDate || recordDate <= endDate);
-    return matchesSearch && matchesType && matchesCategory && matchesDepartment && matchesDateRange;
+    const matchesDateRange =
+      (!startDate || recordDate >= startDate) &&
+      (!endDate || recordDate <= endDate);
+
+    return (
+      matchesSearch &&
+      matchesType &&
+      matchesCategory &&
+      matchesDepartment &&
+      matchesDateRange
+    );
   });
 
   const paginatedRecords = filteredRecords.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    currentPage * pageSize,
   );
 
   // 准备统计数据
   const operationTypeData = [
-    { name: "入库", value: filteredRecords.filter(r => r.type === "in").length },
-    { name: "出库", value: filteredRecords.filter(r => r.type === "out").length },
-    { name: "调整", value: filteredRecords.filter(r => r.type === "adjust").length },
+    {
+      name: "入库",
+      value: filteredRecords.filter((r) => r.type === "in").length,
+    },
+    {
+      name: "出库",
+      value: filteredRecords.filter((r) => r.type === "out").length,
+    },
+    {
+      name: "调整",
+      value: filteredRecords.filter((r) => r.type === "adjust").length,
+    },
   ];
 
-  const supplyRankingData = filteredRecords.reduce((acc, record) => {
-    const existing = acc.find(item => item.name === record.supply_name);
-    if (existing) {
-      existing.value += Math.abs(record.quantity);
-    } else {
-      acc.push({ name: record.supply_name || '未知耗材', value: Math.abs(record.quantity) });
-    }
-    return acc;
-  }, [] as { name: string; value: number }[]).sort((a, b) => b.value - a.value).slice(0, 5);
+  const supplyRankingData = filteredRecords
+    .reduce(
+      (acc, record) => {
+        const existing = acc.find((item) => item.name === record.supply_name);
+
+        if (existing) {
+          existing.value += Math.abs(record.quantity);
+        } else {
+          acc.push({
+            name: record.supply_name || "未知耗材",
+            value: Math.abs(record.quantity),
+          });
+        }
+
+        return acc;
+      },
+      [] as { name: string; value: number }[],
+    )
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
 
   // 导出功能
   const handleExportExcel = () => {
@@ -116,22 +155,31 @@ const SuppliesRecordsPage: FC = () => {
 
   const handleExportCSV = () => {
     // 准备CSV数据
-    const headers = ["日期/时间", "耗材名称", "操作类型", "数量", "单位", "操作人", "部门", "备注"];
-    const csvData = filteredRecords.map(record => [
+    const headers = [
+      "日期/时间",
+      "耗材名称",
+      "操作类型",
+      "数量",
+      "单位",
+      "操作人",
+      "部门",
+      "备注",
+    ];
+    const csvData = filteredRecords.map((record) => [
       record.timestamp,
-      record.supply_name || '未知耗材',
+      record.supply_name || "未知耗材",
       record.type === "in" ? "入库" : record.type === "out" ? "出库" : "调整",
       record.quantity,
-      record.supply_unit || '个',
+      record.supply_unit || "个",
       record.operator,
       record.department,
-      record.remark
+      record.remark,
     ]);
 
     // 转换为CSV格式
     const csvContent = [
       headers.join(","),
-      ...csvData.map(row => row.join(","))
+      ...csvData.map((row) => row.join(",")),
     ].join("\n");
 
     // 创建Blob对象
@@ -140,8 +188,12 @@ const SuppliesRecordsPage: FC = () => {
 
     // 创建下载链接并触发下载
     const link = document.createElement("a");
+
     link.href = url;
-    link.setAttribute("download", `库存变动记录_${getCurrentDateForFilename()}.csv`);
+    link.setAttribute(
+      "download",
+      `库存变动记录_${getCurrentDateForFilename()}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -168,9 +220,9 @@ const SuppliesRecordsPage: FC = () => {
                 </label>
                 <Input
                   placeholder="搜索耗材名称"
+                  startContent={<SearchIcon />}
                   value={searchQuery}
                   onValueChange={setSearchQuery}
-                  startContent={<SearchIcon />}
                 />
               </div>
 
@@ -180,9 +232,12 @@ const SuppliesRecordsPage: FC = () => {
                 </label>
                 <Select
                   placeholder="全部"
-                  selectedKeys={selectedType ? new Set([selectedType]) : new Set()}
+                  selectedKeys={
+                    selectedType ? new Set([selectedType]) : new Set()
+                  }
                   onSelectionChange={(keys) => {
                     const type = Array.from(keys)[0] as string;
+
                     setSelectedType(type);
                   }}
                 >
@@ -198,9 +253,12 @@ const SuppliesRecordsPage: FC = () => {
                 </label>
                 <Select
                   placeholder="全部"
-                  selectedKeys={selectedCategory ? new Set([selectedCategory]) : new Set()}
+                  selectedKeys={
+                    selectedCategory ? new Set([selectedCategory]) : new Set()
+                  }
                   onSelectionChange={(keys) => {
                     const category = Array.from(keys)[0] as string;
+
                     setSelectedCategory(category);
                   }}
                 >
@@ -216,9 +274,14 @@ const SuppliesRecordsPage: FC = () => {
                 </label>
                 <Select
                   placeholder="全部"
-                  selectedKeys={selectedDepartment ? new Set([selectedDepartment]) : new Set()}
+                  selectedKeys={
+                    selectedDepartment
+                      ? new Set([selectedDepartment])
+                      : new Set()
+                  }
                   onSelectionChange={(keys) => {
                     const department = Array.from(keys)[0] as string;
+
                     setSelectedDepartment(department);
                   }}
                 >
@@ -232,11 +295,13 @@ const SuppliesRecordsPage: FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-medium text-gray-700 mb-1">时间范围</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  时间范围
+                </label>
                 <DateRangePicker
+                  className="w-full"
                   value={dateRange}
                   onChange={setDateRange}
-                  className="w-full"
                 />
               </div>
             </div>
@@ -244,16 +309,16 @@ const SuppliesRecordsPage: FC = () => {
             <div className="flex justify-end gap-2">
               <Button
                 color="primary"
-                variant="flat"
                 startContent={<SearchIcon />}
+                variant="flat"
                 onClick={() => setCurrentPage(1)}
               >
                 查询
               </Button>
               <Button
                 color="default"
-                variant="flat"
                 startContent={<RefreshIcon />}
+                variant="flat"
                 onClick={handleReset}
               >
                 重置
@@ -262,8 +327,8 @@ const SuppliesRecordsPage: FC = () => {
                 <DropdownTrigger>
                   <Button
                     color="primary"
-                    variant="flat"
                     startContent={<DownloadIcon />}
+                    variant="flat"
                   >
                     导出
                   </Button>
@@ -289,8 +354,8 @@ const SuppliesRecordsPage: FC = () => {
               </Dropdown>
               <Button
                 color="secondary"
-                variant="flat"
                 startContent={<ChartIcon />}
+                variant="flat"
                 onClick={() => setShowStatistics(!showStatistics)}
               >
                 {showStatistics ? "隐藏统计" : "显示统计"}
@@ -306,46 +371,62 @@ const SuppliesRecordsPage: FC = () => {
           <Card className="shadow-lg">
             <CardBody>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-700">操作类型分布</h3>
+                <h3 className="text-lg font-semibold text-gray-700">
+                  操作类型分布
+                </h3>
                 <Chip color="primary" variant="flat">
                   数量统计
                 </Chip>
               </div>
               <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 20, right: 80, bottom: 80, left: 80 }}>
+                <ResponsiveContainer height="100%" width="100%">
+                  <PieChart
+                    margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
+                  >
                     <Pie
-                      data={operationTypeData}
                       cx="50%"
                       cy="45%"
-                      labelLine={false}
-                      label={false}
-                      outerRadius={70}
-                      fill="#8884d8"
+                      data={operationTypeData}
                       dataKey="value"
+                      fill="#8884d8"
+                      label={false}
+                      labelLine={false}
                       minAngle={5}
+                      outerRadius={70}
                     >
                       {operationTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
-                    <RechartsTooltip 
-                      formatter={(value, name) => [
-                        `${value} 次`,
-                        name
-                      ]}
+                    <RechartsTooltip
+                      formatter={(value, name) => [`${value} 次`, name]}
                     />
-                    <Legend 
-                      verticalAlign="bottom" 
-                      height={60}
-                      wrapperStyle={{
-                        paddingTop: '20px',
-                        fontSize: '12px'
-                      }}
+                    <Legend
                       formatter={(value, entry) => {
-                        const item = operationTypeData.find(d => d.name === value);
-                        const percent = item ? ((item.value / operationTypeData.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(0) : '0';
+                        const item = operationTypeData.find(
+                          (d) => d.name === value,
+                        );
+                        const percent = item
+                          ? (
+                              (item.value /
+                                operationTypeData.reduce(
+                                  (sum, d) => sum + d.value,
+                                  0,
+                                )) *
+                              100
+                            ).toFixed(0)
+                          : "0";
+
                         return `${value} ${percent}%`;
+                      }}
+                      height={60}
+                      verticalAlign="bottom"
+                      wrapperStyle={{
+                        paddingTop: "20px",
+                        fontSize: "12px",
                       }}
                     />
                   </PieChart>
@@ -357,13 +438,15 @@ const SuppliesRecordsPage: FC = () => {
           <Card className="shadow-lg">
             <CardBody>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-700">耗材变动排名</h3>
+                <h3 className="text-lg font-semibold text-gray-700">
+                  耗材变动排名
+                </h3>
                 <Chip color="primary" variant="flat">
                   数量统计
                 </Chip>
               </div>
               <div className="h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer height="100%" width="100%">
                   <BarChart
                     data={supplyRankingData}
                     margin={{
@@ -378,7 +461,7 @@ const SuppliesRecordsPage: FC = () => {
                     <YAxis />
                     <RechartsTooltip />
                     <Legend />
-                    <Bar dataKey="value" name="变动数量" fill="#3B82F6" />
+                    <Bar dataKey="value" fill="#3B82F6" name="变动数量" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -420,20 +503,22 @@ const SuppliesRecordsPage: FC = () => {
                 <TableRow key={record.id}>
                   <TableCell>
                     <Chip
-                      variant="flat"
                       color="default"
                       startContent={<ClockIcon className="text-default-500" />}
+                      variant="flat"
                     >
                       {formatTimestamp(record.timestamp)}
                     </Chip>
                   </TableCell>
                   <TableCell>
                     <Link
-                      color="primary"
                       className="cursor-pointer"
-                      onClick={() => handleSupplyClick(record.supply_name || '')}
+                      color="primary"
+                      onClick={() =>
+                        handleSupplyClick(record.supply_name || "")
+                      }
                     >
-                      {record.supply_name || '未知耗材'}
+                      {record.supply_name || "未知耗材"}
                     </Link>
                   </TableCell>
                   <TableCell>
@@ -442,16 +527,16 @@ const SuppliesRecordsPage: FC = () => {
                         record.type === "in"
                           ? "success"
                           : record.type === "out"
-                          ? "danger"
-                          : "default"
+                            ? "danger"
+                            : "default"
                       }
                       variant="flat"
                     >
                       {record.type === "in"
                         ? "入库"
                         : record.type === "out"
-                        ? "出库"
-                        : "调整"}
+                          ? "出库"
+                          : "调整"}
                     </Chip>
                   </TableCell>
                   <TableCell>
@@ -460,23 +545,29 @@ const SuppliesRecordsPage: FC = () => {
                         record.type === "in"
                           ? "success"
                           : record.type === "out"
-                          ? "danger"
-                          : "default"
+                            ? "danger"
+                            : "default"
                       }
                       variant="flat"
                     >
-                      {record.type === "in" ? "+" : record.type === "out" ? "-" : ""}
+                      {record.type === "in"
+                        ? "+"
+                        : record.type === "out"
+                          ? "-"
+                          : ""}
                       {record.quantity}
                     </Badge>
                   </TableCell>
-                  <TableCell>{record.supply_unit || '个'}</TableCell>
+                  <TableCell>{record.supply_unit || "个"}</TableCell>
                   <TableCell>
-                    <Chip variant="flat" color="primary">
+                    <Chip color="primary" variant="flat">
                       {record.operator}
                     </Chip>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-600">{record.remark}</span>
+                    <span className="text-sm text-gray-600">
+                      {record.remark}
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -488,4 +579,4 @@ const SuppliesRecordsPage: FC = () => {
   );
 };
 
-export default SuppliesRecordsPage; 
+export default SuppliesRecordsPage;

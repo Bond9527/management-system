@@ -4,7 +4,8 @@ import { Checkbox } from "@heroui/checkbox";
 import { addToast } from "@heroui/toast";
 import { useState, FormEvent, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { login, LoginRequest } from "@/services/api";
+
+import { login } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 
 interface FormData {
@@ -33,9 +34,15 @@ export default function Login() {
   // 从 localStorage 读取保存的登录信息
   useEffect(() => {
     const savedLoginInfo = localStorage.getItem("loginInfo");
+
     if (savedLoginInfo) {
       try {
-        const { username: savedUsername, password: savedPassword, rememberMe: savedRememberMe } = JSON.parse(savedLoginInfo) as SavedLoginInfo;
+        const {
+          username: savedUsername,
+          password: savedPassword,
+          rememberMe: savedRememberMe,
+        } = JSON.parse(savedLoginInfo) as SavedLoginInfo;
+
         if (savedRememberMe) {
           setUsername(savedUsername);
           setPassword(savedPassword);
@@ -51,16 +58,23 @@ export default function Login() {
   // 检查URL参数中的消息
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const messageParam = searchParams.get('message');
-    
-    if (messageParam === 'session_expired') {
+    const messageParam = searchParams.get("message");
+
+    if (messageParam === "session_expired") {
       addToast({
         title: "会话过期",
         description: "您的登录会话已过期，请重新登录",
         color: "warning",
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+          <svg
+            fill="none"
+            height="20"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            width="20"
+          >
+            <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
         ),
         timeout: 5000,
@@ -71,6 +85,7 @@ export default function Login() {
 
   const validateForm = () => {
     const newErrors: string[] = [];
+
     if (!username.trim()) {
       newErrors.push("请输入账号");
     }
@@ -78,6 +93,7 @@ export default function Login() {
       newErrors.push("请输入密码");
     }
     setErrors(newErrors);
+
     return newErrors.length === 0;
   };
 
@@ -86,11 +102,12 @@ export default function Login() {
     if (validateForm()) {
       setIsLoading(true);
       setErrors([]);
-      
+
       const formData: FormData = {
         username,
-        password
+        password,
       };
+
       setSubmitted(formData);
 
       try {
@@ -103,9 +120,16 @@ export default function Login() {
           description: "正在跳转...",
           color: "success",
           icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 12l2 2 4-4"/>
-              <circle cx="12" cy="12" r="10"/>
+            <svg
+              fill="none"
+              height="20"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              width="20"
+            >
+              <path d="M9 12l2 2 4-4" />
+              <circle cx="12" cy="12" r="10" />
             </svg>
           ),
           timeout: 2000,
@@ -120,8 +144,9 @@ export default function Login() {
           const loginInfo: SavedLoginInfo = {
             username,
             password,
-            rememberMe: true
+            rememberMe: true,
           };
+
           localStorage.setItem("loginInfo", JSON.stringify(loginInfo));
         } else {
           localStorage.removeItem("loginInfo");
@@ -130,9 +155,10 @@ export default function Login() {
         // 延迟跳转，让用户看到成功提示
         setTimeout(() => {
           // 检查是否有返回路径
-          const returnPath = sessionStorage.getItem('returnPath');
+          const returnPath = sessionStorage.getItem("returnPath");
+
           if (returnPath) {
-            sessionStorage.removeItem('returnPath'); // 清除保存的路径
+            sessionStorage.removeItem("returnPath"); // 清除保存的路径
             navigate(returnPath);
           } else {
             navigate("/dashboard");
@@ -140,18 +166,28 @@ export default function Login() {
         }, 1500);
       } catch (error) {
         console.error("Login failed:", error);
-        const errorMessage = error instanceof Error ? error.message : "登录失败，请检查用户名和密码";
-        
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "登录失败，请检查用户名和密码";
+
         // 显示错误提示
         addToast({
           title: "登录失败",
           description: errorMessage,
           color: "danger",
           icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
+            <svg
+              fill="none"
+              height="20"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              width="20"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" x2="9" y1="9" y2="15" />
+              <line x1="9" x2="15" y1="9" y2="15" />
             </svg>
           ),
           timeout: 5000,
@@ -167,80 +203,105 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            欢迎回来
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            请登录您的账号
-          </p>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">欢迎回来</h2>
+          <p className="mt-2 text-sm text-gray-600">请登录您的账号</p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <Input
-              label="账号"
-              type="username"
-              labelPlacement="inside"
-              className="w-full"
               isClearable
+              className="w-full"
+              errorMessage={errors.includes("请输入账号") ? "请输入账号" : ""}
+              isDisabled={isLoading}
+              isInvalid={errors.includes("请输入账号")}
+              label="账号"
+              labelPlacement="inside"
+              type="username"
+              value={username}
               onClear={() => {
                 setUsername("");
                 setErrors([]);
               }}
-              value={username}
               onValueChange={setUsername}
-              isInvalid={errors.includes("请输入账号")}
-              errorMessage={errors.includes("请输入账号") ? "请输入账号" : ""}
-              isDisabled={isLoading}
             />
-            
+
             <Input
-              label="密码"
-              type={showPassword ? "text" : "password"}
-              labelPlacement="inside"
               className="w-full"
-              value={password}
-              onValueChange={setPassword}
-              isInvalid={errors.includes("请输入密码")}
-              errorMessage={errors.includes("请输入密码") ? "请输入密码" : ""}
-              isDisabled={isLoading}
               endContent={
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
                   className="focus:outline-none"
                   disabled={isLoading}
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                 </button>
               }
+              errorMessage={errors.includes("请输入密码") ? "请输入密码" : ""}
+              isDisabled={isLoading}
+              isInvalid={errors.includes("请输入密码")}
+              label="密码"
+              labelPlacement="inside"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onValueChange={setPassword}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Checkbox
-                isSelected={rememberMe}
-                onValueChange={setRememberMe}
-                size="sm"
                 color="primary"
                 isDisabled={isLoading}
+                isSelected={rememberMe}
+                size="sm"
+                onValueChange={setRememberMe}
               >
                 记住我
               </Checkbox>
             </div>
 
             <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link
+                className="font-medium text-blue-600 hover:text-blue-500"
+                to="/forgot-password"
+              >
                 忘记密码?
               </Link>
             </div>
@@ -248,10 +309,10 @@ export default function Login() {
 
           <div>
             <Button
-              type="submit"
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-              isLoading={isLoading}
               disabled={isLoading}
+              isLoading={isLoading}
+              type="submit"
             >
               {isLoading ? "登录中..." : "登录"}
             </Button>
@@ -269,7 +330,10 @@ export default function Login() {
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
             还没有账号?{" "}
-            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+            <Link
+              className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+              to="/register"
+            >
               立即注册
             </Link>
           </p>
@@ -277,4 +341,4 @@ export default function Login() {
       </div>
     </div>
   );
-} 
+}

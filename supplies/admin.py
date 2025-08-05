@@ -83,10 +83,10 @@ class B453SupplyItemAdmin(admin.ModelAdmin):
 
 @admin.register(B453CalculationItem)
 class B453CalculationItemAdmin(admin.ModelAdmin):
-    list_display = ['no', 'material_name', 'usage_station', 'monthly_demand', 'monthly_net_demand', 'actual_order', 'management_id', 'updated_at']
+    list_display = ['no', 'material_name', 'usage_station', 'monthly_demand_per_station', 'monthly_total_demand', 'actual_stock', 'management_id', 'updated_at']
     list_filter = ['usage_station', 'created_at']
     search_fields = ['material_name', 'usage_station', 'linked_material']
-    list_editable = ['monthly_demand', 'monthly_net_demand', 'actual_order']
+    list_editable = ['monthly_demand_per_station', 'monthly_total_demand', 'actual_stock']
     readonly_fields = ['created_at', 'updated_at', 'created_by']
     ordering = ['no']
 

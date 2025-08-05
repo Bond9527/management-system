@@ -73,10 +73,10 @@ export const MenuManagementIcon = ({ className }: { className?: string }) => (
     xmlns="http://www.w3.org/2000/svg"
   >
     <path
+      d="M4 6h16M4 12h16M4 18h16"
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={2}
-      d="M4 6h16M4 12h16M4 18h16"
     />
   </svg>
 );
@@ -245,10 +245,7 @@ export const AddRecordIcon = (props: IconProps) => (
     width="1em"
     {...props}
   >
-    <path
-      d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z"
-      fill="currentColor"
-    />
+    <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="currentColor" />
   </svg>
 );
 
@@ -312,4 +309,4 @@ export const DashboardIcon = (props: IconProps) => (
       fill="currentColor"
     />
   </svg>
-); 
+);

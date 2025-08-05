@@ -4,13 +4,7 @@ import {
   CardBody,
   Button,
   Chip,
-  Badge,
   Progress,
-  Divider,
-  Avatar,
-  User,
-  Link,
-  Spinner,
   Table,
   TableHeader,
   TableColumn,
@@ -34,26 +28,28 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import { useNavigate } from "react-router-dom";
+
 import {
-  SearchIcon,
   PlusIcon,
   MinusIcon,
   WarningIcon,
   InfoIcon,
-  ChartIcon,
-  ClockIcon,
-  UserIcon,
   EditIcon,
-  DownloadIcon,
-  RefreshIcon,
   EyeIcon,
 } from "@/components/icons";
 import { useSupplies, SupplyItem, InventoryRecord } from "@/hooks/useSupplies";
 import { generateInventorySummary } from "@/utils/dataConsistencyTest";
-import { useNavigate } from "react-router-dom";
 import { formatRelativeTime } from "@/utils/dateUtils";
 
-const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
+const COLORS = [
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#EC4899",
+];
 
 const DashboardPage: FC = () => {
   const navigate = useNavigate();
@@ -71,16 +67,21 @@ const DashboardPage: FC = () => {
     if (!Array.isArray(supplies) || !Array.isArray(records)) {
       return;
     }
-    
+
     const summaryData = generateInventorySummary(supplies, records);
+
     setSummary(summaryData);
 
     // 获取最近10条记录
     const recent = records.slice(0, 10);
+
     setRecentRecords(recent);
 
     // 获取库存不足的耗材
-    const lowStock = supplies.filter(item => item.current_stock <= item.safety_stock);
+    const lowStock = supplies.filter(
+      (item) => item.current_stock <= item.safety_stock,
+    );
+
     setLowStockItems(lowStock);
   };
 
@@ -90,16 +91,18 @@ const DashboardPage: FC = () => {
     recordsCount: records.length,
     isLoading,
     error,
-    hasRecentRecords: records.filter(r => {
-      const recordDate = new Date(r.timestamp);
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return recordDate >= weekAgo;
-    }).length > 0,
+    hasRecentRecords:
+      records.filter((r) => {
+        const recordDate = new Date(r.timestamp);
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+        return recordDate >= weekAgo;
+      }).length > 0,
     recordTypes: {
-      in: records.filter(r => r.type === 'in').length,
-      out: records.filter(r => r.type === 'out').length,
-      adjust: records.filter(r => r.type === 'adjust').length,
-    }
+      in: records.filter((r) => r.type === "in").length,
+      out: records.filter((r) => r.type === "out").length,
+      adjust: records.filter((r) => r.type === "adjust").length,
+    },
   };
 
   // 准备图表数据
@@ -107,15 +110,24 @@ const DashboardPage: FC = () => {
     if (!Array.isArray(supplies) || supplies.length === 0) {
       return [];
     }
-    
-    const categories = Array.from(new Set(supplies.map(item => item.category)));
-    return categories.map(category => {
-      const categorySupplies = supplies.filter(item => item.category === category);
-      const totalStock = categorySupplies.reduce((sum, item) => sum + item.current_stock, 0);
+
+    const categories = Array.from(
+      new Set(supplies.map((item) => item.category)),
+    );
+
+    return categories.map((category) => {
+      const categorySupplies = supplies.filter(
+        (item) => item.category === category,
+      );
+      const totalStock = categorySupplies.reduce(
+        (sum, item) => sum + item.current_stock,
+        0,
+      );
+
       return {
         name: category,
         value: totalStock,
-        count: categorySupplies.length
+        count: categorySupplies.length,
       };
     });
   };
@@ -124,66 +136,84 @@ const DashboardPage: FC = () => {
     if (!Array.isArray(records)) {
       return [];
     }
-    
+
     // 生成最近7天的趋势数据
     const days = 7;
     const trendData = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
+
       date.setDate(date.getDate() - i);
-      const dateStr = date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-      
+      const dateStr = date.toLocaleDateString("zh-CN", {
+        month: "short",
+        day: "numeric",
+      });
+
       // 统计当天的记录数
-      const dayRecords = records.filter(record => {
+      const dayRecords = records.filter((record) => {
         const recordDate = new Date(record.timestamp);
+
         return recordDate.toDateString() === date.toDateString();
       });
-      
+
       trendData.push({
         date: dateStr,
         records: dayRecords.length,
-        in: dayRecords.filter(r => r.type === 'in').length,
-        out: dayRecords.filter(r => r.type === 'out').length,
+        in: dayRecords.filter((r) => r.type === "in").length,
+        out: dayRecords.filter((r) => r.type === "out").length,
       });
     }
-    
+
     return trendData;
   };
 
   const getOperationTypeData = () => {
     if (!Array.isArray(records)) {
       return [
-        { name: '入库', value: 0, color: '#10B981' },
-        { name: '出库', value: 0, color: '#EF4444' },
-        { name: '调整', value: 0, color: '#F59E0B' },
+        { name: "入库", value: 0, color: "#10B981" },
+        { name: "出库", value: 0, color: "#EF4444" },
+        { name: "调整", value: 0, color: "#F59E0B" },
       ];
     }
-    
+
     const operationTypes = [
-      { name: '入库', value: records.filter(r => r.type === 'in').length, color: '#10B981' },
-      { name: '出库', value: records.filter(r => r.type === 'out').length, color: '#EF4444' },
-      { name: '调整', value: records.filter(r => r.type === 'adjust').length, color: '#F59E0B' },
+      {
+        name: "入库",
+        value: records.filter((r) => r.type === "in").length,
+        color: "#10B981",
+      },
+      {
+        name: "出库",
+        value: records.filter((r) => r.type === "out").length,
+        color: "#EF4444",
+      },
+      {
+        name: "调整",
+        value: records.filter((r) => r.type === "adjust").length,
+        color: "#F59E0B",
+      },
     ];
+
     return operationTypes;
   };
 
   const handleQuickAction = (action: string) => {
     switch (action) {
-      case 'add-record':
-        navigate('/supplies/add-record');
+      case "add-record":
+        navigate("/supplies/add-record");
         break;
-      case 'inventory-overview':
-        navigate('/supplies/inventory-overview');
+      case "inventory-overview":
+        navigate("/supplies/inventory-overview");
         break;
-      case 'records':
-        navigate('/supplies/records');
+      case "records":
+        navigate("/supplies/records");
         break;
-      case 'statistics':
-        navigate('/supplies/statistics');
+      case "statistics":
+        navigate("/supplies/statistics");
         break;
-      case 'data-comparison':
-        navigate('/supplies/data-comparison');
+      case "data-comparison":
+        navigate("/supplies/data-comparison");
         break;
       default:
         break;
@@ -196,11 +226,11 @@ const DashboardPage: FC = () => {
 
   const getOperationIcon = (type: string) => {
     switch (type) {
-      case 'in':
+      case "in":
         return <PlusIcon className="text-success" />;
-      case 'out':
+      case "out":
         return <MinusIcon className="text-danger" />;
-      case 'adjust':
+      case "adjust":
         return <EditIcon className="text-warning" />;
       default:
         return <InfoIcon className="text-default" />;
@@ -209,19 +239,23 @@ const DashboardPage: FC = () => {
 
   const getOperationColor = (type: string) => {
     switch (type) {
-      case 'in':
-        return 'success';
-      case 'out':
-        return 'danger';
-      case 'adjust':
-        return 'warning';
+      case "in":
+        return "success";
+      case "out":
+        return "danger";
+      case "adjust":
+        return "warning";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const formatStockStatus = (item: SupplyItem) => {
-    const percentage = item.safety_stock > 0 ? (item.current_stock / item.safety_stock) * 100 : 100;
+    const percentage =
+      item.safety_stock > 0
+        ? (item.current_stock / item.safety_stock) * 100
+        : 100;
+
     if (percentage <= 50) {
       return { color: "danger", label: "严重不足" };
     } else if (percentage <= 100) {
@@ -239,7 +273,7 @@ const DashboardPage: FC = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
           <p className="mt-4 text-gray-600">加载中...</p>
         </div>
       </div>
@@ -262,30 +296,33 @@ const DashboardPage: FC = () => {
             <div className="flex items-start gap-3">
               <WarningIcon className="text-warning flex-shrink-0 mt-1" />
               <div>
-                <h3 className="font-semibold text-warning mb-2">数据状态提示</h3>
+                <h3 className="font-semibold text-warning mb-2">
+                  数据状态提示
+                </h3>
                 {debugInfo.recordsCount === 0 ? (
                   <p className="text-sm text-gray-600">
                     系统中暂无库存变动记录，趋势图表将显示为空。请先进行一些入库、出库或调整操作。
                   </p>
                 ) : !debugInfo.hasRecentRecords ? (
                   <p className="text-sm text-gray-600">
-                    最近7天没有库存变动记录，趋势图表可能显示为空。当前共有 {debugInfo.recordsCount} 条历史记录。
+                    最近7天没有库存变动记录，趋势图表可能显示为空。当前共有{" "}
+                    {debugInfo.recordsCount} 条历史记录。
                   </p>
                 ) : null}
                 <div className="mt-3 flex gap-2">
-                  <Button 
-                    size="sm" 
-                    color="primary" 
+                  <Button
+                    color="primary"
+                    size="sm"
                     variant="flat"
                     onPress={() => setShowDebugInfo(!showDebugInfo)}
                   >
-                    {showDebugInfo ? '隐藏' : '显示'}调试信息
+                    {showDebugInfo ? "隐藏" : "显示"}调试信息
                   </Button>
-                  <Button 
-                    size="sm" 
-                    color="success" 
-                    variant="flat" 
-                    onPress={() => navigate('/supplies/add-record')}
+                  <Button
+                    color="success"
+                    size="sm"
+                    variant="flat"
+                    onPress={() => navigate("/supplies/add-record")}
                   >
                     添加库存记录
                   </Button>
@@ -309,7 +346,9 @@ const DashboardPage: FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">总耗材数</p>
-                  <p className="text-2xl font-bold text-primary">{summary.totalSupplies}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {summary.totalSupplies}
+                  </p>
                 </div>
                 <div className="text-primary text-3xl">📦</div>
               </div>
@@ -321,7 +360,9 @@ const DashboardPage: FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">变动记录</p>
-                  <p className="text-2xl font-bold text-success">{summary.totalRecords}</p>
+                  <p className="text-2xl font-bold text-success">
+                    {summary.totalRecords}
+                  </p>
                 </div>
                 <div className="text-success text-3xl">📋</div>
               </div>
@@ -333,7 +374,9 @@ const DashboardPage: FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">本周活动</p>
-                  <p className="text-2xl font-bold text-warning">{summary.recentActivity}</p>
+                  <p className="text-2xl font-bold text-warning">
+                    {summary.recentActivity}
+                  </p>
                 </div>
                 <div className="text-warning text-3xl">📈</div>
               </div>
@@ -345,7 +388,9 @@ const DashboardPage: FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">库存不足</p>
-                  <p className="text-2xl font-bold text-danger">{summary.lowStockItems}</p>
+                  <p className="text-2xl font-bold text-danger">
+                    {summary.lowStockItems}
+                  </p>
                 </div>
                 <div className="text-danger text-3xl">⚠️</div>
               </div>
@@ -361,40 +406,52 @@ const DashboardPage: FC = () => {
             <h3 className="text-lg font-semibold mb-4">分类分布</h3>
             <div className="h-80">
               {categoryData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 20, right: 80, bottom: 80, left: 80 }}>
+                <ResponsiveContainer height="100%" width="100%">
+                  <PieChart
+                    margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
+                  >
                     <Pie
-                      data={categoryData}
                       cx="50%"
                       cy="45%"
-                      labelLine={false}
-                      label={false}
-                      outerRadius={70}
-                      fill="#8884d8"
+                      data={categoryData}
                       dataKey="value"
+                      fill="#8884d8"
+                      label={false}
+                      labelLine={false}
                       minAngle={5}
+                      outerRadius={70}
                     >
                       {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
-                    <ChartTooltip 
-                      formatter={(value, name) => [
-                        `${value} 项`,
-                        name
-                      ]}
+                    <ChartTooltip
+                      formatter={(value, name) => [`${value} 项`, name]}
                     />
-                    <Legend 
-                      verticalAlign="bottom" 
-                      height={60}
-                      wrapperStyle={{
-                        paddingTop: '20px',
-                        fontSize: '12px'
-                      }}
+                    <Legend
                       formatter={(value, entry) => {
-                        const item = categoryData.find(d => d.name === value);
-                        const percent = item ? ((item.value / categoryData.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(0) : '0';
+                        const item = categoryData.find((d) => d.name === value);
+                        const percent = item
+                          ? (
+                              (item.value /
+                                categoryData.reduce(
+                                  (sum, d) => sum + d.value,
+                                  0,
+                                )) *
+                              100
+                            ).toFixed(0)
+                          : "0";
+
                         return `${value} ${percent}%`;
+                      }}
+                      height={60}
+                      verticalAlign="bottom"
+                      wrapperStyle={{
+                        paddingTop: "20px",
+                        fontSize: "12px",
                       }}
                     />
                   </PieChart>
@@ -417,8 +474,8 @@ const DashboardPage: FC = () => {
           <CardBody>
             <h3 className="text-lg font-semibold mb-4">操作类型统计</h3>
             <div className="h-64">
-              {operationTypeData.some(d => d.value > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
+              {operationTypeData.some((d) => d.value > 0) ? (
+                <ResponsiveContainer height="100%" width="100%">
                   <BarChart data={operationTypeData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
@@ -446,17 +503,35 @@ const DashboardPage: FC = () => {
         <CardBody>
           <h3 className="text-lg font-semibold mb-4">最近7天活动趋势</h3>
           <div className="h-64">
-            {trendData.some(d => d.records > 0 || d.in > 0 || d.out > 0) ? (
-              <ResponsiveContainer width="100%" height="100%">
+            {trendData.some((d) => d.records > 0 || d.in > 0 || d.out > 0) ? (
+              <ResponsiveContainer height="100%" width="100%">
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
                   <ChartTooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="records" stroke="#3B82F6" strokeWidth={2} name="总记录数" />
-                  <Line type="monotone" dataKey="in" stroke="#10B981" strokeWidth={2} name="入库" />
-                  <Line type="monotone" dataKey="out" stroke="#EF4444" strokeWidth={2} name="出库" />
+                  <Line
+                    dataKey="records"
+                    name="总记录数"
+                    stroke="#3B82F6"
+                    strokeWidth={2}
+                    type="monotone"
+                  />
+                  <Line
+                    dataKey="in"
+                    name="入库"
+                    stroke="#10B981"
+                    strokeWidth={2}
+                    type="monotone"
+                  />
+                  <Line
+                    dataKey="out"
+                    name="出库"
+                    stroke="#EF4444"
+                    strokeWidth={2}
+                    type="monotone"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -465,10 +540,9 @@ const DashboardPage: FC = () => {
                   <div className="text-4xl mb-4">📊</div>
                   <div className="text-lg font-medium mb-2">暂无趋势数据</div>
                   <div className="text-sm">
-                    {debugInfo.recordsCount === 0 ? 
-                      '请先添加一些库存变动记录' : 
-                      '最近7天没有库存变动'
-                    }
+                    {debugInfo.recordsCount === 0
+                      ? "请先添加一些库存变动记录"
+                      : "最近7天没有库存变动"}
                   </div>
                 </div>
               </div>
@@ -482,39 +556,56 @@ const DashboardPage: FC = () => {
         <Card className="shadow-lg border-l-4 border-l-danger">
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-danger">⚠️ 库存不足警告</h3>
-              <Chip color="danger" size="sm">{lowStockItems.length} 项</Chip>
+              <h3 className="text-lg font-semibold text-danger">
+                ⚠️ 库存不足警告
+              </h3>
+              <Chip color="danger" size="sm">
+                {lowStockItems.length} 项
+              </Chip>
             </div>
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {lowStockItems.slice(0, 5).map((item) => {
                 const status = formatStockStatus(item);
-                const percentage = item.safety_stock > 0 ? (item.current_stock / item.safety_stock) * 100 : 100;
-                
+                const percentage =
+                  item.safety_stock > 0
+                    ? (item.current_stock / item.safety_stock) * 100
+                    : 100;
+
                 return (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-3 bg-red-50 rounded-lg"
+                  >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-800">{item.name}</span>
-                        <Chip color={status.color as any} size="sm" variant="flat">
+                        <span className="font-medium text-gray-800">
+                          {item.name}
+                        </span>
+                        <Chip
+                          color={status.color as any}
+                          size="sm"
+                          variant="flat"
+                        >
                           {status.label}
                         </Chip>
                       </div>
                       <div className="text-sm text-gray-600 mt-1">
-                        当前库存: {item.current_stock} {item.unit} | 安全库存: {item.safety_stock} {item.unit}
+                        当前库存: {item.current_stock} {item.unit} | 安全库存:{" "}
+                        {item.safety_stock} {item.unit}
                       </div>
-                      <Progress 
-                        value={percentage} 
-                        color={status.color as any} 
-                        size="sm" 
+                      <Progress
                         className="mt-2"
+                        color={status.color as any}
+                        size="sm"
+                        value={percentage}
                       />
                     </div>
                     <Tooltip content="查看详情">
                       <Button
                         isIconOnly
+                        color="primary"
                         size="sm"
                         variant="light"
-                        color="primary"
                         onPress={() => navigate(`/supplies/details/${item.id}`)}
                       >
                         <EyeIcon />
@@ -525,11 +616,11 @@ const DashboardPage: FC = () => {
               })}
               {lowStockItems.length > 5 && (
                 <div className="text-center pt-2">
-                  <Button 
-                    size="sm" 
-                    variant="flat" 
+                  <Button
                     color="danger"
-                    onPress={() => navigate('/supplies/inventory-overview')}
+                    size="sm"
+                    variant="flat"
+                    onPress={() => navigate("/supplies/inventory-overview")}
                   >
                     查看全部 ({lowStockItems.length - 5} 项更多)
                   </Button>
@@ -546,11 +637,11 @@ const DashboardPage: FC = () => {
           <CardBody>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">最近变动记录</h3>
-              <Button 
-                size="sm" 
-                color="primary" 
+              <Button
+                color="primary"
+                size="sm"
                 variant="flat"
-                onPress={() => navigate('/supplies/records')}
+                onPress={() => navigate("/supplies/records")}
               >
                 查看全部
               </Button>
@@ -566,24 +657,30 @@ const DashboardPage: FC = () => {
               <TableBody>
                 {recentRecords.slice(0, 5).map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{record.supply_name || '未知耗材'}</TableCell>
+                    <TableCell>{record.supply_name || "未知耗材"}</TableCell>
                     <TableCell>
                       <Chip
                         color={
-                          record.type === 'in' ? 'success' :
-                          record.type === 'out' ? 'danger' : 'warning'
+                          record.type === "in"
+                            ? "success"
+                            : record.type === "out"
+                              ? "danger"
+                              : "warning"
                         }
                         size="sm"
                         variant="flat"
                       >
-                        {record.type === 'in' ? '入库' :
-                         record.type === 'out' ? '出库' : '调整'}
+                        {record.type === "in"
+                          ? "入库"
+                          : record.type === "out"
+                            ? "出库"
+                            : "调整"}
                       </Chip>
                     </TableCell>
                     <TableCell>{record.quantity}</TableCell>
                     <TableCell>{record.operator}</TableCell>
                     <TableCell>
-                      {new Date(record.timestamp).toLocaleDateString('zh-CN')}
+                      {new Date(record.timestamp).toLocaleDateString("zh-CN")}
                     </TableCell>
                   </TableRow>
                 ))}

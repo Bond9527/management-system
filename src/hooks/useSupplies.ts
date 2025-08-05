@@ -1,6 +1,14 @@
-import { useState, useEffect } from 'react';
-import { suppliesApi, recordsApi, statisticsApi } from '@/services/supplies';
-import type { SupplyItem, InventoryRecord, CreateSupplyRequest, UpdateSupplyRequest, AdjustStockRequest } from '@/services/supplies';
+import type {
+  SupplyItem,
+  InventoryRecord,
+  CreateSupplyRequest,
+  UpdateSupplyRequest,
+  AdjustStockRequest,
+} from "@/services/supplies";
+
+import { useState, useEffect } from "react";
+
+import { suppliesApi, recordsApi, statisticsApi } from "@/services/supplies";
 
 // 导出接口供其他组件使用
 export type { SupplyItem, InventoryRecord };
@@ -12,46 +20,56 @@ export const useSupplies = () => {
   const [error, setError] = useState<string | null>(null);
 
   // 获取所有耗材
-  const fetchSupplies = async (params?: { category?: string; search?: string }) => {
+  const fetchSupplies = async (params?: {
+    category?: string;
+    search?: string;
+  }) => {
     try {
       setIsLoading(true);
       setError(null);
       const data = await suppliesApi.getSupplies(params);
+
       setSupplies(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取耗材列表失败');
-      console.error('Failed to fetch supplies:', err);
+      setError(err instanceof Error ? err.message : "获取耗材列表失败");
+      console.error("Failed to fetch supplies:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
   // 获取所有记录
-  const fetchRecords = async (params?: { supply_id?: number; type?: string }) => {
+  const fetchRecords = async (params?: {
+    supply_id?: number;
+    type?: string;
+  }) => {
     try {
       setIsLoading(true);
       setError(null);
       const data = await recordsApi.getRecords(params);
+
       setRecords(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取记录列表失败');
-      console.error('Failed to fetch records:', err);
+      setError(err instanceof Error ? err.message : "获取记录列表失败");
+      console.error("Failed to fetch records:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
   // 添加新耗材
-  const addSupply = async (newSupply: Omit<CreateSupplyRequest, 'id'>) => {
+  const addSupply = async (newSupply: Omit<CreateSupplyRequest, "id">) => {
     try {
       setIsLoading(true);
       setError(null);
       const createdSupply = await suppliesApi.createSupply(newSupply);
-      setSupplies(prev => [createdSupply, ...prev]);
+
+      setSupplies((prev) => [createdSupply, ...prev]);
+
       return createdSupply;
     } catch (err) {
-      setError(err instanceof Error ? err.message : '添加耗材失败');
-      console.error('Failed to add supply:', err);
+      setError(err instanceof Error ? err.message : "添加耗材失败");
+      console.error("Failed to add supply:", err);
       throw err;
     } finally {
       setIsLoading(false);
@@ -64,13 +82,15 @@ export const useSupplies = () => {
       setIsLoading(true);
       setError(null);
       const updated = await suppliesApi.updateSupply(updatedSupply);
-      setSupplies(prev => prev.map(supply => 
-        supply.id === updated.id ? updated : supply
-      ));
+
+      setSupplies((prev) =>
+        prev.map((supply) => (supply.id === updated.id ? updated : supply)),
+      );
+
       return updated;
     } catch (err) {
-      setError(err instanceof Error ? err.message : '更新耗材失败');
-      console.error('Failed to update supply:', err);
+      setError(err instanceof Error ? err.message : "更新耗材失败");
+      console.error("Failed to update supply:", err);
       throw err;
     } finally {
       setIsLoading(false);
@@ -83,10 +103,10 @@ export const useSupplies = () => {
       setIsLoading(true);
       setError(null);
       await suppliesApi.deleteSupply(id);
-      setSupplies(prev => prev.filter(supply => supply.id !== id));
+      setSupplies((prev) => prev.filter((supply) => supply.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : '删除耗材失败');
-      console.error('Failed to delete supply:', err);
+      setError(err instanceof Error ? err.message : "删除耗材失败");
+      console.error("Failed to delete supply:", err);
       throw err;
     } finally {
       setIsLoading(false);
@@ -98,8 +118,8 @@ export const useSupplies = () => {
     try {
       return await suppliesApi.getSupply(id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取耗材详情失败');
-      console.error('Failed to get supply:', err);
+      setError(err instanceof Error ? err.message : "获取耗材详情失败");
+      console.error("Failed to get supply:", err);
       throw err;
     }
   };
@@ -110,26 +130,28 @@ export const useSupplies = () => {
       setIsLoading(true);
       setError(null);
       const result = await suppliesApi.adjustStock(data);
-      
+
       // 如果调整了单价，需要重新获取耗材数据以确保数据同步
       if (data.unit_price !== undefined) {
         await fetchSupplies();
       } else {
         // 只更新库存数量
-        setSupplies(prev => prev.map(supply => 
-          supply.id === data.supply_id 
-            ? { ...supply, current_stock: result.record.new_stock }
-            : supply
-        ));
+        setSupplies((prev) =>
+          prev.map((supply) =>
+            supply.id === data.supply_id
+              ? { ...supply, current_stock: result.record.new_stock }
+              : supply,
+          ),
+        );
       }
-      
+
       // 添加新记录到本地记录列表
-      setRecords(prev => [result.record, ...prev]);
-      
+      setRecords((prev) => [result.record, ...prev]);
+
       return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : '库存调整失败');
-      console.error('Failed to adjust stock:', err);
+      setError(err instanceof Error ? err.message : "库存调整失败");
+      console.error("Failed to adjust stock:", err);
       throw err;
     } finally {
       setIsLoading(false);
@@ -137,7 +159,9 @@ export const useSupplies = () => {
   };
 
   // 添加库存变动记录（现在通过adjustStock实现）
-  const addRecord = async (record: Omit<AdjustStockRequest, 'supply_id'> & { supply_id: number }) => {
+  const addRecord = async (
+    record: Omit<AdjustStockRequest, "supply_id"> & { supply_id: number },
+  ) => {
     return adjustStock(record);
   };
 
@@ -154,8 +178,8 @@ export const useSupplies = () => {
     try {
       return await statisticsApi.getStatistics();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '获取统计信息失败');
-      console.error('Failed to get statistics:', err);
+      setError(err instanceof Error ? err.message : "获取统计信息失败");
+      console.error("Failed to get statistics:", err);
       throw err;
     }
   };
@@ -189,4 +213,4 @@ export const useSupplies = () => {
     // 工具方法
     setError: (error: string | null) => setError(error),
   };
-}; 
+};

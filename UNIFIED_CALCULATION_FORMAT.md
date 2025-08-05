@@ -12,7 +12,7 @@
 // 通用计算参数接口
 interface CalculationParams {
   monthlyCapacity: number;    // 当月产能
-  usagePerSet: number;        // 每套机用量
+  usagePerSet: number;        // 每臺機用量
   usageCount: number;         // 使用次数
   maxCapacity?: number;       // 最高产能 (可选)
   minCapacity?: number;       // 最低产能 (可选)
@@ -22,39 +22,39 @@ interface CalculationParams {
 
 // 计算结果接口
 interface CalculationResult {
-  monthlyDemand: number;      // 当月需求
+  monthlyDemand: number;      // 当月需求/站
   maxInventory?: number;      // 最高库存
   minInventory?: number;      // 最低库存
-  netDemand?: number;         // 净需求
+  netDemand?: number;         // 总需求
   demandValue?: number;       // 需求金额
 }
 ```
 
 ### 🧮 核心计算公式
 
-#### 1. 当月需求计算
+#### 1. 当月需求/站计算
 ```typescript
-当月需求 = 当月产能 × 每套机用量 ÷ 使用次数
+当月需求/站 = 当月产能 × 每臺機用量 ÷ 使用次数
 ```
 
 #### 2. 最高库存计算
 ```typescript
-最高库存 = 最高产能 × 每套机用量 ÷ 使用次数
+最高库存 = 最高产能 × 每臺機用量 ÷ 使用次数
 ```
 
 #### 3. 最低库存计算
 ```typescript
-最低库存 = 最低产能 × 每套机用量 ÷ 使用次数
+最低库存 = 最低产能 × 每臺機用量 ÷ 使用次数
 ```
 
-#### 4. 当月网路需求计算
+#### 4. 当月总需求计算
 ```typescript
-当月网路需求 = 当月需求 - 最低库存数量
+当月总需求 = 当月需求/站 - 最低库存数量
 ```
 
 #### 5. 需求金额计算
 ```typescript
-需求金额 = 当月需求 × 单价(RMB)
+需求金额 = 当月需求/站 × 单价(RMB)
 ```
 
 ## 🏭 系统实现对比
@@ -93,7 +93,7 @@ monthlyCapacity: 497700
 unitPrice: 9.23
 
 // 计算结果
-当月需求 = 497700 × 18 ÷ 30000 = 299个
+当月需求/站 = 497700 × 18 ÷ 30000 = 299个
 需求金额 = 299 × 9.23 = ¥2760.77
 ```
 
@@ -114,7 +114,7 @@ maxCapacity: 694000
 minCapacity: 445000
 
 // 计算结果
-当月需求 = 497700 × 4 ÷ 100000 = 20个
+当月需求/站 = 497700 × 4 ÷ 100000 = 20个
 最高库存 = 694000 × 4 ÷ 100000 = 28个
 最低库存 = 445000 × 4 ÷ 100000 = 18个
 ```
@@ -123,7 +123,7 @@ minCapacity: 445000
 
 #### 🔄 计算表改进
 - 使用统一计算引擎
-- 支持当月需求和网路需求计算
+- 支持当月需求/站和总需求计算
 - 产能基准：363,000
 
 #### 计算示例
@@ -135,8 +135,8 @@ monthlyCapacity: 363000
 minStock: 29
 
 // 计算结果
-当月需求 = 363000 × 21 ÷ 50000 = 152个
-当月网路需求 = 152 - 29 = 123个
+当月需求/站 = 363000 × 21 ÷ 50000 = 152个
+当月总需求 = 152 - 29 = 123个
 ```
 
 ## 🎨 界面统一设计

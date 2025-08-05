@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Modal,
-  ModalContent,
-  Button,
-} from "@heroui/react";
+import React, { useState, useEffect } from "react";
+import { Modal, ModalContent, Button } from "@heroui/react";
+
 import { TrashIcon } from "@/components/icons";
 
 interface DeleteConfirmModalProps {
@@ -42,6 +39,7 @@ export default function DeleteConfirmModal({
       const timer = setTimeout(() => {
         setCountdown(countdown - 1);
       }, 1000);
+
       return () => clearTimeout(timer);
     } else if (countdown === 0) {
       setIsCountdownActive(false);
@@ -61,17 +59,12 @@ export default function DeleteConfirmModal({
     onClose();
   };
 
-  const defaultMessage = itemName 
+  const defaultMessage = itemName
     ? `删除后此操作不可恢复。`
     : "删除后此操作不可恢复。";
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={handleClose} 
-      size="sm"
-      hideCloseButton
-    >
+    <Modal hideCloseButton isOpen={isOpen} size="sm" onClose={handleClose}>
       <ModalContent>
         <div className="flex flex-col items-center text-center p-6">
           {/* 垃圾桶图标区域 */}
@@ -80,12 +73,10 @@ export default function DeleteConfirmModal({
               <TrashIcon className="w-6 h-6 text-red-600" />
             </div>
           </div>
-          
+
           {/* 标题 */}
           <div className="mb-3">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {title}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           </div>
 
           {/* 内容区域 */}
@@ -104,25 +95,25 @@ export default function DeleteConfirmModal({
 
           {/* 按钮区域 */}
           <div className="flex gap-3 w-full max-w-xs">
-            <Button 
-              color="default" 
+            <Button
+              className="flex-1 hover:bg-gray-100"
+              color="default"
               variant="flat"
               onClick={handleClose}
-              className="flex-1 hover:bg-gray-100"
             >
               取消
             </Button>
-            <Button 
-              color="danger" 
-              onClick={handleConfirm}
+            <Button
+              className={`flex-1 ${countdown > 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+              color="danger"
               disabled={countdown > 0}
-              className={`flex-1 ${countdown > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={handleConfirm}
             >
-              {countdown > 0 ? `${countdown}秒后可删除` : '确认删除'}
+              {countdown > 0 ? `${countdown}秒后可删除` : "确认删除"}
             </Button>
           </div>
         </div>
       </ModalContent>
     </Modal>
   );
-} 
+}

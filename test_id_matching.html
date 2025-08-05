@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID匹配测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: green;
+            background: #e6ffe6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+            background: #ffe6e6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info {
+            color: blue;
+            background: #e6f3ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 ID匹配修复测试</h1>
+    
+    <div class="test-container">
+        <h2>📋 测试说明</h2>
+        <p>这个页面用于测试ID匹配修复是否有效。主要测试以下场景：</p>
+        <ul>
+            <li>字符串ID "1695-station-0" 转换为数字ID 1695</li>
+            <li>在calculationItems数组中查找对应的项目</li>
+            <li>验证编辑功能是否能正确找到项目</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>🎯 ID转换测试</h2>
+        <button class="button" onclick="testIdConversion()">测试ID转换</button>
+        <button class="button" onclick="testArraySearch()">测试数组查找</button>
+        <button class="button" onclick="testFullScenario()">测试完整场景</button>
+        <div id="test-result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📝 日志输出</h2>
+        <div id="log-output" class="log"></div>
+        <button class="button" onclick="clearLog()">清空日志</button>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logOutput = document.getElementById('log-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logOutput.appendChild(logEntry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log-output').innerHTML = '';
+        }
+
+        function testIdConversion() {
+            log('开始测试ID转换...');
+            const resultDiv = document.getElementById('test-result');
+            
+            // 模拟从表格记录中获取的ID
+            const recordId = '1695-station-0';
+            log(`原始记录ID: ${recordId}`, 'info');
+            
+            // 测试ID转换逻辑
+            let originalId = recordId;
+            if (typeof originalId === 'string' && originalId.includes('-station-')) {
+                originalId = parseInt(originalId.split('-station-')[0]);
+                log(`转换后的数字ID: ${originalId}`, 'success');
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="success">✅ ID转换测试完成</div>
+                <p>原始ID: ${recordId}</p>
+                <p>转换后ID: ${originalId}</p>
+                <p>类型: ${typeof originalId}</p>
+            `;
+        }
+
+        function testArraySearch() {
+            log('开始测试数组查找...');
+            const resultDiv = document.getElementById('test-result');
+            
+            // 模拟calculationItems数组
+            const calculationItems = [
+                { id: 1695, material_name: '测试材料1', usage_station: '站别A' },
+                { id: 1696, material_name: '测试材料2', usage_station: '站别B' },
+                { id: 1697, material_name: '测试材料3', usage_station: '站别C' }
+            ];
+            
+            log(`模拟calculationItems数组: ${JSON.stringify(calculationItems, null, 2)}`, 'info');
+            
+            // 测试查找逻辑
+            const recordId = '1695-station-0';
+            let originalId = recordId;
+            
+            if (typeof originalId === 'string' && originalId.includes('-station-')) {
+                originalId = parseInt(originalId.split('-station-')[0]);
+            }
+            
+            log(`查找ID: ${originalId}`, 'info');
+            
+            const foundItem = calculationItems.find(item => item.id === originalId);
+            
+            if (foundItem) {
+                log(`✅ 找到项目: ${JSON.stringify(foundItem, null, 2)}`, 'success');
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 数组查找测试成功</div>
+                    <p>查找ID: ${originalId}</p>
+                    <p>找到项目: ${foundItem.material_name}</p>
+                `;
+            } else {
+                log(`❌ 未找到ID为 ${originalId} 的项目`, 'error');
+                resultDiv.innerHTML = `
+                    <div class="error">❌ 数组查找测试失败</div>
+                    <p>查找ID: ${originalId}</p>
+                    <p>可用ID: ${calculationItems.map(item => item.id).join(', ')}</p>
+                `;
+            }
+        }
+
+        function testFullScenario() {
+            log('开始测试完整场景...');
+            const resultDiv = document.getElementById('test-result');
+            
+            // 模拟完整的编辑按钮点击场景
+            const record = {
+                id: '1695-station-0',
+                material_name: '测试材料1',
+                usage_station: '站别A',
+                originalId: 1695
+            };
+            
+            const calculationItems = [
+                { id: 1695, material_name: '测试材料1', usage_station: '站别A' },
+                { id: 1696, material_name: '测试材料2', usage_station: '站别B' }
+            ];
+            
+            log(`模拟记录: ${JSON.stringify(record, null, 2)}`, 'info');
+            log(`calculationItems: ${JSON.stringify(calculationItems, null, 2)}`, 'info');
+            
+            try {
+                // 模拟编辑按钮点击逻辑
+                let originalId = record.originalId || record.id;
+                log(`原始ID: ${originalId}`, 'info');
+                
+                if (typeof originalId === 'string' && originalId.includes('-station-')) {
+                    originalId = parseInt(originalId.split('-station-')[0]);
+                    log(`解析后的数字ID: ${originalId}`, 'info');
+                }
+                
+                const originalItem = calculationItems.find(item => item.id === originalId);
+                
+                if (originalItem) {
+                    log(`✅ 找到原始项目: ${JSON.stringify(originalItem, null, 2)}`, 'success');
+                    log('✅ 可以调用编辑函数', 'success');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ 完整场景测试成功</div>
+                        <p>记录ID: ${record.id}</p>
+                        <p>解析后ID: ${originalId}</p>
+                        <p>找到项目: ${originalItem.material_name}</p>
+                        <p>编辑功能应该可以正常工作</p>
+                    `;
+                } else {
+                    log(`❌ 未找到原始项目`, 'error');
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ 完整场景测试失败</div>
+                        <p>记录ID: ${record.id}</p>
+                        <p>解析后ID: ${originalId}</p>
+                        <p>未找到对应的项目</p>
+                    `;
+                }
+            } catch (error) {
+                log(`❌ 测试过程中出现错误: ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <div class="error">❌ 测试过程中出现错误</div>
+                    <p>错误信息: ${error.message}</p>
+                `;
+            }
+        }
+
+        // 页面加载时自动运行测试
+        window.addEventListener('load', () => {
+            log('页面加载完成，开始自动测试...');
+            setTimeout(() => {
+                testIdConversion();
+                setTimeout(() => {
+                    testArraySearch();
+                    setTimeout(() => {
+                        testFullScenario();
+                    }, 1000);
+                }, 1000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

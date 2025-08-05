@@ -105,7 +105,7 @@ class B482SupplyItem(models.Model):
     remark = models.TextField(blank=True, verbose_name="备注")
     
     # 🆕 计算参数 (可选)
-    usage_per_set = models.IntegerField(default=1, verbose_name="每套机用量")
+    usage_per_set = models.IntegerField(default=1, verbose_name="每臺機用量")
     usage_count = models.IntegerField(default=1000, verbose_name="使用次数")
     monthly_capacity = models.IntegerField(default=497700, verbose_name="当月产能")
     enable_auto_calculation = models.BooleanField(default=False, verbose_name="启用自动计算")
@@ -135,12 +135,12 @@ class AndorSupplyItem(models.Model):
     no = models.IntegerField(verbose_name="No.")
     material_name = models.CharField(max_length=200, verbose_name="耗材名称")
     usage_station = models.CharField(max_length=100, verbose_name="使用站别")
-    usage_per_set = models.IntegerField(verbose_name="每套机用量")
+    usage_per_set = models.IntegerField(verbose_name="每臺機用量")
     usage_count = models.IntegerField(verbose_name="使用次数")
     monthly_capacity = models.IntegerField(verbose_name="当月产能")
     min_inventory = models.IntegerField(verbose_name="最低库存")
     max_inventory = models.IntegerField(verbose_name="最高库存")
-    monthly_demand = models.IntegerField(verbose_name="当月需求")
+    monthly_demand = models.IntegerField(verbose_name="当月需求/站")
     remark = models.TextField(blank=True, verbose_name="备注(实际订购数量)")
     
     # 时间戳
@@ -212,6 +212,8 @@ class B453SupplyItem(models.Model):
     jul_2025_demand = models.IntegerField(default=0, verbose_name="2025年7月份需求")
     jul_2025_stock = models.IntegerField(default=0, verbose_name="2025/7/20库存")
     aug_2025_demand = models.IntegerField(default=0, verbose_name="2025年8月份需求")
+    # 新增：各月周需求
+    weekly_demand = models.JSONField(default=dict, blank=True, verbose_name="各月周需求")
     remark = models.TextField(blank=True, verbose_name="备注")
     
     # 🆕 计算关联字段
@@ -240,19 +242,21 @@ class B453CalculationItem(models.Model):
     """B453耗材需求计算表"""
     id = models.AutoField(primary_key=True)
     no = models.IntegerField(verbose_name="No.")
-    material_name = models.CharField(max_length=200, verbose_name="料材名称")
-    usage_station = models.CharField(max_length=100, verbose_name="使用站别")
-    usage_per_set = models.IntegerField(verbose_name="每套机用量")
-    usage_count = models.IntegerField(verbose_name="使用次数")
-    monthly_capacity = models.IntegerField(verbose_name="当月产能")
-    min_stock = models.IntegerField(verbose_name="最低库存数量")
-    max_stock = models.IntegerField(verbose_name="最高库存数量")
-    monthly_demand = models.IntegerField(verbose_name="当月需求")
-    monthly_net_demand = models.IntegerField(verbose_name="当月网路需求")
-    actual_order = models.IntegerField(verbose_name="实际订购数量")
-    moq_remark = models.TextField(blank=True, verbose_name="备注(MOQ)")
+    material_name = models.TextField(verbose_name="料件名稱")
+    usage_station = models.CharField(max_length=50, verbose_name="使用站別")
+    usage_per_machine = models.IntegerField(default=0, verbose_name="每台机用量")
+    usage_count = models.IntegerField(default=0, verbose_name="使用次數")
+    monthly_capacity = models.IntegerField(default=0, verbose_name="当月產能")
+    min_stock = models.IntegerField(default=0, verbose_name="最低庫存數")
+    min_total_stock = models.IntegerField(default=0, verbose_name="最低庫存總數")
+    max_stock = models.IntegerField(default=0, verbose_name="最高庫存數")
+    max_total_stock = models.IntegerField(default=0, verbose_name="最高庫存總數")
+    actual_stock = models.IntegerField(default=0, verbose_name="實際庫存數量")
+    monthly_demand_per_station = models.IntegerField(default=0, verbose_name="当月需求/站")
+    monthly_total_demand = models.IntegerField(default=0, verbose_name="当月總需求")
+    moq_remark = models.TextField(blank=True, verbose_name="備註(MOQ)")
     
-    # 🆕 管控表关联字段
+    # 关联字段
     management_id = models.IntegerField(null=True, blank=True, verbose_name="关联的管控表ID")
     linked_material = models.TextField(blank=True, verbose_name="关联的物料描述")
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="单价")
@@ -261,15 +265,15 @@ class B453CalculationItem(models.Model):
     # 时间戳
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="创建用户")
+    created_by = models.ForeignKey('accounts.UserProfile', on_delete=models.SET_NULL, null=True, verbose_name="创建者")
 
     class Meta:
         verbose_name = "B453耗材需求计算表"
-        verbose_name_plural = "B453耗材需求计算表"
+        verbose_name_plural = verbose_name
         ordering = ['no']
 
     def __str__(self):
-        return f"B453计算-{self.no}: {self.material_name}"
+        return f"{self.no} - {self.material_name}"
 
 
 # ================================
@@ -396,7 +400,7 @@ class DynamicSupplyItem(models.Model):
     monthly_data = models.JSONField(default=dict, verbose_name="月度数据")
     
     # 计算参数
-    usage_per_set = models.IntegerField(default=1, verbose_name="每套机用量")
+    usage_per_set = models.IntegerField(default=1, verbose_name="每臺機用量")
     usage_count = models.IntegerField(default=1000, verbose_name="使用次数")
     monthly_capacity = models.IntegerField(default=497700, verbose_name="当月产能")
     enable_auto_calculation = models.BooleanField(default=False, verbose_name="启用自动计算")
@@ -420,16 +424,16 @@ class DynamicCalculationItem(models.Model):
     id = models.AutoField(primary_key=True)
     form = models.ForeignKey(ApplicationForm, on_delete=models.CASCADE, verbose_name="所属申请表")
     no = models.IntegerField(verbose_name="No.")
-    material_name = models.CharField(max_length=200, verbose_name="料材名称")
-    usage_station = models.CharField(max_length=100, verbose_name="使用站别")
-    usage_per_set = models.IntegerField(verbose_name="每套机用量")
-    usage_count = models.IntegerField(verbose_name="使用次数")
-    monthly_capacity = models.IntegerField(verbose_name="当月产能")
-    min_stock = models.IntegerField(verbose_name="最低库存数量")
-    max_stock = models.IntegerField(verbose_name="最高库存数量")
-    monthly_demand = models.IntegerField(verbose_name="当月需求")
-    monthly_net_demand = models.IntegerField(verbose_name="当月网路需求")
-    actual_order = models.IntegerField(verbose_name="实际订购数量")
+    material_name = models.CharField(max_length=200, verbose_name="料材名称", default='')
+    usage_station = models.CharField(max_length=100, verbose_name="使用站别", default='')
+    usage_per_set = models.IntegerField(verbose_name="每臺機用量", default=0)
+    usage_count = models.IntegerField(verbose_name="使用次数", default=0)
+    monthly_capacity = models.IntegerField(verbose_name="当月产能", default=0)
+    min_stock = models.IntegerField(verbose_name="最低库存数量", default=0)
+    max_stock = models.IntegerField(verbose_name="最高库存数量", default=0)
+    monthly_demand = models.IntegerField(verbose_name="当月需求/站", default=0)
+    monthly_net_demand = models.IntegerField(verbose_name="当月总需求", default=0)
+    actual_order = models.IntegerField(verbose_name="实际订购数量", default=0)
     moq_remark = models.TextField(blank=True, verbose_name="备注(MOQ)")
     
     # 🆕 添加采购员字段
@@ -441,31 +445,41 @@ class DynamicCalculationItem(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="单价")
     moq = models.IntegerField(null=True, blank=True, verbose_name="MOQ")
     
-    # 月度库存和需求明细 - B453标准格式
-    apr_2025_stock = models.IntegerField(default=0, verbose_name="2025年4月库存")
-    may_2025_demand = models.IntegerField(default=0, verbose_name="2025年5月需求")
-    may_2025_stock = models.IntegerField(default=0, verbose_name="2025年5月库存")
-    jun_2025_demand = models.IntegerField(default=0, verbose_name="2025年6月需求")
-    jun_2025_stock = models.IntegerField(default=0, verbose_name="2025年6月库存")
-    jul_2025_stock = models.IntegerField(default=0, verbose_name="2025年7月库存")
-    aug_2025_demand = models.IntegerField(default=0, verbose_name="2025年8月需求")
+    # 动态月度数据
+    monthly_data = models.JSONField(default=dict, verbose_name="月度库存和需求明细")
+    # 动态追料数据
+    chase_data = models.JSONField(default=dict, verbose_name="追料需求明细")
+    # 动态库存快照
+    stock_snapshots = models.JSONField(default=dict, verbose_name="特定日期库存快照")
+
+    # 🆕 一行多列数据存储 - 支持多个使用站别
+    multi_station_data = models.JSONField(default=dict, verbose_name="多使用站别数据")
+    # 数据结构示例：
+    # {
+    #     "stations": ["MLR Left DFU", "MLR Right FCT", "MLR Right R2 FCT", "MLR Left FCT"],
+    #     "usage_per_set": [21, 8, 8, 24],
+    #     "usage_count": [50000, 50000, 50000, 50000],
+    #     "monthly_capacity": [363000, 363000, 363000, 363000],
+    #     "min_stock": [228, 228, 228, 228],
+    #     "max_stock": [512, 512, 512, 512],
+    #     "monthly_demand": [181, 65, 65, 202],
+    #     "monthly_net_demand": [181, 65, 65, 202],
+    #     "actual_order": [181, 65, 65, 202],
+    #     "moq_remark": ["MOQ: 100", "MOQ: 100", "MOQ: 100", "MOQ: 100"]
+    # }
     
-    # 现阶段库存
-    current_stock_0619 = models.IntegerField(default=0, verbose_name="2025/6/19库存数量")
-    current_stock_0625 = models.IntegerField(default=0, verbose_name="2024/6/25库存数量")
-    
-    # 追料需求 (按月细分)
-    jul_m01_demand = models.IntegerField(default=0, verbose_name="7月M01需求")
-    jul_m02_demand = models.IntegerField(default=0, verbose_name="7月M02需求")
-    jul_m03_demand = models.IntegerField(default=0, verbose_name="7月M03需求")
-    jul_m04_demand = models.IntegerField(default=0, verbose_name="7月M04需求")
-    
+    # 🆕 标识是否使用多站别模式
+    is_multi_station = models.BooleanField(default=False, verbose_name="是否使用多站别模式")
+
     # 总金额 (自动计算)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="总金额")
     
     # 时间戳
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+
+    # 可见性/逻辑删除
+    is_visible = models.BooleanField(default=True, verbose_name="是否可见")
 
     class Meta:
         verbose_name = "动态计算表项目"
@@ -475,6 +489,34 @@ class DynamicCalculationItem(models.Model):
 
     def __str__(self):
         return f"{self.form.code}-计算-{self.no}: {self.material_name}"
+    
+    # 🆕 多站别数据处理方法
+    def get_station_count(self):
+        """获取使用站别数量"""
+        if self.is_multi_station and self.multi_station_data:
+            return len(self.multi_station_data.get('stations', []))
+        return 1
+    
+    def get_total_demand(self):
+        """获取总需求量"""
+        if self.is_multi_station and self.multi_station_data:
+            return sum(self.multi_station_data.get('monthly_demand', []))
+        return self.monthly_demand
+    
+    def get_total_actual_order(self):
+        """获取总实际订购量"""
+        if self.is_multi_station and self.multi_station_data:
+            return sum(self.multi_station_data.get('actual_order', []))
+        return self.actual_order
+    
+    def get_stations_summary(self):
+        """获取使用站别摘要"""
+        if self.is_multi_station and self.multi_station_data:
+            stations = self.multi_station_data.get('stations', [])
+            if len(stations) > 2:
+                return f"{stations[0]}, {stations[1]}... ({len(stations)}个站别)"
+            return ", ".join(stations)
+        return self.usage_station
 
 
 class DynamicForecastData(models.Model):
@@ -497,3 +539,26 @@ class DynamicForecastData(models.Model):
 
     def __str__(self):
         return f"{self.form.code}-预测: {self.name}"
+
+
+class ImportLog(models.Model):
+    """导入日志模型 - 记录Excel导入操作"""
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="操作用户")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="导入时间")
+    file_name = models.CharField(max_length=255, verbose_name="文件名")
+    result = models.TextField(verbose_name="导入结果")
+    success = models.BooleanField(default=True, verbose_name="是否成功")
+    
+    # 导入详情
+    imported_count = models.IntegerField(default=0, verbose_name="导入数量")
+    error_count = models.IntegerField(default=0, verbose_name="错误数量")
+    error_details = models.TextField(blank=True, verbose_name="错误详情")
+
+    class Meta:
+        verbose_name = "导入日志"
+        verbose_name_plural = "导入日志"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.file_name} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"

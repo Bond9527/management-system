@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardHeader, Button, Spinner, Chip } from '@heroui/react';
-import { dynamicCalculationItemService } from '../services/materialManagement';
-import type { DynamicCalculationItem } from '../services/materialManagement';
+import type { DynamicCalculationItem } from "../services/materialManagement";
+
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  Spinner,
+  Chip,
+} from "@heroui/react";
+
+import { dynamicCalculationItemService } from "../services/materialManagement";
 
 const TestDataRefreshPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -12,11 +21,12 @@ const TestDataRefreshPage: React.FC = () => {
     setLoading(true);
     try {
       const data = await dynamicCalculationItemService.getAll();
+
       setItems(data);
       setLastRefresh(new Date());
-      console.log('API返回的数据:', data);
+      console.log("API返回的数据:", data);
     } catch (error) {
-      console.error('加载数据失败:', error);
+      console.error("加载数据失败:", error);
     } finally {
       setLoading(false);
     }
@@ -35,16 +45,12 @@ const TestDataRefreshPage: React.FC = () => {
               <h1 className="text-2xl font-bold">前端数据刷新测试</h1>
               <div className="flex gap-2 items-center">
                 {lastRefresh && (
-                  <Chip size="sm" color="success" variant="flat">
+                  <Chip color="success" size="sm" variant="flat">
                     最后刷新: {lastRefresh.toLocaleTimeString()}
                   </Chip>
                 )}
-                <Button 
-                  color="primary" 
-                  onPress={loadData} 
-                  isLoading={loading}
-                >
-                  {loading ? '刷新中...' : '刷新数据'}
+                <Button color="primary" isLoading={loading} onPress={loadData}>
+                  {loading ? "刷新中..." : "刷新数据"}
                 </Button>
               </div>
             </div>
@@ -52,32 +58,59 @@ const TestDataRefreshPage: React.FC = () => {
           <CardBody>
             <div className="space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-800 mb-2">📊 数据统计</h3>
+                <h3 className="font-semibold text-blue-800 mb-2">
+                  📊 数据统计
+                </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{items.length}</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {items.length}
+                    </div>
                     <div className="text-sm text-gray-600">总项目数</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">
-                      {items.filter(item => (item.apr_2025_stock || 0) > 0).length}
+                      {
+                        items.filter(
+                          (item) =>
+                            (item.monthly_data?.["2025/4/22"]?.stock || 0) > 0,
+                        ).length
+                      }
                     </div>
                     <div className="text-sm text-gray-600">有4月库存的项目</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-orange-600">
-                      {items.filter(item => (item.current_stock_0619 || 0) > 0).length}
+                      {
+                        items.filter(
+                          (item) =>
+                            (item.stock_snapshots?.["2025-06-19"] || 0) > 0,
+                        ).length
+                      }
                     </div>
-                    <div className="text-sm text-gray-600">有现阶段库存的项目</div>
+                    <div className="text-sm text-gray-600">
+                      有现阶段库存的项目
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-600">
-                      {items.filter(item => 
-                        (item.jul_m01_demand || 0) + (item.jul_m02_demand || 0) + 
-                        (item.jul_m03_demand || 0) + (item.jul_m04_demand || 0) > 0
-                      ).length}
+                      {
+                        items.filter((item) => {
+                          const chaseData = item.chase_data?.["2025-07"] || {};
+
+                          return (
+                            (chaseData.M01 || 0) +
+                              (chaseData.M02 || 0) +
+                              (chaseData.M03 || 0) +
+                              (chaseData.M04 || 0) >
+                            0
+                          );
+                        }).length
+                      }
                     </div>
-                    <div className="text-sm text-gray-600">有追料需求的项目</div>
+                    <div className="text-sm text-gray-600">
+                      有追料需求的项目
+                    </div>
                   </div>
                 </div>
               </div>
@@ -92,8 +125,10 @@ const TestDataRefreshPage: React.FC = () => {
                     <Card key={item.id} className="w-full">
                       <CardHeader>
                         <div className="flex justify-between items-center w-full">
-                          <h4 className="font-semibold">{item.material_name}</h4>
-                          <Chip size="sm" color="primary" variant="flat">
+                          <h4 className="font-semibold">
+                            {item.material_name}
+                          </h4>
+                          <Chip color="primary" size="sm" variant="flat">
                             No. {item.no}
                           </Chip>
                         </div>
@@ -102,36 +137,50 @@ const TestDataRefreshPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                           {/* 4-6月份数据 */}
                           <div className="space-y-2">
-                            <h5 className="font-medium text-blue-600">月度数据</h5>
+                            <h5 className="font-medium text-blue-600">
+                              月度数据
+                            </h5>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
                                 <span>4月库存:</span>
                                 <span className="font-semibold text-purple-600">
-                                  {(item.apr_2025_stock || 0).toLocaleString()}
+                                  {(
+                                    item.monthly_data?.["2025/4/22"]?.stock || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span>5月需求:</span>
                                 <span className="font-semibold text-orange-600">
-                                  {(item.may_2025_demand || 0).toLocaleString()}
+                                  {(
+                                    item.monthly_data?.["2025年5月"]?.demand ||
+                                    0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span>5月库存:</span>
                                 <span className="font-semibold text-purple-600">
-                                  {(item.may_2025_stock || 0).toLocaleString()}
+                                  {(
+                                    item.monthly_data?.["2025/5/22"]?.stock || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span>6月需求:</span>
                                 <span className="font-semibold text-orange-600">
-                                  {(item.jun_2025_demand || 0).toLocaleString()}
+                                  {(
+                                    item.monthly_data?.["2025年6月"]?.demand ||
+                                    0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span>6月库存:</span>
                                 <span className="font-semibold text-purple-600">
-                                  {(item.jun_2025_stock || 0).toLocaleString()}
+                                  {(
+                                    item.monthly_data?.["2025/6/22"]?.stock || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                             </div>
@@ -139,18 +188,24 @@ const TestDataRefreshPage: React.FC = () => {
 
                           {/* 现阶段库存 */}
                           <div className="space-y-2">
-                            <h5 className="font-medium text-green-600">现阶段库存</h5>
+                            <h5 className="font-medium text-green-600">
+                              现阶段库存
+                            </h5>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
                                 <span>2025/6/19:</span>
                                 <span className="font-semibold text-green-600">
-                                  {(item.current_stock_0619 || 0).toLocaleString()}
+                                  {(
+                                    item.stock_snapshots?.["2025-06-19"] || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span>2024/6/25:</span>
                                 <span className="font-semibold text-green-600">
-                                  {(item.current_stock_0625 || 0).toLocaleString()}
+                                  {(
+                                    item.stock_snapshots?.["2024-06-25"] || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                             </div>
@@ -158,30 +213,40 @@ const TestDataRefreshPage: React.FC = () => {
 
                           {/* 追料需求 */}
                           <div className="space-y-2">
-                            <h5 className="font-medium text-red-600">追料需求</h5>
+                            <h5 className="font-medium text-red-600">
+                              追料需求
+                            </h5>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
                                 <span>7月M01:</span>
                                 <span className="font-semibold text-red-600">
-                                  {(item.jul_m01_demand || 0).toLocaleString()}
+                                  {(
+                                    item.chase_data?.["2025-07"]?.M01 || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span>7月M02:</span>
                                 <span className="font-semibold text-red-600">
-                                  {(item.jul_m02_demand || 0).toLocaleString()}
+                                  {(
+                                    item.chase_data?.["2025-07"]?.M02 || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span>7月M03:</span>
                                 <span className="font-semibold text-red-600">
-                                  {(item.jul_m03_demand || 0).toLocaleString()}
+                                  {(
+                                    item.chase_data?.["2025-07"]?.M03 || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span>7月M04:</span>
                                 <span className="font-semibold text-red-600">
-                                  {(item.jul_m04_demand || 0).toLocaleString()}
+                                  {(
+                                    item.chase_data?.["2025-07"]?.M04 || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                             </div>
@@ -189,7 +254,9 @@ const TestDataRefreshPage: React.FC = () => {
 
                           {/* 其他数据 */}
                           <div className="space-y-2">
-                            <h5 className="font-medium text-gray-600">基本信息</h5>
+                            <h5 className="font-medium text-gray-600">
+                              基本信息
+                            </h5>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
                                 <span>单价:</span>
@@ -206,7 +273,9 @@ const TestDataRefreshPage: React.FC = () => {
                               <div className="flex justify-between">
                                 <span>7月库存:</span>
                                 <span className="font-semibold text-purple-600">
-                                  {(item.jul_2025_stock || 0).toLocaleString()}
+                                  {(
+                                    item.monthly_data?.["2025-07"]?.stock || 0
+                                  ).toLocaleString()}
                                 </span>
                               </div>
                             </div>
@@ -225,4 +294,4 @@ const TestDataRefreshPage: React.FC = () => {
   );
 };
 
-export default TestDataRefreshPage; 
+export default TestDataRefreshPage;

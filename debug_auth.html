@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>认证调试</title>
+</head>
+<body>
+    <h1>认证调试页面</h1>
+    <div id="auth-status"></div>
+    <div id="api-test"></div>
+    
+    <script>
+        function checkAuth() {
+            const token = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            
+            const statusDiv = document.getElementById('auth-status');
+            statusDiv.innerHTML = `
+                <h2>认证状态</h2>
+                <p>访问令牌: ${token ? token.substring(0, 20) + '...' : '无'}</p>
+                <p>刷新令牌: ${refreshToken ? refreshToken.substring(0, 20) + '...' : '无'}</p>
+                <p>令牌存在: ${!!token}</p>
+            `;
+            
+            if (token) {
+                // 解析JWT令牌
+                try {
+                    const base64Payload = token.split('.')[1];
+                    const payload = JSON.parse(atob(base64Payload));
+                    const now = Math.floor(Date.now() / 1000);
+                    const isExpired = payload.exp < now;
+                    
+                    statusDiv.innerHTML += `
+                        <h3>令牌详情</h3>
+                        <p>用户ID: ${payload.user_id}</p>
+                        <p>过期时间: ${new Date(payload.exp * 1000).toLocaleString()}</p>
+                        <p>是否过期: ${isExpired}</p>
+                        <p>剩余时间: ${isExpired ? '已过期' : (payload.exp - now) + '秒'}</p>
+                    `;
+                } catch (error) {
+                    statusDiv.innerHTML += `<p>令牌解析错误: ${error.message}</p>`;
+                }
+            }
+        }
+        
+        async function testAPI() {
+            const token = localStorage.getItem('access_token');
+            const testDiv = document.getElementById('api-test');
+            
+            if (!token) {
+                testDiv.innerHTML = '<p>没有访问令牌，无法测试API</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/dynamic-calculation-items/by_form/?form_id=17&include_hidden=false', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                testDiv.innerHTML = `
+                    <h2>API测试结果</h2>
+                    <p>状态码: ${response.status}</p>
+                    <p>状态文本: ${response.statusText}</p>
+                `;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    testDiv.innerHTML += `
+                        <p>成功获取数据，项目数量: ${data.length}</p>
+                        <pre>${JSON.stringify(data[0], null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    testDiv.innerHTML += `<p>错误响应: ${errorText}</p>`;
+                }
+            } catch (error) {
+                testDiv.innerHTML += `<p>请求失败: ${error.message}</p>`;
+            }
+        }
+        
+        // 页面加载时检查认证状态
+        window.onload = function() {
+            checkAuth();
+            testAPI();
+        };
+    </script>
+</body>
+</html> 

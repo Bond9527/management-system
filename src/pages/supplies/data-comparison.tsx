@@ -11,12 +11,10 @@ import {
   Chip,
   Badge,
   Alert,
-  Divider,
-  Button,
 } from "@heroui/react";
-import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
+
+import { useSupplies } from "@/hooks/useSupplies";
 import { generateInventorySummary } from "@/utils/dataConsistencyTest";
-import { formatDate } from "@/utils/dateUtils";
 
 interface ComparisonResult {
   metric: string;
@@ -28,7 +26,9 @@ interface ComparisonResult {
 
 const DataComparisonPage: FC = () => {
   const { supplies, records } = useSupplies();
-  const [comparisonResults, setComparisonResults] = useState<ComparisonResult[]>([]);
+  const [comparisonResults, setComparisonResults] = useState<
+    ComparisonResult[]
+  >([]);
   const [categoryComparison, setCategoryComparison] = useState<any[]>([]);
   const [issues, setIssues] = useState<string[]>([]);
 
@@ -38,19 +38,22 @@ const DataComparisonPage: FC = () => {
 
   const performComparison = () => {
     const summary = generateInventorySummary(supplies, records);
-    
+
     // 计算库存总览页面的数据
     const inventoryOverviewData = {
       totalSupplies: supplies.length,
       totalRecords: records.length,
-      lowStockItems: supplies.filter(s => s.current_stock <= s.safety_stock).length,
-      recentActivity: records.filter(r => {
+      lowStockItems: supplies.filter((s) => s.current_stock <= s.safety_stock)
+        .length,
+      recentActivity: records.filter((r) => {
         const recordDate = new Date(r.timestamp);
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
         return recordDate >= weekAgo;
       }).length,
       totalStock: supplies.reduce((sum, item) => sum + item.current_stock, 0),
-      categories: Array.from(new Set(supplies.map(item => item.category))).length,
+      categories: Array.from(new Set(supplies.map((item) => item.category)))
+        .length,
     };
 
     // 计算数据统计页面的数据
@@ -60,7 +63,8 @@ const DataComparisonPage: FC = () => {
       lowStockItems: summary.lowStockItems,
       recentActivity: summary.recentActivity,
       totalStock: supplies.reduce((sum, item) => sum + item.current_stock, 0),
-      categories: Array.from(new Set(supplies.map(item => item.category))).length,
+      categories: Array.from(new Set(supplies.map((item) => item.category)))
+        .length,
     };
 
     // 生成对比结果
@@ -69,61 +73,92 @@ const DataComparisonPage: FC = () => {
         metric: "总耗材数",
         inventoryOverview: inventoryOverviewData.totalSupplies,
         statistics: statisticsData.totalSupplies,
-        isConsistent: inventoryOverviewData.totalSupplies === statisticsData.totalSupplies,
-        difference: Math.abs(inventoryOverviewData.totalSupplies - statisticsData.totalSupplies)
+        isConsistent:
+          inventoryOverviewData.totalSupplies === statisticsData.totalSupplies,
+        difference: Math.abs(
+          inventoryOverviewData.totalSupplies - statisticsData.totalSupplies,
+        ),
       },
       {
         metric: "变动记录数",
         inventoryOverview: inventoryOverviewData.totalRecords,
         statistics: statisticsData.totalRecords,
-        isConsistent: inventoryOverviewData.totalRecords === statisticsData.totalRecords,
-        difference: Math.abs(inventoryOverviewData.totalRecords - statisticsData.totalRecords)
+        isConsistent:
+          inventoryOverviewData.totalRecords === statisticsData.totalRecords,
+        difference: Math.abs(
+          inventoryOverviewData.totalRecords - statisticsData.totalRecords,
+        ),
       },
       {
         metric: "库存不足",
         inventoryOverview: inventoryOverviewData.lowStockItems,
         statistics: statisticsData.lowStockItems,
-        isConsistent: inventoryOverviewData.lowStockItems === statisticsData.lowStockItems,
-        difference: Math.abs(inventoryOverviewData.lowStockItems - statisticsData.lowStockItems)
+        isConsistent:
+          inventoryOverviewData.lowStockItems === statisticsData.lowStockItems,
+        difference: Math.abs(
+          inventoryOverviewData.lowStockItems - statisticsData.lowStockItems,
+        ),
       },
       {
         metric: "本周变动",
         inventoryOverview: inventoryOverviewData.recentActivity,
         statistics: statisticsData.recentActivity,
-        isConsistent: inventoryOverviewData.recentActivity === statisticsData.recentActivity,
-        difference: Math.abs(inventoryOverviewData.recentActivity - statisticsData.recentActivity)
+        isConsistent:
+          inventoryOverviewData.recentActivity ===
+          statisticsData.recentActivity,
+        difference: Math.abs(
+          inventoryOverviewData.recentActivity - statisticsData.recentActivity,
+        ),
       },
       {
         metric: "总库存量",
         inventoryOverview: inventoryOverviewData.totalStock,
         statistics: statisticsData.totalStock,
-        isConsistent: inventoryOverviewData.totalStock === statisticsData.totalStock,
-        difference: Math.abs(inventoryOverviewData.totalStock - statisticsData.totalStock)
+        isConsistent:
+          inventoryOverviewData.totalStock === statisticsData.totalStock,
+        difference: Math.abs(
+          inventoryOverviewData.totalStock - statisticsData.totalStock,
+        ),
       },
       {
         metric: "分类数量",
         inventoryOverview: inventoryOverviewData.categories,
         statistics: statisticsData.categories,
-        isConsistent: inventoryOverviewData.categories === statisticsData.categories,
-        difference: Math.abs(inventoryOverviewData.categories - statisticsData.categories)
-      }
+        isConsistent:
+          inventoryOverviewData.categories === statisticsData.categories,
+        difference: Math.abs(
+          inventoryOverviewData.categories - statisticsData.categories,
+        ),
+      },
     ];
 
     setComparisonResults(results);
 
     // 生成分类对比数据
-    const categories = Array.from(new Set(supplies.map(item => item.category)));
-    const categoryData = categories.map(category => {
-      const categorySupplies = supplies.filter(item => item.category === category);
-      const totalStock = categorySupplies.reduce((sum, item) => sum + item.current_stock, 0);
-      const lowStockCount = categorySupplies.filter(item => item.current_stock <= item.safety_stock).length;
-      
+    const categories = Array.from(
+      new Set(supplies.map((item) => item.category)),
+    );
+    const categoryData = categories.map((category) => {
+      const categorySupplies = supplies.filter(
+        (item) => item.category === category,
+      );
+      const totalStock = categorySupplies.reduce(
+        (sum, item) => sum + item.current_stock,
+        0,
+      );
+      const lowStockCount = categorySupplies.filter(
+        (item) => item.current_stock <= item.safety_stock,
+      ).length;
+
       return {
         category,
         itemCount: categorySupplies.length,
         totalStock,
         lowStockCount,
-        averageStock: categorySupplies.length > 0 ? Math.round(totalStock / categorySupplies.length * 100) / 100 : 0
+        averageStock:
+          categorySupplies.length > 0
+            ? Math.round((totalStock / categorySupplies.length) * 100) / 100
+            : 0,
       };
     });
 
@@ -131,9 +166,12 @@ const DataComparisonPage: FC = () => {
 
     // 检查问题
     const detectedIssues: string[] = [];
-    results.forEach(result => {
+
+    results.forEach((result) => {
       if (!result.isConsistent) {
-        detectedIssues.push(`${result.metric} 数据不一致: 库存总览=${result.inventoryOverview}, 数据统计=${result.statistics}`);
+        detectedIssues.push(
+          `${result.metric} 数据不一致: 库存总览=${result.inventoryOverview}, 数据统计=${result.statistics}`,
+        );
       }
     });
 
@@ -181,15 +219,19 @@ const DataComparisonPage: FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className={result.difference > 0 ? "text-danger" : "text-success"}>
+                    <span
+                      className={
+                        result.difference > 0 ? "text-danger" : "text-success"
+                      }
+                    >
                       {result.difference > 0 ? `±${result.difference}` : "0"}
                     </span>
                   </TableCell>
                   <TableCell>
                     <Chip
                       color={getConsistencyColor(result.isConsistent)}
-                      variant="flat"
                       size="sm"
+                      variant="flat"
                     >
                       {getConsistencyText(result.isConsistent)}
                     </Chip>
@@ -203,15 +245,13 @@ const DataComparisonPage: FC = () => {
 
       {/* 问题提示 */}
       {issues.length > 0 && (
-        <Alert
-          color="warning"
-          variant="flat"
-          className="mb-4"
-        >
+        <Alert className="mb-4" color="warning" variant="flat">
           <div className="font-semibold mb-2">发现以下数据不一致问题：</div>
           <ul className="list-disc list-inside space-y-1">
             {issues.map((issue, index) => (
-              <li key={index} className="text-sm">{issue}</li>
+              <li key={index} className="text-sm">
+                {issue}
+              </li>
             ))}
           </ul>
         </Alert>
@@ -247,7 +287,9 @@ const DataComparisonPage: FC = () => {
                     <span className="font-semibold">{category.totalStock}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-gray-600">{category.averageStock}</span>
+                    <span className="text-gray-600">
+                      {category.averageStock}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -259,7 +301,10 @@ const DataComparisonPage: FC = () => {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-gray-600">
-                      {((category.itemCount / supplies.length) * 100).toFixed(1)}%
+                      {((category.itemCount / supplies.length) * 100).toFixed(
+                        1,
+                      )}
+                      %
                     </span>
                   </TableCell>
                 </TableRow>
@@ -284,7 +329,9 @@ const DataComparisonPage: FC = () => {
               </ul>
             </div>
             <div className="p-4 bg-green-50 rounded-lg">
-              <h3 className="font-semibold text-green-800 mb-2">数据统计页面</h3>
+              <h3 className="font-semibold text-green-800 mb-2">
+                数据统计页面
+              </h3>
               <ul className="text-sm text-green-700 space-y-1">
                 <li>• 数据源: useSupplies hook</li>
                 <li>• 实时性: 实时更新</li>
@@ -303,25 +350,35 @@ const DataComparisonPage: FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
               <span className="font-medium">数据源一致性</span>
-              <Chip color="success" variant="flat">✓ 一致</Chip>
+              <Chip color="success" variant="flat">
+                ✓ 一致
+              </Chip>
             </div>
             <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
               <span className="font-medium">计算逻辑一致性</span>
-              <Chip color="success" variant="flat">✓ 一致</Chip>
+              <Chip color="success" variant="flat">
+                ✓ 一致
+              </Chip>
             </div>
             <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
               <span className="font-medium">实时更新</span>
-              <Chip color="success" variant="flat">✓ 一致</Chip>
+              <Chip color="success" variant="flat">
+                ✓ 一致
+              </Chip>
             </div>
             {issues.length > 0 ? (
               <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
                 <span className="font-medium">数据一致性</span>
-                <Chip color="danger" variant="flat">⚠ {issues.length}个问题</Chip>
+                <Chip color="danger" variant="flat">
+                  ⚠ {issues.length}个问题
+                </Chip>
               </div>
             ) : (
               <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                 <span className="font-medium">数据一致性</span>
-                <Chip color="success" variant="flat">✓ 完全一致</Chip>
+                <Chip color="success" variant="flat">
+                  ✓ 完全一致
+                </Chip>
               </div>
             )}
           </div>
@@ -331,4 +388,4 @@ const DataComparisonPage: FC = () => {
   );
 };
 
-export default DataComparisonPage; 
+export default DataComparisonPage;

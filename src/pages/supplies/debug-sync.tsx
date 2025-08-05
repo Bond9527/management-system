@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from "react";
+import { FC, useState } from "react";
 import {
   Card,
   CardBody,
@@ -15,9 +15,10 @@ import {
   Select,
   SelectItem,
 } from "@heroui/react";
+import { addToast } from "@heroui/toast";
+
 import { useSupplies, SupplyItem } from "@/hooks/useSupplies";
 import { getCurrentTimestamp } from "@/utils/dateUtils";
-import { addToast } from "@heroui/toast";
 
 const DebugSyncPage: FC = () => {
   const { supplies, addSupply } = useSupplies();
@@ -26,10 +27,18 @@ const DebugSyncPage: FC = () => {
   const [newSupplyUnit, setNewSupplyUnit] = useState("");
   const [newSupplyStock, setNewSupplyStock] = useState("");
   const [newSupplySafety, setNewSupplySafety] = useState("");
-  const [lastAddedSupply, setLastAddedSupply] = useState<SupplyItem | null>(null);
+  const [lastAddedSupply, setLastAddedSupply] = useState<SupplyItem | null>(
+    null,
+  );
 
   const handleAddTestSupply = async () => {
-    if (!newSupplyName || !newSupplyCategory || !newSupplyUnit || !newSupplyStock || !newSupplySafety) {
+    if (
+      !newSupplyName ||
+      !newSupplyCategory ||
+      !newSupplyUnit ||
+      !newSupplyStock ||
+      !newSupplySafety
+    ) {
       addToast({
         title: "输入不完整",
         description: "请填写所有字段",
@@ -37,6 +46,7 @@ const DebugSyncPage: FC = () => {
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
+
       return;
     }
 
@@ -54,7 +64,7 @@ const DebugSyncPage: FC = () => {
 
     await addSupply(newSupply);
     setLastAddedSupply(newSupply);
-    
+
     addToast({
       title: "添加成功",
       description: `成功添加测试耗材: ${newSupplyName}`,
@@ -62,7 +72,7 @@ const DebugSyncPage: FC = () => {
       timeout: 3000,
       shouldShowTimeoutProgress: true,
     });
-    
+
     // 清空表单
     setNewSupplyName("");
     setNewSupplyCategory("");
@@ -87,9 +97,12 @@ const DebugSyncPage: FC = () => {
             />
             <Select
               placeholder="选择类别"
-              selectedKeys={newSupplyCategory ? new Set([newSupplyCategory]) : new Set()}
+              selectedKeys={
+                newSupplyCategory ? new Set([newSupplyCategory]) : new Set()
+              }
               onSelectionChange={(keys) => {
                 const category = Array.from(keys)[0] as string;
+
                 setNewSupplyCategory(category);
               }}
             >
@@ -105,21 +118,21 @@ const DebugSyncPage: FC = () => {
               onValueChange={setNewSupplyUnit}
             />
             <Input
-              type="number"
               placeholder="当前库存"
+              type="number"
               value={newSupplyStock}
               onValueChange={setNewSupplyStock}
             />
             <Input
-              type="number"
               placeholder="安全库存"
+              type="number"
               value={newSupplySafety}
               onValueChange={setNewSupplySafety}
             />
             <Button
+              className="md:col-span-2"
               color="primary"
               onClick={handleAddTestSupply}
-              className="md:col-span-2"
             >
               添加测试耗材
             </Button>
@@ -127,7 +140,9 @@ const DebugSyncPage: FC = () => {
 
           {lastAddedSupply && (
             <div className="mt-4 p-4 bg-success-50 border border-success-200 rounded-lg">
-              <h3 className="font-semibold text-success-800 mb-2">最后添加的耗材：</h3>
+              <h3 className="font-semibold text-success-800 mb-2">
+                最后添加的耗材：
+              </h3>
               <div className="text-sm text-success-700">
                 <p>ID: {lastAddedSupply.id}</p>
                 <p>名称: {lastAddedSupply.name}</p>
@@ -144,7 +159,9 @@ const DebugSyncPage: FC = () => {
       {/* 当前耗材列表 */}
       <Card className="shadow-lg">
         <CardBody>
-          <h2 className="text-lg font-semibold mb-4">当前耗材列表 ({supplies.length})</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            当前耗材列表 ({supplies.length})
+          </h2>
           <Table aria-label="耗材列表">
             <TableHeader>
               <TableColumn>ID</TableColumn>
@@ -161,14 +178,18 @@ const DebugSyncPage: FC = () => {
                   <TableCell>{supply.id}</TableCell>
                   <TableCell>{supply.name}</TableCell>
                   <TableCell>
-                    <Chip color="primary" variant="flat" size="sm">
+                    <Chip color="primary" size="sm" variant="flat">
                       {supply.category}
                     </Chip>
                   </TableCell>
                   <TableCell>{supply.unit}</TableCell>
                   <TableCell>
                     <Badge
-                      color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
+                      color={
+                        supply.current_stock <= supply.safety_stock
+                          ? "danger"
+                          : "success"
+                      }
                       variant="flat"
                     >
                       {supply.current_stock}
@@ -177,11 +198,17 @@ const DebugSyncPage: FC = () => {
                   <TableCell>{supply.safety_stock}</TableCell>
                   <TableCell>
                     <Chip
-                      color={supply.current_stock <= supply.safety_stock ? "danger" : "success"}
-                      variant="flat"
+                      color={
+                        supply.current_stock <= supply.safety_stock
+                          ? "danger"
+                          : "success"
+                      }
                       size="sm"
+                      variant="flat"
                     >
-                      {supply.current_stock <= supply.safety_stock ? "库存不足" : "库存充足"}
+                      {supply.current_stock <= supply.safety_stock
+                        ? "库存不足"
+                        : "库存充足"}
                     </Chip>
                   </TableCell>
                 </TableRow>
@@ -197,24 +224,32 @@ const DebugSyncPage: FC = () => {
           <h2 className="text-lg font-semibold mb-4">数据统计</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{supplies.length}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {supplies.length}
+              </div>
               <div className="text-sm text-gray-600">总耗材数</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
-                {supplies.filter(s => s.current_stock > s.safety_stock).length}
+                {
+                  supplies.filter((s) => s.current_stock > s.safety_stock)
+                    .length
+                }
               </div>
               <div className="text-sm text-gray-600">库存充足</div>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-lg">
               <div className="text-2xl font-bold text-red-600">
-                {supplies.filter(s => s.current_stock <= s.safety_stock).length}
+                {
+                  supplies.filter((s) => s.current_stock <= s.safety_stock)
+                    .length
+                }
               </div>
               <div className="text-sm text-gray-600">库存不足</div>
             </div>
             <div className="text-center p-4 bg-yellow-50 rounded-lg">
               <div className="text-2xl font-bold text-yellow-600">
-                {Array.from(new Set(supplies.map(s => s.category))).length}
+                {Array.from(new Set(supplies.map((s) => s.category))).length}
               </div>
               <div className="text-sm text-gray-600">类别数量</div>
             </div>
@@ -225,4 +260,4 @@ const DebugSyncPage: FC = () => {
   );
 };
 
-export default DebugSyncPage; 
+export default DebugSyncPage;

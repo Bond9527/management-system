@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardBody,
@@ -27,8 +27,9 @@ import {
   DropdownMenu,
   DropdownItem,
 } from "@heroui/react";
+
 import { SearchIcon, PlusIcon, EditIcon, TrashIcon } from "@/components/icons";
-import { api } from '@/services/api';
+import { api } from "@/services/api";
 
 interface JobTitle {
   id: number;
@@ -41,31 +42,31 @@ interface JobTitle {
 }
 
 const JOB_LEVELS = [
-  { key: '初级', label: '初级' },
-  { key: '中级', label: '中级' },
-  { key: '副高级', label: '副高级' },
-  { key: '正高级', label: '正高级' },
+  { key: "初级", label: "初级" },
+  { key: "中级", label: "中级" },
+  { key: "副高级", label: "副高级" },
+  { key: "正高级", label: "正高级" },
 ];
 
 export default function JobTitleTab() {
   const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [editId, setEditId] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
-  
+
   // 表单数据
   const [formData, setFormData] = useState({
-    name: '',
-    level: '初级',
-    description: '',
+    name: "",
+    level: "初级",
+    description: "",
     is_active: true,
   });
 
@@ -75,30 +76,32 @@ export default function JobTitleTab() {
   const fetchJobTitles = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/job-titles/', {
+      const response = await api.get("/job-titles/", {
         params: {
           search: search,
-        }
+        },
       });
-      
+
       // 现在API直接返回数组，不再是分页响应
-      const jobTitleData = Array.isArray(response) ? response : 
-                          response?.results || [];
-      
+      const jobTitleData = Array.isArray(response)
+        ? response
+        : response?.results || [];
+
       // 在前端进行过滤和分页
-      const filteredJobTitles = jobTitleData.filter((title: any) => 
-        !search || title.name.toLowerCase().includes(search.toLowerCase())
+      const filteredJobTitles = jobTitleData.filter(
+        (title: any) =>
+          !search || title.name.toLowerCase().includes(search.toLowerCase()),
       );
-      
+
       // 前端分页
       const startIndex = (page - 1) * rowsPerPage;
       const endIndex = startIndex + rowsPerPage;
       const paginatedJobTitles = filteredJobTitles.slice(startIndex, endIndex);
-      
+
       setJobTitles(paginatedJobTitles);
       setTotalPages(Math.ceil(filteredJobTitles.length / rowsPerPage));
     } catch (error) {
-      console.error('获取职称列表失败:', error);
+      console.error("获取职称列表失败:", error);
     } finally {
       setLoading(false);
     }
@@ -110,11 +113,11 @@ export default function JobTitleTab() {
 
   // 打开新增弹窗
   const openAddModal = () => {
-    setModalMode('add');
+    setModalMode("add");
     setFormData({
-      name: '',
-      level: '初级',
-      description: '',
+      name: "",
+      level: "初级",
+      description: "",
       is_active: true,
     });
     setFormErrors({});
@@ -123,7 +126,7 @@ export default function JobTitleTab() {
 
   // 打开编辑弹窗
   const openEditModal = (jobTitle: JobTitle) => {
-    setModalMode('edit');
+    setModalMode("edit");
     setEditId(jobTitle.id);
     setFormData({
       name: jobTitle.name,
@@ -137,23 +140,24 @@ export default function JobTitleTab() {
 
   // 表单验证
   const validateForm = () => {
-    const errors: {[key: string]: string} = {};
-    
+    const errors: { [key: string]: string } = {};
+
     if (!formData.name.trim()) {
-      errors.name = '职称名称不能为空';
+      errors.name = "职称名称不能为空";
     } else if (formData.name.length > 100) {
-      errors.name = '职称名称不能超过100个字符';
+      errors.name = "职称名称不能超过100个字符";
     }
-    
+
     if (!formData.level) {
-      errors.level = '请选择职称级别';
+      errors.level = "请选择职称级别";
     }
-    
+
     if (formData.description.length > 500) {
-      errors.description = '职称描述不能超过500个字符';
+      errors.description = "职称描述不能超过500个字符";
     }
-    
+
     setFormErrors(errors);
+
     return Object.keys(errors).length === 0;
   };
 
@@ -162,16 +166,16 @@ export default function JobTitleTab() {
     if (!validateForm()) return;
 
     try {
-      if (modalMode === 'add') {
-        await api.post('/job-titles/', formData);
+      if (modalMode === "add") {
+        await api.post("/job-titles/", formData);
       } else if (editId !== null) {
         await api.put(`/job-titles/${editId}/`, formData);
       }
-      
+
       setShowModal(false);
       fetchJobTitles();
     } catch (error: any) {
-      console.error('保存职称失败:', error);
+      console.error("保存职称失败:", error);
       if (error.response?.data) {
         setFormErrors(error.response.data);
       }
@@ -193,7 +197,7 @@ export default function JobTitleTab() {
         setDeleteId(null);
         fetchJobTitles();
       } catch (error) {
-        console.error('删除职称失败:', error);
+        console.error("删除职称失败:", error);
       }
     }
   };
@@ -201,7 +205,7 @@ export default function JobTitleTab() {
   // 批量选择
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(jobTitles.map(title => title.id));
+      setSelectedRows(jobTitles.map((title) => title.id));
     } else {
       setSelectedRows([]);
     }
@@ -209,34 +213,39 @@ export default function JobTitleTab() {
 
   const handleSelectRow = (id: number, checked: boolean) => {
     if (checked) {
-      setSelectedRows(prev => [...prev, id]);
+      setSelectedRows((prev) => [...prev, id]);
     } else {
-      setSelectedRows(prev => prev.filter(rowId => rowId !== id));
+      setSelectedRows((prev) => prev.filter((rowId) => rowId !== id));
     }
   };
 
   // 批量更新状态
   const handleBatchUpdate = async (is_active: boolean) => {
     try {
-      await api.post('/job-titles/batch_update/', {
+      await api.post("/job-titles/batch_update/", {
         ids: selectedRows,
-        is_active: is_active
+        is_active: is_active,
       });
       setSelectedRows([]);
       fetchJobTitles();
     } catch (error) {
-      console.error('批量更新失败:', error);
+      console.error("批量更新失败:", error);
     }
   };
 
   // 获取级别颜色
   const getLevelColor = (level: string) => {
     switch (level) {
-      case '初级': return 'default';
-      case '中级': return 'primary';
-      case '副高级': return 'secondary';
-      case '正高级': return 'success';
-      default: return 'default';
+      case "初级":
+        return "default";
+      case "中级":
+        return "primary";
+      case "副高级":
+        return "secondary";
+      case "正高级":
+        return "success";
+      default:
+        return "default";
     }
   };
 
@@ -246,22 +255,24 @@ export default function JobTitleTab() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">职称管理</h2>
           <p className="text-gray-600">在这里管理公司职称体系</p>
-          
+
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-[284px]">
                 <Input
                   placeholder="搜索职称..."
+                  startContent={
+                    <SearchIcon className="text-base text-gray-400 pointer-events-none flex-shrink-0" />
+                  }
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  startContent={<SearchIcon className="text-base text-gray-400 pointer-events-none flex-shrink-0" />}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button 
-                color="primary" 
-                startContent={<PlusIcon className="text-lg" />} 
-                onClick={openAddModal}
+              <Button
                 aria-label="添加新职位"
+                color="primary"
+                startContent={<PlusIcon className="text-lg" />}
+                onClick={openAddModal}
               >
                 添加职位
               </Button>
@@ -273,10 +284,16 @@ export default function JobTitleTab() {
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu>
-                    <DropdownItem key="activate" onClick={() => handleBatchUpdate(true)}>
+                    <DropdownItem
+                      key="activate"
+                      onClick={() => handleBatchUpdate(true)}
+                    >
                       批量激活
                     </DropdownItem>
-                    <DropdownItem key="deactivate" onClick={() => handleBatchUpdate(false)}>
+                    <DropdownItem
+                      key="deactivate"
+                      onClick={() => handleBatchUpdate(false)}
+                    >
                       批量停用
                     </DropdownItem>
                   </DropdownMenu>
@@ -289,8 +306,11 @@ export default function JobTitleTab() {
             <TableHeader>
               <TableColumn>
                 <Checkbox
+                  isIndeterminate={
+                    selectedRows.length > 0 &&
+                    selectedRows.length < jobTitles.length
+                  }
                   isSelected={selectedRows.length === jobTitles.length}
-                  isIndeterminate={selectedRows.length > 0 && selectedRows.length < jobTitles.length}
                   onValueChange={handleSelectAll}
                 />
               </TableColumn>
@@ -308,7 +328,9 @@ export default function JobTitleTab() {
                   <TableCell>
                     <Checkbox
                       isSelected={selectedRows.includes(jobTitle.id)}
-                      onValueChange={(checked) => handleSelectRow(jobTitle.id, checked)}
+                      onValueChange={(checked) =>
+                        handleSelectRow(jobTitle.id, checked)
+                      }
                     />
                   </TableCell>
                   <TableCell>{jobTitle.id}</TableCell>
@@ -316,9 +338,9 @@ export default function JobTitleTab() {
                     <span className="font-medium">{jobTitle.name}</span>
                   </TableCell>
                   <TableCell>
-                    <Chip 
-                      size="sm" 
+                    <Chip
                       color={getLevelColor(jobTitle.level) as any}
+                      size="sm"
                       variant="flat"
                     >
                       {jobTitle.level}
@@ -327,19 +349,21 @@ export default function JobTitleTab() {
                   <TableCell>
                     <Tooltip content={jobTitle.description}>
                       <span className="truncate max-w-[200px] block">
-                        {jobTitle.description || '-'}
+                        {jobTitle.description || "-"}
                       </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell>
                     <Switch
-                      size="sm"
-                      isSelected={jobTitle.is_active}
-                      color="success"
                       isReadOnly
+                      color="success"
+                      isSelected={jobTitle.is_active}
+                      size="sm"
                     />
                   </TableCell>
-                  <TableCell>{new Date(jobTitle.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {new Date(jobTitle.created_at).toLocaleDateString()}
+                  </TableCell>
                   <TableCell>
                     <Dropdown>
                       <DropdownTrigger>
@@ -348,13 +372,16 @@ export default function JobTitleTab() {
                         </Button>
                       </DropdownTrigger>
                       <DropdownMenu>
-                        <DropdownItem key="edit" onClick={() => openEditModal(jobTitle)}>
+                        <DropdownItem
+                          key="edit"
+                          onClick={() => openEditModal(jobTitle)}
+                        >
                           <EditIcon className="w-3 h-3" />
                           编辑
                         </DropdownItem>
-                        <DropdownItem 
+                        <DropdownItem
                           key="delete"
-                          className="text-danger" 
+                          className="text-danger"
                           color="danger"
                           onClick={() => handleDelete(jobTitle.id)}
                         >
@@ -373,69 +400,91 @@ export default function JobTitleTab() {
             <Pagination
               isCompact
               showControls
-              initialPage={page}
-              page={page}
-              total={totalPages}
-              onChange={setPage}
               classNames={{
                 cursor: "bg-primary-500 text-white",
                 item: "text-gray-600",
                 prev: "text-gray-600",
                 next: "text-gray-600",
               }}
+              initialPage={page}
+              page={page}
+              total={totalPages}
+              onChange={setPage}
             />
           </div>
         </div>
 
         {/* 新增/编辑职称弹窗 */}
-        <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="2xl" scrollBehavior="inside" placement="center" className="mx-4">
+        <Modal
+          className="mx-4"
+          isOpen={showModal}
+          placement="center"
+          scrollBehavior="inside"
+          size="2xl"
+          onClose={() => setShowModal(false)}
+        >
           <ModalContent className="max-h-[90vh]">
             <ModalHeader>
-              {modalMode === 'add' ? '新增职称' : '编辑职称'}
+              {modalMode === "add" ? "新增职称" : "编辑职称"}
             </ModalHeader>
             <ModalBody className="max-h-[60vh] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
+                  autoFocus
+                  description="最多100个字符"
+                  errorMessage={formErrors.name}
                   label="职称名称"
+                  maxLength={100}
                   placeholder="请输入职称名称"
                   value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  errorMessage={formErrors.name}
-                  maxLength={100}
-                  description="最多100个字符"
-                  autoFocus
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  }
                 />
                 <Select
+                  aria-label="选择职称级别"
+                  errorMessage={formErrors.level}
                   label="职称级别"
                   selectedKeys={[formData.level]}
-                  onSelectionChange={keys => setFormData(prev => ({ 
-                    ...prev, 
-                    level: Array.from(keys)[0] as string 
-                  }))}
-                  errorMessage={formErrors.level}
-                  aria-label="选择职称级别"
+                  onSelectionChange={(keys) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      level: Array.from(keys)[0] as string,
+                    }))
+                  }
                 >
-                  {JOB_LEVELS.map(level => (
-                    <SelectItem key={level.key} textValue={level.label} aria-label={`职称级别: ${level.label}`}>
+                  {JOB_LEVELS.map((level) => (
+                    <SelectItem
+                      key={level.key}
+                      aria-label={`职称级别: ${level.label}`}
+                      textValue={level.label}
+                    >
                       {level.label}
                     </SelectItem>
                   ))}
                 </Select>
                 <div className="col-span-1 sm:col-span-2">
                   <Input
+                    description="最多500个字符"
+                    errorMessage={formErrors.description}
                     label="职称描述"
+                    maxLength={500}
                     placeholder="请输入职称描述"
                     value={formData.description}
-                    onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    errorMessage={formErrors.description}
-                    maxLength={500}
-                    description="最多500个字符"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                   />
                 </div>
                 <div className="col-span-1 sm:col-span-2">
                   <Switch
                     isSelected={formData.is_active}
-                    onValueChange={checked => setFormData(prev => ({ ...prev, is_active: checked }))}
+                    onValueChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, is_active: checked }))
+                    }
                   >
                     是否激活
                   </Switch>
@@ -443,7 +492,11 @@ export default function JobTitleTab() {
               </div>
             </ModalBody>
             <ModalFooter>
-              <Button color="default" variant="flat" onClick={() => setShowModal(false)}>
+              <Button
+                color="default"
+                variant="flat"
+                onClick={() => setShowModal(false)}
+              >
                 取消
               </Button>
               <Button color="primary" onClick={handleSave}>
@@ -454,14 +507,19 @@ export default function JobTitleTab() {
         </Modal>
 
         {/* 删除确认弹窗 */}
-        <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+        >
           <ModalContent>
             <ModalHeader>确认删除</ModalHeader>
-            <ModalBody>
-              确定要删除这个职称吗？此操作不可恢复。
-            </ModalBody>
+            <ModalBody>确定要删除这个职称吗？此操作不可恢复。</ModalBody>
             <ModalFooter>
-              <Button color="default" variant="flat" onClick={() => setShowDeleteModal(false)}>
+              <Button
+                color="default"
+                variant="flat"
+                onClick={() => setShowDeleteModal(false)}
+              >
                 取消
               </Button>
               <Button color="danger" onClick={confirmDelete}>
@@ -473,4 +531,4 @@ export default function JobTitleTab() {
       </CardBody>
     </Card>
   );
-} 
+}

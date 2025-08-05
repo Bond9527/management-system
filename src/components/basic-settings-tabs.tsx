@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Tabs, Tab } from "@heroui/react";
+
 import DepartmentTab from "./basic-settings/DepartmentTab";
 import JobTitleTab from "./basic-settings/JobTitleTab";
 import MenuTab from "./basic-settings/MenuTab";
 import PermissionTab from "./basic-settings/PermissionTab";
-import { 
-  DepartmentManagementIcon, 
-  PositionManagementIcon, 
-  MenuManagementIcon, 
-  PermissionManagementIcon 
+import {
+  DepartmentManagementIcon,
+  PositionManagementIcon,
+  MenuManagementIcon,
+  PermissionManagementIcon,
 } from "./management-icons";
 
 export default function BasicSettingsTabs() {
@@ -16,17 +17,17 @@ export default function BasicSettingsTabs() {
 
   return (
     <div className="w-full">
-      <Tabs 
-        selectedKey={selectedTab} 
-        onSelectionChange={(key) => setSelectedTab(key as string)}
+      <Tabs
         aria-label="基础设置"
-        color="primary"
-        variant="solid"
-        radius="lg"
         className="bg-gray-100 rounded-lg"
+        color="primary"
+        radius="lg"
+        selectedKey={selectedTab}
+        variant="solid"
+        onSelectionChange={(key) => setSelectedTab(key as string)}
       >
-        <Tab 
-          key="departments" 
+        <Tab
+          key="departments"
           title={
             <div className="flex items-center space-x-2">
               <DepartmentManagementIcon className="w-4 h-4" />
@@ -38,9 +39,9 @@ export default function BasicSettingsTabs() {
             <DepartmentTab />
           </div>
         </Tab>
-        
-        <Tab 
-          key="jobTitles" 
+
+        <Tab
+          key="jobTitles"
           title={
             <div className="flex items-center space-x-2">
               <PositionManagementIcon className="w-4 h-4" />
@@ -52,9 +53,9 @@ export default function BasicSettingsTabs() {
             <JobTitleTab />
           </div>
         </Tab>
-        
-        <Tab 
-          key="menus" 
+
+        <Tab
+          key="menus"
           title={
             <div className="flex items-center space-x-2">
               <MenuManagementIcon className="w-4 h-4" />
@@ -66,9 +67,9 @@ export default function BasicSettingsTabs() {
             <MenuTab />
           </div>
         </Tab>
-        
-        <Tab 
-          key="permissions" 
+
+        <Tab
+          key="permissions"
           title={
             <div className="flex items-center space-x-2">
               <PermissionManagementIcon className="w-4 h-4" />
@@ -83,4 +84,4 @@ export default function BasicSettingsTabs() {
       </Tabs>
     </div>
   );
-} 
+}

@@ -1,6 +1,7 @@
-import React from 'react';
-import { Card, CardBody, CardHeader } from '@heroui/react';
-import DynamicApplicationManager from '../components/DynamicApplicationManager';
+import React from "react";
+import { Card, CardBody, CardHeader } from "@heroui/react";
+
+import DynamicApplicationManager from "../components/DynamicApplicationManager";
 
 const TestTemplateMultiSelectPage: React.FC = () => {
   return (
@@ -13,7 +14,9 @@ const TestTemplateMultiSelectPage: React.FC = () => {
           <CardBody>
             <div className="space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-800 mb-2">✨ 新功能特性</h3>
+                <h3 className="font-semibold text-blue-800 mb-2">
+                  ✨ 新功能特性
+                </h3>
                 <ul className="list-disc list-inside space-y-1 text-blue-700">
                   <li>✅ 支持模板类型多选</li>
                   <li>✅ 一个模板可以同时支持：耗材管控、需求计算、产能预测</li>
@@ -22,9 +25,11 @@ const TestTemplateMultiSelectPage: React.FC = () => {
                   <li>✅ 向后兼容现有的单选数据</li>
                 </ul>
               </div>
-              
+
               <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-800 mb-2">🎯 使用说明</h3>
+                <h3 className="font-semibold text-green-800 mb-2">
+                  🎯 使用说明
+                </h3>
                 <ol className="list-decimal list-inside space-y-1 text-green-700">
                   <li>点击"新建模板"按钮</li>
                   <li>在"模板类型"部分可以勾选多个选项</li>
@@ -34,12 +39,23 @@ const TestTemplateMultiSelectPage: React.FC = () => {
               </div>
 
               <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-yellow-800 mb-2">📊 预设模板示例</h3>
+                <h3 className="font-semibold text-yellow-800 mb-2">
+                  📊 预设模板示例
+                </h3>
                 <ul className="list-disc list-inside space-y-1 text-yellow-700">
-                  <li><strong>B453 SMT ATE申请表模板</strong>：耗材管控 + 需求计算</li>
-                  <li><strong>综合管理模板</strong>：耗材管控 + 需求计算 + 产能预测</li>
-                  <li><strong>B482耗材管控申请表模板</strong>：仅耗材管控</li>
-                  <li><strong>Andor需求计算表模板</strong>：仅需求计算</li>
+                  <li>
+                    <strong>B453 SMT ATE申请表模板</strong>：耗材管控 + 需求计算
+                  </li>
+                  <li>
+                    <strong>综合管理模板</strong>：耗材管控 + 需求计算 +
+                    产能预测
+                  </li>
+                  <li>
+                    <strong>B482耗材管控申请表模板</strong>：仅耗材管控
+                  </li>
+                  <li>
+                    <strong>Andor需求计算表模板</strong>：仅需求计算
+                  </li>
                 </ul>
               </div>
             </div>
@@ -53,4 +69,4 @@ const TestTemplateMultiSelectPage: React.FC = () => {
   );
 };
 
-export default TestTemplateMultiSelectPage; 
+export default TestTemplateMultiSelectPage;

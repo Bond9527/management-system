@@ -10,7 +10,17 @@ export default {
     "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {
+        'bounce-gentle': {
+          '0%, 100%': { transform: 'translateY(-3px)' },
+          '50%': { transform: 'translateY(3px)' },
+        }
+      },
+      animation: {
+        'bounce-gentle': 'bounce-gentle 2s ease-in-out infinite',
+      }
+    },
   },
   darkMode: "class",
   plugins: [heroui()],

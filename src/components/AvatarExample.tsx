@@ -11,4 +11,4 @@ export default function AvatarExample() {
       <Avatar name="Joe" />
     </div>
   );
-} 
+}

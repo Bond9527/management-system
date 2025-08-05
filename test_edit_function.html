@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: green;
+            background: #e6ffe6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+            background: #ffe6e6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info {
+            color: blue;
+            background: #e6f3ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 耗材需求计算表编辑功能测试</h1>
+    
+    <div class="test-container">
+        <h2>📋 测试步骤</h2>
+        <ol>
+            <li>确保前端服务在 <code>http://localhost:5177</code> 运行</li>
+            <li>确保后端服务在 <code>http://localhost:8000</code> 运行</li>
+            <li>点击下方按钮进行测试</li>
+            <li>查看控制台和下方日志输出</li>
+        </ol>
+    </div>
+
+    <div class="test-container">
+        <h2>🔐 认证测试</h2>
+        <button class="button" onclick="testAuth()">测试认证状态</button>
+        <button class="button" onclick="refreshAuth()">刷新认证</button>
+        <div id="auth-result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📡 API测试</h2>
+        <button class="button" onclick="testAPI()">测试API连接</button>
+        <button class="button" onclick="testCalculationItems()">测试计算项目API</button>
+        <div id="api-result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>🎯 编辑功能测试</h2>
+        <button class="button" onclick="testEditFunction()">测试编辑函数</button>
+        <button class="button" onclick="openEditPage()">打开编辑页面</button>
+        <div id="edit-result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📝 日志输出</h2>
+        <div id="log-output" class="log"></div>
+        <button class="button" onclick="clearLog()">清空日志</button>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logOutput = document.getElementById('log-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logOutput.appendChild(logEntry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log-output').innerHTML = '';
+        }
+
+        async function testAuth() {
+            log('开始测试认证状态...');
+            const resultDiv = document.getElementById('auth-result');
+            
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    log('❌ 未找到访问令牌', 'error');
+                    resultDiv.innerHTML = '<div class="error">❌ 未找到访问令牌，请先登录</div>';
+                    return;
+                }
+
+                log(`✅ 找到访问令牌: ${token.substring(0, 20)}...`, 'success');
+
+                // 测试token有效性
+                const response = await fetch('http://localhost:8000/api/token/verify/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                if (response.ok) {
+                    log('✅ 访问令牌有效', 'success');
+                    resultDiv.innerHTML = '<div class="success">✅ 认证状态正常</div>';
+                } else {
+                    log('❌ 访问令牌无效', 'error');
+                    resultDiv.innerHTML = '<div class="error">❌ 访问令牌无效，需要重新登录</div>';
+                }
+            } catch (error) {
+                log(`❌ 认证测试失败: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="error">❌ 认证测试失败: ${error.message}</div>`;
+            }
+        }
+
+        async function refreshAuth() {
+            log('开始刷新认证...');
+            
+            try {
+                const refreshToken = localStorage.getItem('refresh_token');
+                if (!refreshToken) {
+                    log('❌ 未找到刷新令牌', 'error');
+                    return;
+                }
+
+                const response = await fetch('http://localhost:8000/api/token/refresh/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh: refreshToken })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('access_token', data.access);
+                    log('✅ 访问令牌刷新成功', 'success');
+                    testAuth();
+                } else {
+                    log('❌ 访问令牌刷新失败', 'error');
+                }
+            } catch (error) {
+                log(`❌ 刷新认证失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAPI() {
+            log('开始测试API连接...');
+            const resultDiv = document.getElementById('api-result');
+            
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('http://localhost:8000/api/dynamic-calculation-items/', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    log('✅ API连接正常', 'success');
+                    resultDiv.innerHTML = '<div class="success">✅ API连接正常</div>';
+                } else {
+                    const errorData = await response.json();
+                    log(`❌ API连接失败: ${response.status} - ${JSON.stringify(errorData)}`, 'error');
+                    resultDiv.innerHTML = `<div class="error">❌ API连接失败: ${response.status}</div>`;
+                }
+            } catch (error) {
+                log(`❌ API测试失败: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="error">❌ API测试失败: ${error.message}</div>`;
+            }
+        }
+
+        async function testCalculationItems() {
+            log('开始测试计算项目API...');
+            
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('http://localhost:8000/api/dynamic-calculation-items/by_form/?form_id=17&include_hidden=false', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ 计算项目API正常，返回 ${data.length} 个项目`, 'success');
+                } else {
+                    const errorData = await response.json();
+                    log(`❌ 计算项目API失败: ${response.status} - ${JSON.stringify(errorData)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 计算项目API测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        function testEditFunction() {
+            log('开始测试编辑功能...');
+            const resultDiv = document.getElementById('edit-result');
+            
+            // 模拟编辑函数调用
+            const mockItem = {
+                id: 1,
+                material_name: '测试材料',
+                usage_station: '测试站别',
+                usage_per_set: 1,
+                usage_count: 100,
+                monthly_capacity: 1000,
+                min_stock: 10,
+                max_stock: 100,
+                monthly_demand: 500,
+                monthly_net_demand: 450,
+                actual_order: 0,
+                moq_remark: '测试备注'
+            };
+
+            log(`模拟编辑项目: ${JSON.stringify(mockItem, null, 2)}`, 'info');
+            
+            // 检查是否有必要的函数存在
+            if (typeof window.handleEditDemandCalculationItem === 'function') {
+                log('✅ 编辑函数存在', 'success');
+                resultDiv.innerHTML = '<div class="success">✅ 编辑函数存在</div>';
+            } else {
+                log('❌ 编辑函数不存在', 'error');
+                resultDiv.innerHTML = '<div class="error">❌ 编辑函数不存在</div>';
+            }
+        }
+
+        function openEditPage() {
+            log('打开编辑页面...');
+            
+            // 尝试打开编辑页面
+            const editPageUrl = 'http://localhost:5177/supplies/application-management';
+            log(`尝试打开页面: ${editPageUrl}`, 'info');
+            
+            // 在新窗口中打开
+            window.open(editPageUrl, '_blank');
+            
+            log('✅ 已尝试打开编辑页面', 'success');
+        }
+
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            log('页面加载完成，开始自动检查...');
+            setTimeout(() => {
+                testAuth();
+                testAPI();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

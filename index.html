@@ -20,6 +20,32 @@
       name="viewport"
     />
     <link href="/favicon.ico" rel="icon" />
+    <!-- Fix for xlsx-style dependencies -->
+    <script>
+      // Pre-define cptable to avoid ReferenceError
+      window.cptable = {version:"1.3.7"};
+      window.cptable[874] = {};
+      window.cptable[932] = {};
+      window.cptable[936] = {};
+      window.cptable[949] = {};
+      window.cptable.utils = {
+        decode: function(cp, data) {
+          return String.fromCharCode.apply(null, data);
+        },
+        encode: function(cp, data) {
+          var o = [];
+          for(var i = 0, len = data.length; i < len; ++i) o[i] = data.charCodeAt(i);
+          return o;
+        }
+      };
+      
+      // Pre-define other missing variables
+      var APOS = "'";
+      var QUOTE = '"';
+      var ESCAPED_QUOTE = {};
+      ESCAPED_QUOTE[QUOTE] = '&quot;';
+      ESCAPED_QUOTE[APOS] = '&apos;';
+    </script>
   </head>
   <body>
     <div id="root"></div>

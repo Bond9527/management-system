@@ -1,15 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Input, 
-  Card, 
-  CardBody, 
-  Spinner, 
-  Badge, 
-  Chip,
-  ScrollShadow 
-} from '@heroui/react';
-import { MagnifyingGlassIcon, CubeIcon } from '@heroicons/react/24/outline';
-import { suppliesApi, SupplyItem } from '../services/supplies';
+import React, { useState, useEffect, useRef } from "react";
+import { Input, Spinner, Badge, Chip, ScrollShadow } from "@heroui/react";
+import { MagnifyingGlassIcon, CubeIcon } from "@heroicons/react/24/outline";
+
+import { suppliesApi, SupplyItem } from "../services/supplies";
 
 interface SupplyAutoCompleteProps {
   label?: string;
@@ -32,14 +25,14 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
   disabled = false,
   description,
   isRequired = false,
-  className = ""
+  className = "",
 }) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [suggestions, setSuggestions] = useState<SupplyItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -62,11 +55,12 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
     setIsLoading(true);
     try {
       const results = await suppliesApi.getSupplies({ search: term });
+
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
       setSelectedIndex(-1);
     } catch (error) {
-      console.error('搜索耗材失败:', error);
+      console.error("搜索耗材失败:", error);
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -77,6 +71,7 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
   // 处理输入变化
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+
     setSearchTerm(newValue);
     onChange?.(newValue);
   };
@@ -95,23 +90,23 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
     if (!showSuggestions || suggestions.length === 0) return;
 
     switch (e.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : prev
+        setSelectedIndex((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : prev,
         );
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
         break;
-      case 'Enter':
+      case "Enter":
         e.preventDefault();
         if (selectedIndex >= 0) {
           handleSupplySelect(suggestions[selectedIndex]);
         }
         break;
-      case 'Escape':
+      case "Escape":
         setShowSuggestions(false);
         setSelectedIndex(-1);
         break;
@@ -122,7 +117,7 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        suggestionsRef.current && 
+        suggestionsRef.current &&
         !suggestionsRef.current.contains(event.target as Node) &&
         !inputRef.current?.contains(event.target as Node)
       ) {
@@ -130,18 +125,19 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // 格式化库存状态
   const getStockStatus = (supply: SupplyItem) => {
     if (supply.current_stock <= supply.min_stock) {
-      return { color: 'danger', label: '库存不足' };
+      return { color: "danger", label: "库存不足" };
     } else if (supply.current_stock <= supply.safety_stock) {
-      return { color: 'warning', label: '低库存' };
+      return { color: "warning", label: "低库存" };
     } else {
-      return { color: 'success', label: '库存充足' };
+      return { color: "success", label: "库存充足" };
     }
   };
 
@@ -149,29 +145,12 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
     <div className={`relative ${className}`}>
       <Input
         ref={inputRef}
-        label={label}
-        placeholder={placeholder}
-        value={searchTerm}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        onFocus={() => {
-          if (suggestions.length > 0) {
-            setShowSuggestions(true);
-          }
-        }}
-        disabled={disabled}
         description={description}
-        isRequired={isRequired}
-        startContent={
-          isLoading ? (
-            <Spinner size="sm" />
-          ) : (
-            <MagnifyingGlassIcon className="w-4 h-4 text-gray-400" />
-          )
-        }
+        disabled={disabled}
         endContent={
           searchTerm && (
             <button
+              className="text-gray-400 hover:text-gray-600"
               type="button"
               onClick={() => {
                 setSearchTerm("");
@@ -179,32 +158,50 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
                 setSuggestions([]);
                 setShowSuggestions(false);
               }}
-              className="text-gray-400 hover:text-gray-600"
             >
               ×
             </button>
           )
         }
+        isRequired={isRequired}
+        label={label}
+        placeholder={placeholder}
+        startContent={
+          isLoading ? (
+            <Spinner size="sm" />
+          ) : (
+            <MagnifyingGlassIcon className="w-4 h-4 text-gray-400" />
+          )
+        }
+        value={searchTerm}
+        onChange={handleInputChange}
+        onFocus={() => {
+          if (suggestions.length > 0) {
+            setShowSuggestions(true);
+          }
+        }}
+        onKeyDown={handleKeyDown}
       />
 
       {/* 建议列表 */}
       {showSuggestions && suggestions.length > 0 && (
-        <div 
+        <div
           ref={suggestionsRef}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-hidden"
         >
           <ScrollShadow className="max-h-64">
             {suggestions.map((supply, index) => {
               const stockStatus = getStockStatus(supply);
+
               return (
                 <div
                   key={supply.id}
-                  onClick={() => handleSupplySelect(supply)}
                   className={`px-4 py-3 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0 ${
-                    index === selectedIndex 
-                      ? 'bg-blue-50 border-blue-200' 
-                      : 'hover:bg-gray-50'
+                    index === selectedIndex
+                      ? "bg-blue-50 border-blue-200"
+                      : "hover:bg-gray-50"
                   }`}
+                  onClick={() => handleSupplySelect(supply)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -217,23 +214,19 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
                       <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
                         <span>分类: {supply.category}</span>
                         <span>单位: {supply.unit}</span>
-                        <span>采购员: {supply.purchaser || '未指定'}</span>
+                        <span>采购员: {supply.purchaser || "未指定"}</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
-                        <Badge 
+                        <Badge
                           color={stockStatus.color as any}
-                          variant="flat"
                           size="sm"
+                          variant="flat"
                         >
                           {stockStatus.label}
                         </Badge>
-                        <Chip 
-                          color="primary" 
-                          variant="flat" 
-                          size="sm"
-                        >
+                        <Chip color="primary" size="sm" variant="flat">
                           库存: {supply.current_stock.toLocaleString()}
                         </Chip>
                       </div>
@@ -250,15 +243,18 @@ const SupplyAutoComplete: React.FC<SupplyAutoCompleteProps> = ({
       )}
 
       {/* 无搜索结果提示 */}
-      {showSuggestions && suggestions.length === 0 && searchTerm.trim() && !isLoading && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-          <div className="px-4 py-3 text-center text-gray-500">
-            未找到匹配的耗材
+      {showSuggestions &&
+        suggestions.length === 0 &&
+        searchTerm.trim() &&
+        !isLoading && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+            <div className="px-4 py-3 text-center text-gray-500">
+              未找到匹配的耗材
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 };
 
-export default SupplyAutoComplete; 
+export default SupplyAutoComplete;

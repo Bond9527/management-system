@@ -1,3 +1,5 @@
+/* @import './animations.css'; */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -129,6 +131,35 @@
   font-weight: 600;
   color: #374151;
   border-bottom: 2px solid #e5e7eb;
+  text-align: center !important;
+}
+
+/* 表格内容居中 - 增强优先级 */
+.ant-table-tbody > tr > td {
+  text-align: center !important;
+}
+
+/* 表格所有单元格居中 - 增强优先级 */
+.ant-table-cell {
+  text-align: center !important;
+}
+
+/* 强制所有Ant Design表格单元格居中 */
+.ant-table-wrapper .ant-table-thead > tr > th,
+.ant-table-wrapper .ant-table-tbody > tr > td,
+.ant-table-wrapper .ant-table-cell {
+  text-align: center !important;
+}
+
+/* 确保表格内的文本和数字都居中 */
+.ant-table-wrapper td,
+.ant-table-wrapper th {
+  text-align: center !important;
+}
+
+/* 特殊处理操作按钮列，保持居中 */
+.ant-table-cell .flex {
+  justify-content: center !important;
 }
 
 /* 表格分组头部样式 */
@@ -235,6 +266,8 @@
   background-color: rgba(239, 68, 68, 0.1) !important;
   color: #ef4444 !important;
 }
+
+
 
 /* Toast 样式覆盖 */
 [data-hero-toast-container] {

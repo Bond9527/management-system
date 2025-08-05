@@ -38,6 +38,7 @@ import { PlusIcon, CalculatorIcon, ArrowUpTrayIcon, ArrowLeftIcon, EllipsisVerti
 import { Table, Space, Popconfirm } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import * as XLSX from 'xlsx-js-style';
+import MergedCellTable from './MergedCellTable';
 
 // 🎨 智能对齐函数 - 根据规则设置单元格对齐方式
 const setSmartAlignment = (ws: any, options: any) => {
@@ -3444,18 +3445,18 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
             max_stock: Number(
               item.multi_station_data!.max_stock[stationIndex] || 0,
             ),
-            min_total_stock: Number(
+            min_total_stock: stationIndex === 0 ? Number(
               (item.multi_station_data?.min_total_stock && 
                item.multi_station_data.min_total_stock[stationIndex] !== undefined) 
                 ? item.multi_station_data.min_total_stock[stationIndex] 
                 : 0,
-            ),
-            max_total_stock: Number(
+            ) : null,
+            max_total_stock: stationIndex === 0 ? Number(
               (item.multi_station_data?.max_total_stock && 
                item.multi_station_data.max_total_stock[stationIndex] !== undefined) 
                 ? item.multi_station_data.max_total_stock[stationIndex] 
                 : 0,
-            ),
+            ) : null,
             monthly_demand: Number(
               item.multi_station_data!.monthly_demand[stationIndex] || 0,
             ),
@@ -4619,43 +4620,38 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
                       </Button>
                     </div>
                   ) : (
-                    <div className="overflow-hidden rounded-lg border border-gray-200">
-                      <Table
-                        className="ant-table-striped"
-                        columns={calculationViewColumns}
-                        dataSource={expandedCalculationItems}
-                        loading={loading}
-                        pagination={false}
-                        rowClassName={(record) => {
-                          if (record.stationIndex > 0) {
-                            return "bg-gray-25";
-                          }
-
-                          return "";
-                        }}
-                        rowKey="id"
-                        rowSelection={{
-                          type: "checkbox",
-                          selectedRowKeys,
-                          onChange: (keys) => setSelectedRowKeys(keys),
-                          getCheckboxProps: (record) => ({
-                            // 只在第一行显示复选框
-                            disabled: record.stationIndex !== 0,
-                            style: {
-                              display:
-                                record.stationIndex === 0
-                                  ? "inline-block"
-                                  : "none",
-                            },
-                          }),
-                        }}
-                        scroll={{
-                          x: 1800,
-                          scrollToFirstRowOnChange: true,
-                        }}
-                        size="small"
-                      />
-                    </div>
+                    <MergedCellTable
+                      columns={calculationViewColumns}
+                      dataSource={expandedCalculationItems}
+                      loading={loading}
+                      rowClassName={(record) => {
+                        if (record.stationIndex > 0) {
+                          return "bg-gray-25";
+                        }
+                        return "";
+                      }}
+                      rowKey="id"
+                      rowSelection={{
+                        type: "checkbox",
+                        selectedRowKeys,
+                        onChange: (keys: any) => setSelectedRowKeys(keys),
+                        getCheckboxProps: (record: any) => ({
+                          // 只在第一行显示复选框
+                          disabled: record.stationIndex !== 0,
+                          style: {
+                            display:
+                              record.stationIndex === 0
+                                ? "inline-block"
+                                : "none",
+                          },
+                        }),
+                      }}
+                      scroll={{
+                        x: 1800,
+                        scrollToFirstRowOnChange: true,
+                      }}
+                      size="small"
+                    />
                   )}
                 </div>
 

@@ -26,12 +26,12 @@ export default function TestExcelExport() {
       orientation: 'landscape',
       paperSize: 9,
       margins: {
-        top: 0.1,
-        bottom: 0.1,
-        left: 0.1,
-        right: 0.1,
-        header: 0.1,
-        footer: 0.1
+        top: 0.393055555555556,
+        bottom: 0.393055555555556,
+        left: 0.393055555555556,
+        right: 0.393055555555556,
+        header: 0.393055555555556,
+        footer: 0.393055555555556
       }
     };
     

@@ -1701,12 +1701,12 @@ export default function PricingPage() {
       orientation: 'landscape', // 横向打印
       paperSize: 9,           // A4纸张
       margins: {
-        top: 0.1,             // 最小上边距
-        bottom: 0.1,          // 最小下边距
-        left: 0.1,            // 最小左边距
-        right: 0.1,           // 最小右边距
-        header: 0.1,          // 最小页眉边距
-        footer: 0.1           // 最小页脚边距
+        top: 0.393055555555556,             // 上边距
+        bottom: 0.393055555555556,          // 下边距
+        left: 0.393055555555556,            // 左边距
+        right: 0.393055555555556,           // 右边距
+        header: 0.393055555555556,          // 页眉边距
+        footer: 0.393055555555556           // 页脚边距
       }
     };
 
@@ -1990,12 +1990,12 @@ export default function PricingPage() {
       orientation: 'landscape',
       paperSize: 9,
       margins: {
-        top: 0.1,
-        bottom: 0.1,
-        left: 0.1,
-        right: 0.1,
-        header: 0.1,
-        footer: 0.1
+        top: 0.393055555555556,
+        bottom: 0.393055555555556,
+        left: 0.393055555555556,
+        right: 0.393055555555556,
+        header: 0.393055555555556,
+        footer: 0.393055555555556
       },
       scale: 100
     };
@@ -2187,12 +2187,12 @@ export default function PricingPage() {
       orientation: 'landscape', // 横向打印
       paperSize: 9,           // A4纸张
       margins: {
-        top: 0.1,             // 最小上边距
-        bottom: 0.1,          // 最小下边距
-        left: 0.1,            // 最小左边距
-        right: 0.1,           // 最小右边距
-        header: 0.1,          // 最小页眉边距
-        footer: 0.1           // 最小页脚边距
+        top: 0.393055555555556,             // 上边距
+        bottom: 0.393055555555556,          // 下边距
+        left: 0.393055555555556,            // 左边距
+        right: 0.393055555555556,           // 右边距
+        header: 0.393055555555556,          // 页眉边距
+        footer: 0.393055555555556           // 页脚边距
       }
     };
 
@@ -2596,12 +2596,12 @@ export default function PricingPage() {
       orientation: 'landscape', // 横向打印
       paperSize: 9,           // A4纸张
       margins: {
-        top: 0.1,             // 最小上边距
-        bottom: 0.1,          // 最小下边距
-        left: 0.1,            // 最小左边距
-        right: 0.1,           // 最小右边距
-        header: 0.1,          // 最小页眉边距
-        footer: 0.1           // 最小页脚边距
+        top: 0.393055555555556,             // 上边距
+        bottom: 0.393055555555556,          // 下边距
+        left: 0.393055555555556,            // 左边距
+        right: 0.393055555555556,           // 右边距
+        header: 0.393055555555556,          // 页眉边距
+        footer: 0.393055555555556           // 页脚边距
       }
     };
 
@@ -2881,12 +2881,12 @@ export default function PricingPage() {
         orientation: 'landscape', // 横向打印
         paperSize: 9,           // A4纸张
         margins: {
-          top: 0.1,             // 最小上边距
-          bottom: 0.1,          // 最小下边距
-          left: 0.1,            // 最小左边距
-          right: 0.1,           // 最小右边距
-          header: 0.1,          // 最小页眉边距
-          footer: 0.1           // 最小页脚边距
+          top: 0.393055555555556,             // 上边距
+          bottom: 0.393055555555556,          // 下边距
+          left: 0.393055555555556,            // 左边距
+          right: 0.393055555555556,           // 右边距
+          header: 0.393055555555556,          // 页眉边距
+          footer: 0.393055555555556           // 页脚边距
         }
       };
 

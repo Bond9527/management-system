@@ -39,6 +39,8 @@ import { Table, Space, Popconfirm } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import * as XLSX from 'xlsx-js-style';
 import MergedCellTable from './MergedCellTable';
+import DemandPurchaseTable from './DemandPurchaseTable';
+import MaterialNameCell from './MaterialNameCell';
 
 // 🎨 智能对齐函数 - 根据规则设置单元格对齐方式
 const setSmartAlignment = (ws: any, options: any) => {
@@ -1514,7 +1516,7 @@ const DynamicApplicationDetail: React.FC<DynamicApplicationDetailProps> = ({
       middleHeaders,
       // 第3行：子表头
       subHeaders,
-      // 第3行开始：数据
+      // 第3行开始：数据 - 恢复到单行格式（管控表物料与计算表物料是一对多关系）
       ...calculationItems.map((item) => {
         const targetMonthKey = `${monthInfo.year}-${String(monthInfo.targetMonth).padStart(2, "0")}`;
 
@@ -1562,6 +1564,8 @@ const DynamicApplicationDetail: React.FC<DynamicApplicationDetailProps> = ({
       // 备注信息行（跨列显示）
       [
         "備註：",
+        "",
+        "",
         "",
         "",
         "",
@@ -1748,7 +1752,7 @@ const DynamicApplicationDetail: React.FC<DynamicApplicationDetailProps> = ({
     const dynamicFooterStartRow = 4 + dynamicDataRowCount; // 🔧 表头现在是4行 // 表头行(3) + 数据行(N) + 空行分隔(1)
 
     // 🔧 根据用户反馈修正：设置合并单元格（23列版本）- 4行表头版本
-    ws["!merges"] = [
+    const baseMerges = [
       // 第0行：主标题行合并 A1:W1（23列）
       { s: { r: 0, c: 0 }, e: { r: 0, c: 22 } },
 
@@ -1784,13 +1788,16 @@ const DynamicApplicationDetail: React.FC<DynamicApplicationDetailProps> = ({
       // 🔧 修复：PR開立時間與數量下的第三行子表头不合并，让"數量"显示完整
       // { s: { r: 2, c: 15 }, e: { r: 2, c: 19 } }, // P3:T3 追料需求下的空白 - 注释掉这个合并
 
-      // 备注信息的合并单元格（在表格下方）- 合并3列单元格
-      { s: { r: dynamicFooterStartRow, c: 0 }, e: { r: dynamicFooterStartRow, c: 2 } }, // 備註：行 A:C
-      { s: { r: dynamicFooterStartRow + 1, c: 0 }, e: { r: dynamicFooterStartRow + 1, c: 2 } }, // 1.行 A:C
-      { s: { r: dynamicFooterStartRow + 2, c: 0 }, e: { r: dynamicFooterStartRow + 2, c: 2 } }, // 2.行 A:C
-      { s: { r: dynamicFooterStartRow + 3, c: 0 }, e: { r: dynamicFooterStartRow + 3, c: 2 } }, // 3.行 A:C
-      { s: { r: dynamicFooterStartRow + 4, c: 0 }, e: { r: dynamicFooterStartRow + 4, c: 2 } }, // 4.行 A:C
+      // 备注信息的合并单元格（在表格下方）- 合并4列单元格
+      { s: { r: dynamicFooterStartRow, c: 0 }, e: { r: dynamicFooterStartRow, c: 3 } }, // 備註：行 A:D
+      { s: { r: dynamicFooterStartRow + 1, c: 0 }, e: { r: dynamicFooterStartRow + 1, c: 3 } }, // 1.行 A:D
+      { s: { r: dynamicFooterStartRow + 2, c: 0 }, e: { r: dynamicFooterStartRow + 2, c: 3 } }, // 2.行 A:D
+      { s: { r: dynamicFooterStartRow + 3, c: 0 }, e: { r: dynamicFooterStartRow + 3, c: 3 } }, // 3.行 A:D
+      { s: { r: dynamicFooterStartRow + 4, c: 0 }, e: { r: dynamicFooterStartRow + 4, c: 3 } }, // 4.行 A:D
     ];
+
+    // 管控表恢复到单行格式，不需要数据行合并单元格
+    ws["!merges"] = baseMerges;
 
     // 设置备注单元格格式 - 合并单元格左对齐
     // 为备注行的合并单元格设置格式
@@ -1809,7 +1816,7 @@ const DynamicApplicationDetail: React.FC<DynamicApplicationDetailProps> = ({
       };
       
       // 同时设置合并单元格中其他单元格的格式，确保整个合并区域都是左对齐
-      for (let col = 1; col <= 2; col++) {
+      for (let col = 1; col <= 3; col++) {
         const mergeCellRef = XLSX.utils.encode_cell({ r: row, c: col });
         if (!ws[mergeCellRef]) {
           ws[mergeCellRef] = { v: "", t: 's' };
@@ -3466,6 +3473,19 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
             actual_order: Number(
               item.multi_station_data!.actual_order[stationIndex] || 0,
             ),
+            // 當月總需求和實際訂購数量 - 只在第一行显示，其他行为null
+            monthly_total_demand: stationIndex === 0 ? Number(
+              (item.multi_station_data?.monthly_demand && 
+               Array.isArray(item.multi_station_data.monthly_demand)) 
+                ? item.multi_station_data.monthly_demand.reduce((sum: number, val: number) => sum + val, 0)
+                : 0,
+            ) : null,
+            actual_purchase_quantity: stationIndex === 0 ? Number(
+              (item.multi_station_data?.actual_order && 
+               Array.isArray(item.multi_station_data.actual_order)) 
+                ? item.multi_station_data.actual_order.reduce((sum: number, val: number) => sum + val, 0)
+                : 0,
+            ) : null,
             moq_remark: String(
               item.multi_station_data!.moq_remark[stationIndex] || "",
             ),
@@ -3485,6 +3505,9 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
           ...item,
           min_total_stock: Number(item.min_stock || 0), // 单站别：最低庫存總數 = 最低库存数量
           max_total_stock: Number(item.max_total_stock || item.max_stock || 0),
+          // 单站别：當月總需求和實際訂購数量等于當月需求和實際訂購
+          monthly_total_demand: Number(item.monthly_demand || 0),
+          actual_purchase_quantity: Number(item.actual_order || 0),
           key: uniqueKey,
           id: uniqueKey,
           stationIndex: 0,
@@ -3511,12 +3534,10 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
       (header: B453ColumnConfig) => ({
         ...header,
         onCell: (record: any) => {
-          // 处理多站别显示的 rowSpan 逻辑
+          // 处理多站别显示的 rowSpan 逻辑 - 只处理序号列
           if (
             header.key === "no" ||
-            header.dataIndex === "no" ||
-            header.key === "material_name" ||
-            header.dataIndex === "material_name"
+            header.dataIndex === "no"
           ) {
             return {
               rowSpan:
@@ -3558,32 +3579,15 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
             header.key === "material_name" ||
             header.dataIndex === "material_name"
           ) {
-            if (record.stationIndex === 0) {
-              // 第一行显示物料名称
-              return (
-                <div className="max-w-xs">
-                  <div className="font-medium text-sm mb-1">
-                    {record.material_name}
-                  </div>
-                  {record.stationCount > 1 && (
-                    <div className="text-xs text-gray-500">
-                      <div>单价: ¥{record.unit_price || 0}</div>
-                      <div>采购员: {record.purchaser || ""}</div>
-                    </div>
-                  )}
-                </div>
-              );
-            } else if (record.stationIndex > 0) {
-              return null;
-            }
-
-            // 🔧 添加 fallback，避免返回 undefined
+            // 统一使用MaterialNameCell组件处理料材名稱显示
             return (
-              <div className="max-w-xs">
-                <div className="font-medium text-sm">
-                  {record.material_name}
-                </div>
-              </div>
+              <MaterialNameCell
+                materialName={record.material_name}
+                unitPrice={record.unit_price}
+                purchaser={record.purchaser}
+                isMultiStation={record.stationCount > 1}
+                stationCount={record.stationCount}
+              />
             );
           }
 
@@ -4704,6 +4708,45 @@ const setFontStyle = (ws: any, fontName: string = '標楷體', signatureRow?: nu
                       </div>
                     </CardBody>
                   </Card>
+                )}
+              </div>
+            </Tab>
+
+            {/* 需求与采购信息标签页 */}
+            <Tab key="demand_purchase_view" title="需求与采购信息">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Chip color="primary" size="sm" variant="flat">
+                    需求与采购信息：當月需求、實際請購、MOQ备注
+                  </Chip>
+                  <Button
+                    startContent={<ArrowUpTrayIcon className="w-4 h-4" />}
+                    variant="ghost"
+                    onPress={() => {
+                      // 导出需求与采购信息
+                      console.log('导出需求与采购信息');
+                    }}
+                  >
+                    导出需求采购表
+                  </Button>
+                </div>
+
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <Spinner />
+                  </div>
+                ) : calculationItems.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">暂无需求与采购数据</p>
+                  </div>
+                ) : (
+                  <DemandPurchaseTable
+                    dataSource={expandedCalculationItems}
+                    loading={loading}
+                    rowKey="id"
+                    size="small"
+                    scroll={{ x: 1200 }}
+                  />
                 )}
               </div>
             </Tab>

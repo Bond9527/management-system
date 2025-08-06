@@ -1182,8 +1182,8 @@ def get_b453_calculation_headers(request):
         {'title': '最高庫存數量', 'dataIndex': 'max_stock', 'key': 'max_stock', 'width': 140},
         {'title': '最高庫存總數', 'dataIndex': 'max_total_stock', 'key': 'max_total_stock', 'width': 140},
         {'title': '當月需求/站', 'dataIndex': 'monthly_demand', 'key': 'monthly_demand', 'width': 120},
-        {'title': '當月總需求', 'dataIndex': 'monthly_net_demand', 'key': 'monthly_net_demand', 'width': 150},
-        {'title': '實際訂購數量', 'dataIndex': 'actual_order', 'key': 'actual_order', 'width': 150},
+        {'title': '當月總需求', 'dataIndex': 'monthly_total_demand', 'key': 'monthly_total_demand', 'width': 150},
+        {'title': '實際請購數量', 'dataIndex': 'actual_purchase_quantity', 'key': 'actual_purchase_quantity', 'width': 150},
         {'title': '備註(MOQ)', 'dataIndex': 'moq_remark', 'key': 'moq_remark', 'width': 200}
     ]
     return Response(headers)

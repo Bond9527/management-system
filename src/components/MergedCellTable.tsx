@@ -26,20 +26,69 @@ const MergedCellTable: React.FC<MergedCellTableProps> = ({
   const processedColumns = columns.map(col => ({
     ...col,
     onCell: (record: any, index: number) => {
-      // 只对特定字段进行合并
-      if (col.dataIndex === 'min_total_stock' || col.dataIndex === 'max_total_stock') {
-        const currentRow = dataSource[index];
-        
+      const currentRow = dataSource[index];
+      
+      // 需要合并的字段列表
+      const mergeFields = [
+        'no',                      // 序号列
+        'min_total_stock', 
+        'max_total_stock',
+        'monthly_total_demand',    // 當月總需求
+        'actual_purchase_quantity', // 實際請購數量
+        'moq_remark',              // 備註(MOQ)
+        'total_amount',            // 總金額
+        'purchaser',               // 採購員
+        'material_name'            // 料材名稱
+      ];
+      
+      if (mergeFields.includes(col.dataIndex)) {
         if (currentRow && currentRow.stationCount > 1) {
           if (currentRow.stationIndex === 0) {
             // 第一行，合并多行
+            const baseStyle = {
+              verticalAlign: 'middle',
+              borderBottom: '1px solid #e9ecef',
+            };
+
+
+
+            // 为序号列添加特殊样式
+            if (col.dataIndex === 'no') {
+              return {
+                rowSpan: currentRow.stationCount,
+                colSpan: 1,
+                style: {
+                  ...baseStyle,
+                  backgroundColor: '#fff3cd', // 橙色背景，与网页表格保持一致
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  padding: '12px 8px',
+                },
+              };
+            }
+
+            // 为料材名稱列添加特殊样式
+            if (col.dataIndex === 'material_name') {
+              return {
+                rowSpan: currentRow.stationCount,
+                colSpan: 1,
+                style: {
+                  ...baseStyle,
+                  backgroundColor: '#f0f8ff', // 浅蓝色背景
+                  fontWeight: 'normal',
+                  padding: '12px 8px',
+                },
+              };
+            }
+
+            // 其他合并字段的样式
             return {
               rowSpan: currentRow.stationCount,
               colSpan: 1,
               style: {
-                verticalAlign: 'middle',
+                ...baseStyle,
                 backgroundColor: '#f8f9fa',
-                borderBottom: '1px solid #e9ecef',
+                fontWeight: 'bold',
               },
             };
           } else {
